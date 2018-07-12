@@ -12,6 +12,7 @@ class Lexer {
         ~Lexer();
 
         auto tokenize() -> std::vector<Token*>;
+        auto optimize(std::vector<Token*> const&) const -> std::vector<std::vector<Token*>>;
 
     private:
         bool isString, isLComment, isMLComment;

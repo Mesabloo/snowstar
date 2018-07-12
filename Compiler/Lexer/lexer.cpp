@@ -136,3 +136,34 @@ auto Lexer::checkToken(std::string const& buf) const -> Token* {
         return new Token(Token::Type::LITERAL_NUMBER, buf);
     return new Token(Token::Type::INVALID, buf);
 }
+
+auto Lexer::optimize(std::vector<Token*> const& tokens) const -> std::vector<std::vector<Token*>> {
+    std::vector<std::vector<Token*>> file;
+    std::vector<Token*> line;
+    for (long unsigned int j{0};j < tokens.size();++j) {
+        Token* current{tokens[j]};
+        if (current->getType() == Token::Type::EOL) {
+            line.push_back(current);
+            file.push_back(line);
+            line = {};
+            continue;
+        }
+        if (current->getType() == Token::Type::SEPARATOR) {
+            if (current->getValue() == "[") {
+                if (tokens[j+2]->getValue() == "]") {
+                    Token* t = new Token(Token::Type::LITERAL_MEMORY, tokens[j+1]->getValue()+".0");
+                    line.push_back(t);
+                    j += 2;
+                } else {
+                    Token* t = new Token(Token::Type::LITERAL_MEMORY, tokens[j+1]->getValue()+"."+tokens[j+3]->getValue());
+                    line.push_back(t);
+                    j += 4;
+                }
+                continue;
+            }
+        }
+        line.push_back(current);
+    }
+
+    return file;
+}

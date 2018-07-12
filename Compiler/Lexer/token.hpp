@@ -56,6 +56,15 @@ class Consumer {
         };
 
         Consumer(Token const&, Consumer::Store const&, std::vector<Token> const&);
+
+        Token getInstruction() const;
+        Consumer::Store getStorage() const;
+        std::vector<Token> getArgs() const;
+
+    protected:
+        Token m_instruction;
+        Consumer::Store m_storage;
+        std::vector<Token> m_args;
 };
 
 bool operator==(Token const&, Token const&);

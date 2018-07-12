@@ -29,7 +29,11 @@ Consumer::Store::Store() {}
 Consumer::Store::Store(Token const&, Token const&) {}
 Consumer::Store::~Store() {}
 
-Consumer::Consumer(Token const&, Consumer::Store const&, std::vector<Token> const&) {}
+Consumer::Consumer(Token const& instr, Consumer::Store const& store, std::vector<Token> const& args): m_instruction{instr}, m_storage{store}, m_args{args} {}
+
+Token Consumer::getInstruction() const { return m_instruction; }
+Consumer::Store Consumer::getStorage() const { return m_storage; }
+std::vector<Token> Consumer::getArgs() const { return m_args; }
 
 
 bool operator==(Token const& a, Token const& b) {

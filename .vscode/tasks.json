@@ -13,7 +13,7 @@
                 "${workspaceFolder}/Common/info.cpp",
                 "${workspaceFolder}/Compiler/Lexer/lexer.cpp",
                 "${workspaceFolder}/Compiler/Lexer/token.cpp",
-                "${workspaceFolder}/Compiler/Lexer/except.cpp",
+                "${workspaceFolder}/Compiler/Parser/except.cpp",
                 "${workspaceFolder}/Compiler/Parser/parser.cpp",
                 "${workspaceFolder}/Compiler/Main/main.cpp",
                 "-o",
