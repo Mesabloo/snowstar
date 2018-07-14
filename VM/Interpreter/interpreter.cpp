@@ -73,7 +73,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                 return -32;
             }
             int code = arg0.getIntegerValueIfExisting();
-            if (code == -1) {
+            if (code < 0) {
                 std::cerr << "\033[38;5;196m" << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
                     << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
                 return -7;
@@ -106,7 +106,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                 }
                 case 2: {
                     ByteToken const memseg = c->getStorage().getMemory();
-                    double const memory_value = memseg.getValueIfExisting(),
+                    uint64_t const memory_value = memseg.getValueIfExisting(),
                              _mem = info::m_bytes["mem"],
                              _temp = info::m_bytes["temp"],
                              _param = info::m_bytes["param"],
@@ -137,8 +137,8 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                             << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                         return -32;
                     }
-                    double const memory_index = memseg.getIntegerValueIfExisting();
-                    if (memory_index == -1) {
+                    int32_t const memory_index = memseg.getIntegerValueIfExisting();
+                    if (memory_index < 0) {
                         return 1;
                     }
                     if (memory_value == _nost) {
@@ -150,16 +150,16 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                     } else if (memory_value == _param) {
                         param.push(val);
                     } else {
-                        std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '" << memory_value << "'." << '\n'
+                        std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '" << std::hex << memory_value << "'." << '\n'
                             << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator witht the error code and the value given.";
                         return -85;
                     }
                     return 1;
                 }
                 default:
-                    std::cerr << "\033[38;5;166m" << "Error 0x6987: Invalid argument value specified for $sys." << '\n'
-                        << "$sys does only take `1` or `2` as an argument, not " << code << ". You cannot use it with another number.";
-                    return -5;
+                    std::cerr << "\033[38;5;196m" << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
+                        << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                    return -7;
             }
             return 1;
         }
@@ -184,7 +184,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
     switch (value) {
         case info::MemoryOpcodes::STORE: {
             ByteToken const memseg = c->getStorage().getMemory();
-            double const memory_value = memseg.getValueIfExisting(),
+            uint64_t const memory_value = memseg.getValueIfExisting(),
                            _mem = info::m_bytes["mem"],
                            _temp = info::m_bytes["temp"],
                            _param = info::m_bytes["param"],
@@ -207,14 +207,14 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                 val.isFloatingNumber = false;
                 val.string_storage = arg0.getStringValueIfExisting();
             } else if (arg0.isMemory()) {
-                double const memory_segment = arg0.getValueIfExisting();
+                uint64_t const memory_segment = arg0.getValueIfExisting();
                 if (!arg0.isIntegerNumber()) {
                     std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                         << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                     return -32;
                 }
                 int const index = arg0.getIntegerValueIfExisting();
-                if (index == -1) {
+                if (index < 0) {
                     val.isString = false;
                     val.isFloatingNumber = false;
                     val.isIntegerNumber = false;
@@ -228,7 +228,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     } else if (memory_segment == _temp) {
                         val = temp[index];
                     } else if (memory_segment == _param) {
-                        std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '" << memory_segment << "' used with instruction $store." << '\n'
+                        std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '" << std::hex << memory_segment << "' used with instruction $store." << '\n'
                             << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                         return -87;
                     }
@@ -243,7 +243,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                 return -32;
             }
-            if (memseg.getIntegerValueIfExisting() == -1) {
+            if (memseg.getIntegerValueIfExisting() < 0) {
                 return 1;
             }
             if (memory_value == _nost) {
@@ -251,13 +251,13 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             } else if (memory_value == _temp) {
                 temp[memseg.getIntegerValueIfExisting()] = val;
             } else if (memory_value == _param) {
-                std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '" << memory_value << "' used with instruction $store." << '\n'
+                std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '" << std::hex << memory_value << "' used with instruction $store." << '\n'
                     << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                 return -87;
             } else if (memory_value == _mem) {
                 mem[memseg.getIntegerValueIfExisting()] = val;
             } else {
-                std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '" << memory_value << "'." << '\n'
+                std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '" << std::hex << memory_value << "'." << '\n'
                     << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
                 return -85;
             }
@@ -265,7 +265,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
         }
         case info::MemoryOpcodes::PUSH: {
             ByteToken const memseg = c->getStorage().getMemory();
-            double const memory_value = memseg.getValueIfExisting(),
+            uint64_t const memory_value = memseg.getValueIfExisting(),
                            _mem = info::m_bytes["mem"],
                            _temp = info::m_bytes["temp"],
                            _param = info::m_bytes["param"],
@@ -296,9 +296,9 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                 val.isIntegerNumber = false;
                 val.string_storage = arg0.getStringValueIfExisting();
             } else if (arg0.isMemory()) {
-                double const memory_segment = arg0.getValueIfExisting();
+                uint64_t const memory_segment = arg0.getValueIfExisting();
                 int const index = arg0.getIntegerValueIfExisting();
-                if (index == -1) {
+                if (index < 0) {
                     val.isString = false;
                     val.isFloatingNumber = false;
                     val.isIntegerNumber = false;
@@ -312,11 +312,11 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     } else if (memory_segment == _temp) {
                         val = temp[index];
                     } else if (memory_segment == _param) {
-                        std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '" << memory_segment << "' used with instruction $store." << '\n'
+                        std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '" << std::hex << memory_segment << "' used with instruction $store." << '\n'
                             << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                         return -87;
                     } else {
-                        std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '" << memory_value << "'." << '\n'
+                        std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '" << std::hex << memory_value << "'." << '\n'
                             << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
                         return -85;
                     }
@@ -333,7 +333,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
         }
         case info::MemoryOpcodes::POP: {
             ByteToken const memseg = c->getStorage().getMemory();
-            double const memory_value = memseg.getValueIfExisting(),
+            uint64_t const memory_value = memseg.getValueIfExisting(),
                            _mem = info::m_bytes["mem"],
                            _temp = info::m_bytes["temp"],
                            _param = info::m_bytes["param"],
@@ -346,14 +346,14 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             }
             double const pop_seg = arg0.getValueIfExisting();
             if (pop_seg == _mem || pop_seg == _temp) {
-                std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '" << memory_value << "' used with instruction $pop." << '\n'
+                std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '" << std::hex << memory_value << "' used with instruction $pop." << '\n'
                     << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                 return -87;
             }
             if (pop_seg == _nost) {
                 return 1;
             }
-            if ((memseg.getValueIfExisting() == _nost) | (memseg.getIntegerValueIfExisting() == -1)) {
+            if ((memseg.getValueIfExisting() == _nost)) {
                 if (pop_seg == _param) {
                     param.pop();
                     return 1;
@@ -366,7 +366,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     return -32;
                 }
                 int const index = memseg.getIntegerValueIfExisting();
-                if (index == -1) {
+                if (index < 0) {
                     return 1;
                 }
                 double seg = memseg.getValueIfExisting();
@@ -391,7 +391,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
                 return -63;
             }
-            double const memory_value = arg0.getValueIfExisting(),
+            uint64_t const memory_value = arg0.getValueIfExisting(),
                          _mem = info::m_bytes["mem"],
                          _temp = info::m_bytes["temp"],
                          _param = info::m_bytes["param"],
@@ -399,12 +399,12 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             if (memory_value == _nost) {
                 return 1;
             } else if (memory_value == _param) {
-                std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '" << memory_value << "' used with instruction $free." << '\n'
+                std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '" << std::hex << memory_value << "' used with instruction $free." << '\n'
                     << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                 return -87;
             }
             int const index = arg0.getIntegerValueIfExisting();
-            if (index == -1) {
+            if (index < 0) {
                 std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                     << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                 return -32;
@@ -416,7 +416,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                 temp.erase(index);
                 return 1;
             } else {
-                std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '" << memory_value << "'." << '\n'
+                std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '" << std::hex << memory_value << "'." << '\n'
                     << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
                 return -85;
             }

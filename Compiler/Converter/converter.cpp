@@ -96,21 +96,22 @@ bool Converter::start(std::vector<Consumer*> const& cons) const {
                 }
                 case Token::Type::LITERAL_MEMORY: {
                     utils::stream_write_float(os, static_cast<double>(info::Dividers::MEMORY));
-                utils::stream_write_float(os, info::m_bytes[storage.getMemseg().getValue()]);
-                std::string val = storage.getIndex().getValue();
-                double value;
-                try {
-                    value = static_cast<double>(std::stoi(val));
-                } catch (std::invalid_argument& e) {
-                    std::cerr << "\033[38;5;196m" << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
-                        << "IllegalTypeException" << ": " << "Invalid integer '" << val << "' given as memory index." << "\033[0m" << std::endl;
-                    return false;
-                }
-                double div = static_cast<double>(info::Dividers::NUMBER_INTEGER);
-                utils::stream_write_float(os, div);
-                utils::stream_write_float(os, value);
-                utils::stream_write_float(os, div);
-                utils::stream_write_float(os, static_cast<double>(info::Dividers::MEMORY));
+                    std::string const seg = utils::str_split(t.getValue(), '.')[0],
+                                      val = utils::str_split(t.getValue(), '.')[1];
+                    utils::stream_write_float(os, info::m_bytes[seg]);
+                    double value;
+                    try {
+                        value = static_cast<double>(std::stoi(val));
+                    } catch (std::invalid_argument& e) {
+                        std::cerr << "\033[38;5;196m" << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
+                            << "IllegalTypeException: " << "Invalid integer '" << val << "' given as memory index." << "\033[0m" << std::endl;
+                        return false;
+                    }
+                    double div = static_cast<double>(info::Dividers::NUMBER_INTEGER);
+                    utils::stream_write_float(os, div);
+                    utils::stream_write_float(os, value);
+                    utils::stream_write_float(os, div);
+                    utils::stream_write_float(os, static_cast<double>(info::Dividers::MEMORY));
                     break;
                 }
                 default:
