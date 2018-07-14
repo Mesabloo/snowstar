@@ -91,6 +91,8 @@ int main(int argc, char** argv) {
         return -67;
     }
 
+    std::cout << "\033[38;5;214m" << "File written. You can now use the VM !" << "\033[0m" << std::endl;
+
     getchar();
     return 0;
 }

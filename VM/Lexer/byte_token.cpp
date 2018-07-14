@@ -14,11 +14,10 @@ std::ostream& operator<<(std::ostream& os, ByteToken::Type const& t) {
     return os;
 }
 
-ByteToken::ByteToken(ByteToken::Type const& type, double const value) : m_type(type), m_value(value), isStr(false), isIntNumb(false), isDoubleNumb(false), isMem(false) {}
+ByteToken::ByteToken(ByteToken::Type const& type, double const value, bool const isFloat) : m_type(type), m_value(isFloat?-1:value), m_double_value(isFloat?value:-1), isStr(false), isIntNumb(false), isDoubleNumb(isFloat), isMem(false) {}
 ByteToken::ByteToken(ByteToken::Type const& type, std::string const str_value) : m_type(type), m_string_value(str_value), isStr(true), isIntNumb(false), isDoubleNumb(false), isMem(false) {}
-ByteToken::ByteToken(ByteToken::Type const& type, uint32_t int_value) : m_type(type), m_integer_value(int_value), isStr(false), isIntNumb(true), isDoubleNumb(false), isMem(false) {}
-ByteToken::ByteToken(ByteToken::Type const& type, double float_value) : m_type(type), m_double_value(float_value), isStr(false), isIntNumb(false), isDoubleNumb(true), isMem(false) {}
-ByteToken::ByteToken(ByteToken::Type const& type, double const memseg, uint32_t const index) : m_type(type), m_value(memseg), m_integer_value(index), isStr(false), isIntNumb(false), isDoubleNumb(false), isMem(true) {}
+ByteToken::ByteToken(ByteToken::Type const& type, int32_t int_value) : m_type(type), m_integer_value(int_value), isStr(false), isIntNumb(true), isDoubleNumb(false), isMem(false) {}
+ByteToken::ByteToken(ByteToken::Type const& type, double const memseg, int32_t const index) : m_type(type), m_value(memseg), m_integer_value(index), isStr(false), isIntNumb(false), isDoubleNumb(false), isMem(true) {}
 ByteToken::~ByteToken() {}
 
 bool ByteToken::isString() const { return isStr; }
@@ -35,7 +34,7 @@ std::string ByteToken::getStringValueIfExisting() const {
     if (!isString()) return "";
     return m_string_value;
 }
-uint32_t ByteToken::getIntegerValueIfExisting() const {
+int32_t ByteToken::getIntegerValueIfExisting() const {
     if (!isIntegerNumber() && !isMemory()) return -1;
     return m_integer_value;
 }
@@ -52,5 +51,5 @@ bool operator==(ByteToken const& a, ByteToken const& b) {
         && a.getType() == b.getType();
 }
 std::ostream& operator<<(std::ostream& os, ByteToken const& a) {
-    return os << "ByteToken<" << a.getType() << ">{" << std::hex << a.getValueIfExisting() << ", " << std::dec << a.getIntegerValueIfExisting() << ", " << a.getStringValueIfExisting() << "}";
+    return os << "ByteToken<" << a.getType() << ">{" << std::hex << a.getValueIfExisting() << ", " << std::dec << a.getIntegerValueIfExisting() << ", '" << a.getStringValueIfExisting() << "'}";
 }

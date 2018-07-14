@@ -35,6 +35,6 @@
 vm
 compiler
 static_syntax.txt
-out.ssbc
+out.*
 .vscode/*.json
 .vscode

@@ -68,13 +68,13 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
         case info::SystemOpcodes::SYS: {
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isIntegerNumber()) {
-                std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number '" << arg0.getIntegerValueIfExisting() << "' used as a memory segment index." << '\n'
+                std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                     << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                 return -32;
             }
             int code = arg0.getIntegerValueIfExisting();
             if (code == -1) {
-                std::cerr << "\033[38;5;196m" << "Error 0x0563: Invalid argument specified for $sys." << '\n'
+                std::cerr << "\033[38;5;196m" << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
                     << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
                 return -7;
             }
@@ -133,7 +133,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                         val.string_storage = input;
                     }
                     if (!memseg.isIntegerNumber()) {
-                        std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number '" << arg0.getIntegerValueIfExisting() << "' used as a memory segment index." << '\n'
+                        std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                             << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                         return -32;
                     }
@@ -209,18 +209,20 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             } else if (arg0.isMemory()) {
                 double const memory_segment = arg0.getValueIfExisting();
                 if (!arg0.isIntegerNumber()) {
-                    std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number '" << arg0.getIntegerValueIfExisting() << "' used as a memory segment index." << '\n'
+                    std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                         << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                     return -32;
                 }
                 int const index = arg0.getIntegerValueIfExisting();
                 if (index == -1) {
-                    val.first = "";
-                    val.second = 0;
+                    val.isString = false;
+                    val.isFloatingNumber = false;
+                    val.isIntegerNumber = false;
                 } else {
                     if (memory_segment == _nost) {
-                        val.first = "";
-                        val.second = 0;
+                        val.isString = false;
+                        val.isFloatingNumber = false;
+                        val.isIntegerNumber = false;
                     } else if (memory_segment == _mem) {
                         val = mem[index];
                     } else if (memory_segment == _temp) {
@@ -236,8 +238,8 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
                 return -63;
             }
-            if (!memseg.isIntegerNumber()) {
-                std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number '" << arg0.getIntegerValueIfExisting() << "' used as a memory segment index." << '\n'
+            if (!memseg.isMemory()) {
+                std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                     << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                 return -32;
             }
@@ -276,32 +278,35 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             if (memory_value == _nost) {
                 return 1;
             }
-            std::pair<std::string, double> val;
+            ValueContainer val;
             ByteToken const arg0 = c->getArgs()[0];
             if (arg0.isIntegerNumber()) {
-                val.first = "";
-                val.second = arg0.getIntegerValueIfExisting();
+                val.isString = false;
+                val.isFloatingNumber = false;
+                val.isIntegerNumber = true;
+                val.integer_storage = arg0.getIntegerValueIfExisting();
             } else if (arg0.isDoubleNumber()) {
-                val.first = "";
-                val.second = arg0.getDoubleValueIfExisting();
+                val.isString = false;
+                val.isFloatingNumber = true;
+                val.isIntegerNumber = false;
+                val.float_storage = arg0.getDoubleValueIfExisting();
             } else if (arg0.isString()) {
-                val.first = arg0.getStringValueIfExisting();
-                val.second = -1;
+                val.isString = true;
+                val.isFloatingNumber = false;
+                val.isIntegerNumber = false;
+                val.string_storage = arg0.getStringValueIfExisting();
             } else if (arg0.isMemory()) {
                 double const memory_segment = arg0.getValueIfExisting();
-                if (!arg0.isIntegerNumber()) {
-                    std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number '" << arg0.getIntegerValueIfExisting() << "' used as a memory segment index." << '\n'
-                        << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                    return -32;
-                }
                 int const index = arg0.getIntegerValueIfExisting();
                 if (index == -1) {
-                    val.first = "";
-                    val.second = 0;
+                    val.isString = false;
+                    val.isFloatingNumber = false;
+                    val.isIntegerNumber = false;
                 } else {
                     if (memory_segment == _nost) {
-                        val.first = "";
-                        val.second = 0;
+                        val.isString = false;
+                        val.isFloatingNumber = false;
+                        val.isIntegerNumber = false;
                     } else if (memory_segment == _mem) {
                         val = mem[index];
                     } else if (memory_segment == _temp) {
@@ -354,9 +359,9 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     return 1;
                 }
             } else {
-                std::pair<std::string, double> val;
+                ValueContainer val;
                 if (!memseg.isIntegerNumber()) {
-                    std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number '" << arg0.getIntegerValueIfExisting() << "' used as a memory segment index." << '\n'
+                    std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                         << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                     return -32;
                 }
@@ -398,12 +403,12 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                 return -87;
             }
-            if (!arg0.isIntegerNumber()) {
-                std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number '" << arg0.getIntegerValueIfExisting() << "' used as a memory segment index." << '\n'
+            int const index = arg0.getIntegerValueIfExisting();
+            if (index == -1) {
+                std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                     << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                 return -32;
             }
-            int const index = arg0.getIntegerValueIfExisting();
             if (memory_value == _mem) {
                 mem.erase(index);
                 return 1;

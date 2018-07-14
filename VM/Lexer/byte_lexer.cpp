@@ -66,14 +66,14 @@ ByteToken* ByteLexer::checkValue(double const val) {
     }
     if (isNumber) {
         if (val == static_cast<double>(info::Dividers::NUMBER_INTEGER)) {
-            ByteToken* t = new ByteToken(ByteToken::Type::LITERAL_NUMBER, static_cast<uint32_t>(std::stoi(integer_buffer)));
+            ByteToken* t = new ByteToken(ByteToken::Type::LITERAL_NUMBER, static_cast<int32_t>(std::stoi(integer_buffer)));
             integer_buffer = "";
             isNumber = false;
             if (!isMemory)
                 return t;
             memory_type_buffer.push_back(t);
         } else if (val == static_cast<double>(info::Dividers::NUMBER_FLOAT)) {
-            ByteToken* t = new ByteToken(ByteToken::Type::LITERAL_NUMBER, std::stod(integer_buffer));
+            ByteToken* t = new ByteToken(ByteToken::Type::LITERAL_NUMBER, std::stod(integer_buffer), true);
             integer_buffer = "";
             isNumber = false;
             return t;
@@ -88,10 +88,10 @@ ByteToken* ByteLexer::checkValue(double const val) {
             isMemory = false;
             return t;
         } else
-            memory_type_buffer.push_back(new ByteToken(ByteToken::Type::KEYWORD, static_cast<double>(val)));
+            memory_type_buffer.push_back(new ByteToken(ByteToken::Type::KEYWORD, static_cast<double>(val), false));
         return nullptr;
     }
-    return new ByteToken(ByteToken::Type::KEYWORD, static_cast<double>(val));
+    return new ByteToken(ByteToken::Type::KEYWORD, static_cast<double>(val), false);
 }
 
 ByteConsumer* ByteLexer::createConsumerFromLine(std::vector<ByteToken*> line) const {
