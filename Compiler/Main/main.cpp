@@ -2,9 +2,29 @@
 
 #include "../Lexer/lexer.hpp"
 #include "../Parser/parser.hpp"
+#include "../Converter/converter.hpp"
+#include "../../Common/values.hpp"
 
-int main() {
-    Lexer l("/home/mesabloo/Documents/snowstar/test.sssc");
+int main(int argc, char** argv) {
+    if (argc < 2) {
+        std::cerr << "\033[38;5;196m " << "Program usage: " << argv[0] << " {file.sssc}" << '\n' << '\t' << "{file.sssc}: the path to the file to compile" << std::endl;
+        getchar();
+        return 0;
+    }
+
+    if (argv[1]) {
+        std::string arg{argv[1]};
+        arg.erase(arg.begin()+arg.find_last_of("/\\"), arg.end());
+        vars::PATH = arg;
+    }
+
+    if (argc > 2) {
+        for (int i{2};i < argc;++i) {
+            // args checking goes there
+        }
+    }
+
+    Lexer l(argv[1]);
     auto const tokens = l.tokenize();
     std::cout << "Before optimizing: " << std::endl;
     for (auto const& t : tokens) {
@@ -63,6 +83,14 @@ int main() {
     }
     auto const& c = p.getConsumers();
 
-    std::cout << std::endl;    
+    std::cout << std::endl;
+
+    Converter co;
+    if (!co.start(c)) {
+        getchar();
+        return -67;
+    }
+
     getchar();
+    return 0;
 }

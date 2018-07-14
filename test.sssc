@@ -1,8 +1,8 @@
 store[temp, 1] 'Hello, \tWorld!'  % Store a new string inside the temp segment at index 1
 push[param] [temp, 1]             % Push this value in the param stack
-sys 01                            % Syscall to output text from param
+sys 1                            % Syscall to output text from param
 pop[nost] [param]                 % You can remove the value inside param
-sys 01                            % To leave a space (`\n`) because there are no more left inside @param
+sys 1                            % To leave a space (`\n`) because there are no more left inside @param
 free [temp, 1]                    % You can also delete the value inside the temp segment.
 int 0                             % Stop the the program with code 0
 
