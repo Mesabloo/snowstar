@@ -37,3 +37,4 @@ compiler
 static_syntax.txt
 out.ssbc
 .vscode/*.json
+.vscode

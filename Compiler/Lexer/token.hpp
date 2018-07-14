@@ -16,15 +16,16 @@
 class Token {
     public:
         enum class Type {
-            KEYWORD,           // Instruction names and memory segments names
-            SEPARATOR,         // Most likely to only be either `[` or `]` or `,`.
-            LITERAL_STRING,    // Tokens following the formatting: '\*' (with escape codes)
-            LITERAL_NUMBER,    // Tokens following the scheme: [0-9]+(\\.{1}[0-9]*)?
-            LITERAL_MEMORY,    // Special tokens used for direct access of memory
-            EOL,               // For end of line
-            INLINE_COMMENT,    // % comment
-            MULTILINE_COMMENT, // #* comment *#
-            INVALID            // When none of these types are good enough, the Token is marked invalid.
+            KEYWORD,               // Instruction names and memory segments names
+            SEPARATOR,             // Most likely to only be either `[` or `]` or `,`.
+            LITERAL_STRING,        // Tokens following the formatting: '\*' (with escape codes)
+            LITERAL_NUMBER_FLOAT,  // Tokens following the scheme: ^[0-9]+(\\.{1}[0-9]*){1}$
+            LITERAL_NUMBER_INT,    // Tokens floowing the scheme: ^[0-9]+$
+            LITERAL_MEMORY,        // Special tokens used for direct access of memory
+            EOL,                   // For end of line
+            INLINE_COMMENT,        // % comment
+            MULTILINE_COMMENT,     // #* comment *#
+            INVALID                // When none of these types are good enough, the Token is marked invalid.
         };
         static std::string getTypeSignification(Token::Type);
 
@@ -61,6 +62,8 @@ class Consumer {
         Consumer::Store getStorage() const;
         std::vector<Token> getArgs() const;
 
+        std::string toString() const;
+
     protected:
         Token m_instruction;
         Consumer::Store m_storage;
@@ -68,5 +71,6 @@ class Consumer {
 };
 
 bool operator==(Token const&, Token const&);
+bool operator==(Consumer const&, Consumer const&);
 
 #endif

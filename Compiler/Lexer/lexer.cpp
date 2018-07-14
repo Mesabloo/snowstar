@@ -23,6 +23,7 @@ auto Lexer::tokenize() -> std::vector<Token*> {
         if (token != nullptr)
             m_gen_tokens.push_back(token);
     }
+    m_gen_tokens.push_back(new Token(Token::Type::EOL, ""));
     return m_gen_tokens;
 }
 
@@ -50,6 +51,8 @@ auto Lexer::checkSyntax(char const c) -> Token* {
                 isString = false;
                 isLComment = false;
                 return new Token(Token::Type::EOL, "");
+            } else {
+                buffer += c;
             }
             break;
         }
@@ -109,11 +112,12 @@ auto Lexer::checkSyntax(char const c) -> Token* {
                 return nullptr;
             }
             buffer += c;
-            if (buffer == "#*" && !isString && !isLComment) {
+            if (buffer == "#*" && !isString && !isLComment && !isMLComment) {
                 isMLComment = true;
             }
             if (utils::str_endswith(buffer, "*#") && isMLComment) {
                 auto const token = checkToken(buffer);
+                buffer = "";
                 isMLComment = false;
                 return token;
             }
@@ -132,21 +136,28 @@ auto Lexer::checkToken(std::string const& buf) const -> Token* {
         return new Token(Token::Type::MULTILINE_COMMENT, buf);
     if (std::find_if(info::m_keywords.begin(), info::m_keywords.end(), [=] (Token const& t) {return t == Token(Token::Type::KEYWORD, buf);}) != info::m_keywords.end())
         return new Token(Token::Type::KEYWORD, buf);
-    if (std::regex_match(buf, std::regex("[0-9]+(\\.{1}[0-9]*)?")))
-        return new Token(Token::Type::LITERAL_NUMBER, buf);
+    if (std::regex_match(buf, std::regex("^[0-9]+(\\.{1}[0-9]*){1}$")))
+        return new Token(Token::Type::LITERAL_NUMBER_FLOAT, buf);
+    if (std::regex_match(buf, std::regex("^[0-9]+$")))
+        return new Token(Token::Type::LITERAL_NUMBER_INT, buf);
     return new Token(Token::Type::INVALID, buf);
 }
 
 auto Lexer::optimize(std::vector<Token*> const& tokens) const -> std::vector<std::vector<Token*>> {
     std::vector<std::vector<Token*>> file;
     std::vector<Token*> line;
+    unsigned long long line_number{1};
     for (long unsigned int j{0};j < tokens.size();++j) {
         Token* current{tokens[j]};
         if (current->getType() == Token::Type::EOL) {
             line.push_back(current);
             file.push_back(line);
             line = {};
+            line_number++;
             continue;
+        }
+        if (current->getType() == Token::Type::MULTILINE_COMMENT) {
+            line_number += utils::str_split(current->getValue(), '\n').size();
         }
         if (current->getType() == Token::Type::SEPARATOR) {
             if (current->getValue() == "[") {
@@ -155,6 +166,11 @@ auto Lexer::optimize(std::vector<Token*> const& tokens) const -> std::vector<std
                     line.push_back(t);
                     j += 2;
                 } else {
+                    if (tokens[j+3]->getType() != Token::Type::LITERAL_NUMBER_INT) {
+                        std::cout << "\033[38;5;196m" << "Compilation has been aborted. Error code: 0x10594972" << '\n'
+                            << "IllegalTypeException: Invalid integer '" << tokens[j+3]->getValue() << "' provided for memory access." << "\033[0m" << std::endl;
+                        return {};
+                    }
                     Token* t = new Token(Token::Type::LITERAL_MEMORY, tokens[j+1]->getValue()+"."+tokens[j+3]->getValue());
                     line.push_back(t);
                     j += 4;
