@@ -66,7 +66,8 @@ ByteToken* ByteLexer::checkValue(double const val) {
     }
     if (isNumber) {
         if (val == static_cast<double>(info::Dividers::NUMBER_INTEGER)) {
-            ByteToken* t = new ByteToken(ByteToken::Type::LITERAL_NUMBER, static_cast<int32_t>(std::stoi(integer_buffer)));
+            char* end;
+            ByteToken* t = new ByteToken(ByteToken::Type::LITERAL_NUMBER, static_cast<int64_t>(std::strtod(integer_buffer.c_str(), &end)));
             integer_buffer = "";
             isNumber = false;
             if (!isMemory)

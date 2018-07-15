@@ -64,7 +64,7 @@ bool Converter::start(std::vector<Consumer*> const& cons) const {
                     std::string val = t.getValue();
                     double value;
                     try {
-                        value = static_cast<double>(std::stoi(val));
+                        value = std::stod(val);
                     } catch (std::invalid_argument& e) {
                         std::cerr << "\033[38;5;196m" << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
                             << "IllegalTypeException" << ": " << "Invalid integer '" << val << "'." << "\033[0m" << std::endl;

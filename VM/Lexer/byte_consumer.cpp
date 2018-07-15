@@ -5,7 +5,7 @@
 
 #include "../../Common/info.hpp"
 
-ByteConsumer::Store::Store() : m_memory(ByteToken::Type::LITERAL_MEMORY, info::m_bytes["nost"], -1) {}
+ByteConsumer::Store::Store() : m_memory(ByteToken::Type::LITERAL_MEMORY, info::m_bytes["nost"], static_cast<int64_t>(-1)) {}
 ByteConsumer::Store::Store(ByteToken const& memory) : m_memory(memory){}
 ByteConsumer::Store::~Store() {}
 

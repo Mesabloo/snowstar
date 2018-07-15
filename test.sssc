@@ -1,5 +1,4 @@
-store[temp, 1] 'Hello, \tWorld!'  % Store a new string inside the temp segment at index 1
-push[param] [temp, 1]             % Push this value in the param stack
+push[param] 'Hello, World!'       % Push this value in the param stack
 sys 1                             % Syscall to output text from param
 pop[nost] [param]                 % You can remove the value inside param
 sys 1                             % To leave a space (`\n`) because there are no more left inside @param

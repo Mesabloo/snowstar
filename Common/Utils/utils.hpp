@@ -15,6 +15,14 @@ namespace utils {
     bool str_startswith(std::string const&, std::string const&, unsigned);
     std::streamsize file_getsize(std::string const&);
     bool str_is_number(std::string const&);
+
+    template <typename T>
+    T number_fromString(std::string const& value) {
+        std::istringstream ss(value);
+        T return_value;
+        ss >> return_value;
+        return return_value;
+    }
     
     template <typename Word>
     std::ostream& stream_write(std::ostream& outs, Word value) {

@@ -20,6 +20,7 @@ class Interpreter {
 
     private:
         void loadConsumersInMemory(ByteLexer&);
+        void configVM();
         void checkDomainOfConsumer(ByteConsumer* const&);
         int8_t executeSystemConsumer(ByteConsumer* const&);
         int8_t executeMathsConsumer(ByteConsumer* const&);
@@ -28,13 +29,13 @@ class Interpreter {
 
     protected:
 
-        typedef struct ValueContainer {
-            uint32_t integer_storage;
+        struct ValueContainer {
+            int64_t integer_storage;
             double float_storage;
             std::string string_storage;
 
             bool isIntegerNumber, isFloatingNumber, isString;
-        } ValueContainer;
+        };
 
         std::vector<ByteConsumer*> m_consumers;
         std::streampos m_stream_size;

@@ -136,9 +136,9 @@ auto Lexer::checkToken(std::string const& buf) const -> Token* {
         return new Token(Token::Type::MULTILINE_COMMENT, buf);
     if (std::find_if(info::m_keywords.begin(), info::m_keywords.end(), [=] (Token const& t) {return t == Token(Token::Type::KEYWORD, buf);}) != info::m_keywords.end())
         return new Token(Token::Type::KEYWORD, buf);
-    if (std::regex_match(buf, std::regex("^[0-9]+(\\.{1}[0-9]*){1}$")))
+    if (std::regex_match(buf, std::regex("^((-)?[0-9])+(\\.{1}[0-9]*){1}$")))
         return new Token(Token::Type::LITERAL_NUMBER_FLOAT, buf);
-    if (std::regex_match(buf, std::regex("^[0-9]+$")))
+    if (std::regex_match(buf, std::regex("^((-)?[0-9]+)$")))
         return new Token(Token::Type::LITERAL_NUMBER_INT, buf);
     return new Token(Token::Type::INVALID, buf);
 }
@@ -166,7 +166,7 @@ auto Lexer::optimize(std::vector<Token*> const& tokens) const -> std::vector<std
                     line.push_back(t);
                     j += 2;
                 } else {
-                    if (tokens[j+3]->getType() != Token::Type::LITERAL_NUMBER_INT) {
+                    if (tokens[j+3]->getType() != Token::Type::LITERAL_NUMBER_INT || utils::str_startswith(tokens[j+3]->getValue(), "-")) {
                         std::cout << "\033[38;5;196m" << "Compilation has been aborted. Error code: 0x10594972" << '\n'
                             << "IllegalTypeException: Invalid integer '" << tokens[j+3]->getValue() << "' provided for memory access." << "\033[0m" << std::endl;
                         return {};
