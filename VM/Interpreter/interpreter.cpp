@@ -9,6 +9,7 @@
 
 #include "interpreter.hpp"
 #include "../../Common/Utils/utils.hpp"
+#include "../../Common/termcolor.hpp"
 
 #include "../../Common/info.hpp"
 
@@ -59,7 +60,7 @@ void Interpreter::checkDomainOfConsumer(ByteConsumer* const& c) {
             returned = executeSystemConsumer(c);
             break;
         default:
-            std::cerr << "\033[38;5;196m" << "Error 0x5698: The opcode '0x" << std::hex << value << "' does not belong to any category provided by the language." << '\n'
+            std::cerr << termcolor::red << "Error 0x5698: The opcode '0x" << std::hex << value << "' does not belong to any category provided by the language." << '\n'
                 << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
             returned = -1;
     }
@@ -74,19 +75,19 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
     switch (value) {
         case info::SystemOpcodes::INT: {
             int arg0_returncode = c->getArgs()[0].getIntegerValueIfExisting();
-            std::cout << "\033[38;5;202m" << "Process exited with code " << arg0_returncode << "\033[0m" << std::endl;
+            std::cout << termcolor::yellow << "Process exited with code " << arg0_returncode << termcolor::reset << std::endl;
             return 0;
         }
         case info::SystemOpcodes::SYS: {
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isIntegerNumber()) {
-                std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                     << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                 return -32;
             }
             int code = arg0.getIntegerValueIfExisting();
             if (code < 0) {
-                std::cerr << "\033[38;5;196m" << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
+                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
                     << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
                 return -7;
             }
@@ -104,15 +105,17 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                         } else if (val.isFloatingNumber) {
                             ss << std::setprecision(std::numeric_limits<double>::max_digits10 -1) << val.float_storage;
                         } else {
-                            std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid value ('" << val.string_storage << "', " << val.integer_storage << ", " << val.float_storage << ") contained in @param." << '\n'
+                            std::cerr << termcolor::red << "Error 0x2369: Invalid value ('" << val.string_storage << "', " << val.integer_storage << ", " << val.float_storage << ") contained in @param." << '\n'
                                 << "If you don't know why it happens, or didn't modify the bytecode by hand, then contact the creator specifying your code and the error code.";
                             return -96;
                         }
                     }
+                    std::cout << termcolor::reset;
                     if (ss.str() == "")
                         std::cout << '\n';
                     else
                         std::cout << ss.str();
+                    std::cout << termcolor::reset;
                     std::cout.flush();
                     return 1;
                 }
@@ -145,7 +148,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                         val.string_storage = input;
                     }
                     if (!memseg.isIntegerNumber()) {
-                        std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                             << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                         return -32;
                     }
@@ -162,14 +165,14 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                     } else if (memory_value == _param) {
                         param.push(val);
                     } else {
-                        std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
                             << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator witht the error code and the value given.";
                         return -85;
                     }
                     return 1;
                 }
                 default:
-                    std::cerr << "\033[38;5;196m" << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
+                    std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
                         << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
                     return -7;
             }
@@ -185,7 +188,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
             return 1;
         }
         default:
-            std::cerr << "\033[38;5;196m" << "Error 0x6312: The opcode '0x" << std::hex << value << "' does not belong to the `system` category provided by the language." << '\n'
+            std::cerr << termcolor::red << "Error 0x6312: The opcode '0x" << std::hex << value << "' does not belong to the `system` category provided by the language." << '\n'
                 << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
             return -1;
     }
@@ -221,7 +224,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             } else if (arg0.isMemory()) {
                 uint64_t const memory_segment = arg0.getValueIfExisting();
                 if (!arg0.isIntegerNumber()) {
-                    std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                    std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                         << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                     return -32;
                 }
@@ -240,18 +243,18 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     } else if (memory_segment == _temp) {
                         val = temp[index];
                     } else if (memory_segment == _param) {
-                        std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
+                        std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
                             << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                         return -87;
                     }
                 }
             } else {
-                std::cerr << "\033[38;5;196m" << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
+                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
                     << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
                 return -63;
             }
             if (!memseg.isMemory()) {
-                std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                     << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                 return -32;
             }
@@ -263,13 +266,13 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             } else if (memory_value == _temp) {
                 temp[memseg.getIntegerValueIfExisting()] = val;
             } else if (memory_value == _param) {
-                std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $store." << '\n'
+                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $store." << '\n'
                     << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                 return -87;
             } else if (memory_value == _mem) {
                 mem[memseg.getIntegerValueIfExisting()] = val;
             } else {
-                std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
                     << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
                 return -85;
             }
@@ -283,7 +286,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                            _param = info::m_bytes["param"],
                            _nost = info::m_bytes["nost"];
             if (memory_value == _mem || memory_value == _temp) {
-                std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $push." << '\n'
+                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $push." << '\n'
                     << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                 return -87;
             }
@@ -324,17 +327,17 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     } else if (memory_segment == _temp) {
                         val = temp[index];
                     } else if (memory_segment == _param) {
-                        std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
+                        std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
                             << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                         return -87;
                     } else {
-                        std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
                             << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
                         return -85;
                     }
                 }
             } else {
-                std::cerr << "\033[38;5;196m" << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
+                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
                     << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
                 return -63;
             }
@@ -352,13 +355,13 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                            _nost = info::m_bytes["nost"];
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isMemory()) {
-                std::cerr << "\033[38;5;196m" << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
+                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
                     << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
                 return -63;
             }
             double const pop_seg = arg0.getValueIfExisting();
             if (pop_seg == _mem || pop_seg == _temp) {
-                std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $pop." << '\n'
+                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $pop." << '\n'
                     << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                 return -87;
             }
@@ -373,7 +376,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             } else {
                 ValueContainer val;
                 if (!memseg.isIntegerNumber()) {
-                    std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                    std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                         << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                     return -32;
                 }
@@ -399,7 +402,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
         case info::MemoryOpcodes::FREE: {
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isMemory()) {
-                std::cerr << "\033[38;5;196m" << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
+                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
                     << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
                 return -63;
             }
@@ -411,13 +414,13 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             if (memory_value == _nost) {
                 return 1;
             } else if (memory_value == _param) {
-                std::cerr << "\033[38;5;196m" << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $free." << '\n'
+                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $free." << '\n'
                     << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
                 return -87;
             }
             int const index = arg0.getIntegerValueIfExisting();
             if (index < 0) {
-                std::cerr << "\033[38;5;196m" << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
                     << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
                 return -32;
             }
@@ -428,14 +431,14 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                 temp.erase(index);
                 return 1;
             } else {
-                std::cerr << "\033[38;5;196m" << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
                     << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
                 return -85;
             }
             return 1;
         }
         default:
-            std::cerr << "\033[38;5;196m" << "Error 0x6313: The opcode '0x" << std::hex << value << "' does not belong to the `memory` category provided by the language." << '\n'
+            std::cerr << termcolor::red << "Error 0x6313: The opcode '0x" << std::hex << value << "' does not belong to the `memory` category provided by the language." << '\n'
                 << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
             return -1;
     }
@@ -463,7 +466,7 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
             return 1;
         }
         default:
-            std::cerr << "\033[38;5;196m" << "Error 0x6314: The opcode '0x" << std::hex << value << "' does not belong to the `maths` category provided by the language." << '\n'
+            std::cerr << termcolor::red << "Error 0x6314: The opcode '0x" << std::hex << value << "' does not belong to the `maths` category provided by the language." << '\n'
                 << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
             return -1;
     }
@@ -488,7 +491,7 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
             return 1;
         }
         default:
-            std::cerr << "\033[38;5;196m" << "Error 0x6315: The opcode '0x" << std::hex << value << "' does not belong to the `comparative` category provided by the language." << '\n'
+            std::cerr << termcolor::red << "Error 0x6315: The opcode '0x" << std::hex << value << "' does not belong to the `comparative` category provided by the language." << '\n'
                 << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
             return -1;
     }

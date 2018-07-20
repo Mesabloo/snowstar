@@ -59,7 +59,7 @@ auto Lexer::checkSyntax(char const c) -> Token* {
         case '[': [[fallthrough]];
         case ']': [[fallthrough]];
         case ',': {
-            if (!isString && !isMLComment) {
+            if (!isString && !isMLComment && !isLComment) {
                 if (buffer != "") {
                     auto const token = checkToken(buffer);
                     m_gen_tokens.push_back(token);

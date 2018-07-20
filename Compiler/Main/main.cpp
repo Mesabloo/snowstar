@@ -4,10 +4,11 @@
 #include "../Parser/parser.hpp"
 #include "../Converter/converter.hpp"
 #include "../../Common/values.hpp"
+#include "../../Common/termcolor.hpp"
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::cerr << "\033[38;5;196m " << "Program usage: " << argv[0] << " {file.sssc}" << '\n' << '\t' << "{file.sssc}: the path to the file to compile" << std::endl;
+        std::cerr << termcolor::red << "Program usage: " << argv[0] << " {file.sssc}" << '\n' << '\t' << "{file.sssc}: the path to the file to compile" << std::endl;
         getchar();
         return 0;
     }
@@ -26,11 +27,11 @@ int main(int argc, char** argv) {
 
     Lexer l(argv[1]);
     auto const tokens = l.tokenize();
-    std::cout << "Before optimizing: " << std::endl;
+    std::cout << termcolor::grey << "Before optimizing: " << std::endl;
     for (auto const& t : tokens) {
         std::cout << "Token<"<< Token::getTypeSignification(t->getType()) << ">(" << t->getValue() << ")" << std::endl;
     }
-    std::cout << std::endl << std::endl << "After optimizing: " << std::endl;
+    std::cout << std::endl << std::endl << termcolor::reset << "After optimizing: " << std::endl;
     auto const new_tokens = l.optimize(tokens);
     if (new_tokens.empty()) {
         getchar();
@@ -46,7 +47,7 @@ int main(int argc, char** argv) {
     std::cout << std::endl;
     Parser p(new_tokens);
 
-    std::cout << std::endl << std::endl << "After uncommenting: " << std::endl;
+    std::cout << std::endl << std::endl << termcolor::grey << "After uncommenting: " << std::endl;
     auto const opt_tokens = p.getLines();
     if (opt_tokens.empty()) {
         getchar();
@@ -69,7 +70,7 @@ int main(int argc, char** argv) {
         getchar();
         return -3;
     } else {
-        std::cout << "\033[38;5;214m" << "No syntactical errors !" << "\033[0m" << std::endl;
+        std::cout << termcolor::yellow << "No syntactical errors !" << "\033[0m" << std::endl;
     }
     auto const& e1 = p.assertSemantics();
     for (auto const& ex : e1) {
@@ -79,7 +80,7 @@ int main(int argc, char** argv) {
         getchar();
         return -9;
     } else {
-        std::cout << "\033[38;5;214m" << "No semantical errors !" << "\033[0m" << std::endl;
+        std::cout << termcolor::yellow << "No semantical errors !" << "\033[0m" << std::endl;
     }
     auto const& c = p.getConsumers();
 
@@ -91,7 +92,7 @@ int main(int argc, char** argv) {
         return -67;
     }
 
-    std::cout << "\033[38;5;214m" << "File written. You can now use the VM !" << "\033[0m" << std::endl;
+    std::cout << std::endl << termcolor::green << "File written. You can now use the VM !" << "\033[0m" << std::endl;
 
     getchar();
     return 0;

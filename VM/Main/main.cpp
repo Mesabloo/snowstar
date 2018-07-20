@@ -4,10 +4,11 @@
 #include "../Lexer/byte_lexer.hpp"
 #include "../../Common/Utils/utils.hpp"
 #include "../Interpreter/interpreter.hpp"
+#include "../../Common/termcolor.hpp"
 
 int main(int argc, const char **argv) {
     if (argc < 2) {
-        std::cerr << "\033[38;5;196m " << "Program usage: " << argv[0] << " {file.ssbc}" << '\n' << '\t' << "{file.ssbc}: the path to the file to compile" << std::endl;
+        std::cerr << termcolor::red << "Program usage: " << argv[0] << " {file.ssbc}" << '\n' << '\t' << "{file.ssbc}: the path to the file to compile" << std::endl;
         getchar();
         return 0;
     }

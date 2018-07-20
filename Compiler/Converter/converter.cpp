@@ -6,6 +6,7 @@
 #include "converter.hpp"
 #include "../../Common/values.hpp"
 #include "../../Common/Utils/utils.hpp"
+#include "../../Common/termcolor.hpp"
 
 #include "../../Common/info.hpp"
 
@@ -30,7 +31,7 @@ bool Converter::start(std::vector<Consumer*> const& cons) const {
             try {
                 value = static_cast<double>(std::stoi(val));
             } catch (std::invalid_argument& e) {
-                std::cerr << "\033[38;5;196m" << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
+                std::cerr << termcolor::red << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
                     << "IllegalTypeException" << ": " << "Invalid integer '" << val << "' given as memory index." << "\033[0m" << std::endl;
                 return false;
             }
@@ -66,7 +67,7 @@ bool Converter::start(std::vector<Consumer*> const& cons) const {
                     try {
                         value = std::stod(val);
                     } catch (std::invalid_argument& e) {
-                        std::cerr << "\033[38;5;196m" << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
+                        std::cerr << termcolor::red << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
                             << "IllegalTypeException" << ": " << "Invalid integer '" << val << "'." << "\033[0m" << std::endl;
                         return false;
                     }
@@ -83,7 +84,7 @@ bool Converter::start(std::vector<Consumer*> const& cons) const {
                     try {
                         value = std::stod(val);
                     } catch (std::invalid_argument& e) {
-                        std::cerr << "\033[38;5;196m" << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
+                        std::cerr << termcolor::red << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
                             << "IllegalTypeException" << ": " << "Invalid float number '" << val << "'." << "\033[0m" << std::endl;
                         return false;
                     }
@@ -103,7 +104,7 @@ bool Converter::start(std::vector<Consumer*> const& cons) const {
                     try {
                         value = static_cast<double>(std::stoi(val));
                     } catch (std::invalid_argument& e) {
-                        std::cerr << "\033[38;5;196m" << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
+                        std::cerr << termcolor::red << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
                             << "IllegalTypeException: " << "Invalid integer '" << val << "' given as memory index." << "\033[0m" << std::endl;
                         return false;
                     }
