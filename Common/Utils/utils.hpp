@@ -26,8 +26,10 @@ namespace utils {
     
     template <typename Word>
     std::ostream& stream_write(std::ostream& outs, Word value) {
-        for (unsigned size = sizeof(Word); size; --size, value >>= 8)
+        for (unsigned size = sizeof(Word); size; --size, value >>= 8) {
             outs.put(static_cast<char>(value & 0xFF));
+            std::cout << std::hex << (value & 0xFF) << " ";
+        }
         return outs;
     }
 
@@ -36,6 +38,7 @@ namespace utils {
         memcpy(c, &value, sizeof(value));
         for (size_t i{0};i < sizeof(double);++i)
             stream_write<unsigned char>(outs, c[i]);
+        std::cout << std::endl;
         return outs;
     }
 

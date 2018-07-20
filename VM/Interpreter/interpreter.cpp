@@ -64,7 +64,7 @@ void Interpreter::checkDomainOfConsumer(ByteConsumer* const& c) {
             returned = -1;
     }
     if (returned <= 0) {
-        //getchar();
+        getchar();
         exit(returned);
     }
 }
@@ -456,7 +456,7 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
         case info::MathsOpcodes::DIV: {
             return 1;
         }
-        case info::MathsOpcodes::RND: {
+        case info::MathsOpcodes::RAND: {
             return 1;
         }
         case info::MathsOpcodes::MOD: {

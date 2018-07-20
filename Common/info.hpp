@@ -38,7 +38,7 @@ struct info {
         MUL = 0x20'000'000 + 0x3,
         DIV = 0x20'000'000 + 0x4,
         MOD = 0x20'000'000 + 0x5,
-        RND = 0x20'000'000 + 0x6
+        RAND = 0x20'000'000 + 0x6
     };
 
     enum MemoryOpcodes {

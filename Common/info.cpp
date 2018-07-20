@@ -26,7 +26,7 @@ std::vector<Token> info::m_keywords = {
     Token(Token::Type::KEYWORD, "mul"), // MULtiplication instruction
     Token(Token::Type::KEYWORD, "div"), // DIVision instruction
     Token(Token::Type::KEYWORD, "mod"), // MODulo instruction
-    Token(Token::Type::KEYWORD, "rnd") // RaNDom instruction
+    Token(Token::Type::KEYWORD, "rand") // RaNDom instruction
 };
 
 std::vector<Consumer> info::m_syntax = {
@@ -43,7 +43,8 @@ std::vector<Consumer> info::m_syntax = {
     Consumer(Token(Token::Type::KEYWORD, "push"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_FLOAT, "value")}), // Literal
     Consumer(Token(Token::Type::KEYWORD, "push"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_STRING, "value")}), // Literal
     Consumer(Token(Token::Type::KEYWORD, "push"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "value")}), // Literal.Memory
-    Consumer(Token(Token::Type::KEYWORD, "pop"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token(Token::Type::LITERAL_MEMORY, "mem_value"))})
+    Consumer(Token(Token::Type::KEYWORD, "pop"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "mem_value")}),
+    Consumer(Token(Token::Type::KEYWORD, "rand"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}) // Literal.Memory
 };
 
 std::map<std::string, double const> info::m_bytes = {
@@ -60,7 +61,7 @@ std::map<std::string, double const> info::m_bytes = {
     {"mul", 0x20'000'000 + 0x3},
     {"div", 0x20'000'000 + 0x4},
     {"mod", 0x20'000'000 + 0x5},
-    {"rnd", 0x20'000'000 + 0x6},
+    {"rand", 0x20'000'000 + 0x6},
 
     // memory category: 0x30000000 + index
     {"push", 0x30'000'000 + 0x1},
