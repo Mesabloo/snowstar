@@ -1,7 +1,29 @@
-%rand[param] 0, 1                  % Push this value in the param stack
-push[param] 'Hello, World!'
-sys 1                             % Syscall to output text from param
-pop[nost] [param]                 % You can remove the value inside param
-sys 1                             % To leave a space (`\n`) because there are no more left inside @param
-free [temp, 1]                    % You can also delete the value inside the temp segment.
-int 0                             % Stop the the program with code 0
+% @@import once
+% @@include 'test.sssc'
+
+main:
+    rand[mem, 1] 0, 10
+    store[mem, 2] 1
+
+    push[param] ' est: '
+    push[param] [mem, 1]
+    push[param] 'Le factoriel de '
+    sys 1
+    pop[nost] [param]
+    pop[nost] [param]
+    pop[nost] [param]
+    
+    while_mem_l_0:
+        mul[mem, 2] [mem, 1], [mem, 2]
+        sub[mem, 1] [mem, 1], 1
+        cmp [mem, 1], 0
+        jwg while_mem_l_0
+
+    push[param] [mem, 2]
+    sys 1
+    pop[nost] [param]
+
+    free [mem, 2]
+    free [mem, 1]
+
+    int 0

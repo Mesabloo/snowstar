@@ -14,11 +14,12 @@ std::vector<Token> info::m_keywords = {
     Token(Token::Type::KEYWORD, "pop"), // POP instruction
     Token(Token::Type::KEYWORD, "lbl"), // LaBeL declaration instruction
     Token(Token::Type::KEYWORD, "jmp"), // JuMP to label instruction
+    Token(Token::Type::KEYWORD, "call"), // CALL function instruction
     Token(Token::Type::KEYWORD, "cmp"), // CoMPare instruction
-    Token(Token::Type::KEYWORD, "ine"), // IfNotEqual instruction
-    Token(Token::Type::KEYWORD, "ieq"), // IfEQual instruction
-    Token(Token::Type::KEYWORD, "igr"), // IfGReater instruction
-    Token(Token::Type::KEYWORD, "ilo"), // IfLOwer instruction
+    Token(Token::Type::KEYWORD, "jwe"), // JumpWhenEqual instruction
+    Token(Token::Type::KEYWORD, "jwd"), // JumpWhenDifferent instruction
+    Token(Token::Type::KEYWORD, "jwg"), // JumpWhenGreater instruction
+    Token(Token::Type::KEYWORD, "jwl"), // JumpWhenLower instruction
     Token(Token::Type::KEYWORD, "back"), // BACK instruction
     Token(Token::Type::KEYWORD, "len"), // LENgth instruction
     Token(Token::Type::KEYWORD, "add"), // ADDition instruction
@@ -44,7 +45,48 @@ std::vector<Consumer> info::m_syntax = {
     Consumer(Token(Token::Type::KEYWORD, "push"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_STRING, "value")}), // Literal
     Consumer(Token(Token::Type::KEYWORD, "push"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "value")}), // Literal.Memory
     Consumer(Token(Token::Type::KEYWORD, "pop"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "mem_value")}),
-    Consumer(Token(Token::Type::KEYWORD, "rand"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}) // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "rand"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "rand"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "rand"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "rand"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "lbl"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "jmp"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "call"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "back"), Consumer::Store(), {}),
+    Consumer(Token(Token::Type::KEYWORD, "jwe"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "jwd"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "jwg"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "jwl"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_NUMBER_INT, "first_value"), Token(Token::Type::LITERAL_NUMBER_INT, "second_value")}),
+    Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_NUMBER_FLOAT, "first_value"), Token(Token::Type::LITERAL_NUMBER_FLOAT, "second_value")}),
+    Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "first_value"), Token(Token::Type::LITERAL_STRING, "second_value")}),
+    Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_MEMORY, "first_value"), Token(Token::Type::LITERAL_MEMORY, "second_value")}),
+    Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_MEMORY, "first_value"), Token(Token::Type::LITERAL_STRING, "second_value")}),
+    Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_MEMORY, "first_value"), Token(Token::Type::LITERAL_NUMBER_INT, "second_value")}),
+    Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_MEMORY, "first_value"), Token(Token::Type::LITERAL_NUMBER_FLOAT, "second_value")}),
+    Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "first_value"), Token(Token::Type::LITERAL_MEMORY, "second_value")}),
+    Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_NUMBER_INT, "first_value"), Token(Token::Type::LITERAL_MEMORY, "second_value")}),
+    Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_NUMBER_FLOAT, "first_value"), Token(Token::Type::LITERAL_MEMORY, "second_value")}),
+    Consumer(Token(Token::Type::KEYWORD, "add"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "add"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "add"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "add"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "sub"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "sub"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "sub"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "sub"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "mul"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "mul"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "mul"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "mul"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "div"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "div"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "div"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "div"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "mod"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "mod"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "mod"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "mod"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}) // Literal.Memory
 };
 
 std::map<std::string, double const> info::m_bytes = {
@@ -54,6 +96,7 @@ std::map<std::string, double const> info::m_bytes = {
     {"back", 0x10'000'000 + 0x3},
     {"lbl", 0x10'000'000 + 0x4},
     {"jmp", 0x10'000'000 + 0x5},
+    {"call", 0x10'000'000 + 0x6},
 
     // math category: 0x20000000 + index
     {"add", 0x20'000'000 + 0x1},
@@ -71,10 +114,10 @@ std::map<std::string, double const> info::m_bytes = {
 
     // comparative category: 0x40000000 + index
     {"cmp", 0x40'000'000 + 0x1},
-    {"ieq", 0x40'000'000 + 0x2},
-    {"ine", 0x40'000'000 + 0x3},
-    {"igr", 0x40'000'000 + 0x4},
-    {"ilo", 0x40'000'000 + 0x5},
+    {"jwe", 0x40'000'000 + 0x2},
+    {"jwd", 0x40'000'000 + 0x3},
+    {"jwg", 0x40'000'000 + 0x4},
+    {"jwl", 0x40'000'000 + 0x5},
 
     // memsegs category: 0x50000000 + index
     {"mem", 0x50'000'000 + 0x1},

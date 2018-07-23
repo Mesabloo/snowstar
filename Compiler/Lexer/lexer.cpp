@@ -56,6 +56,24 @@ auto Lexer::checkSyntax(char const c) -> Token* {
             }
             break;
         }
+        case ':': {
+            if (!isString && !isMLComment && !isLComment) {
+                if (buffer != "") {
+                    Token* t = new Token(Token::Type::KEYWORD, "lbl");
+                    m_gen_tokens.push_back(t);
+                    buffer = ("'" + buffer + "'");
+                    isString = true;
+                    auto const t1 = checkToken(buffer);
+                    isString = false;
+                    buffer = "";
+                    return t1;
+                }
+                buffer = "";
+                return nullptr;
+            } else
+                buffer += c;
+            break;
+        }
         case '[': [[fallthrough]];
         case ']': [[fallthrough]];
         case ',': {
@@ -140,6 +158,9 @@ auto Lexer::checkToken(std::string const& buf) const -> Token* {
         return new Token(Token::Type::LITERAL_NUMBER_FLOAT, buf);
     if (std::regex_match(buf, std::regex("^((-)?[0-9]+)$")))
         return new Token(Token::Type::LITERAL_NUMBER_INT, buf);
+    Token* tmp = m_gen_tokens[m_gen_tokens.size()-1];
+    if (tmp->getValue() == "call" || tmp->getValue() == "jmp" || tmp->getValue() == "jwe" || tmp->getValue() == "jwd" || tmp->getValue() == "jwg" || tmp->getValue() == "jwl")
+        return new Token(Token::Type::LITERAL_STRING, "'" + buf + "'");
     return new Token(Token::Type::INVALID, buf);
 }
 

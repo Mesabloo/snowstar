@@ -28,7 +28,8 @@ struct info {
         SYS = 0x10'000'000 + 0x2,
         BACK = 0x10'000'000 + 0x3,
         LBL = 0x10'000'000 + 0x4,
-        JMP = 0x10'000'000 + 0x5
+        JMP = 0x10'000'000 + 0x5,
+        CALL = 0x10'000'000 + 0x6
     };
 
     enum MathsOpcodes {
@@ -52,10 +53,10 @@ struct info {
     enum ComparativeOpcodes {
         // comparative category: 0x40000000 + index
         CMP = 0x40'000'000 + 0x1,
-        IEQ = 0x40'000'000 + 0x2,
-        INE = 0x40'000'000 + 0x3,
-        IGR = 0x40'000'000 + 0x4,
-        ILO = 0x40'000'000 + 0x5
+        JWE = 0x40'000'000 + 0x2,
+        JWD = 0x40'000'000 + 0x3,
+        JWG = 0x40'000'000 + 0x4,
+        JWL = 0x40'000'000 + 0x5
     };
 
     enum MemsegOpcodes {
