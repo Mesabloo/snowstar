@@ -18,6 +18,7 @@ bool Converter::start(std::vector<Consumer*> const& cons) const {
     os.open(vars::PATH + "/out.ssbc", std::ofstream::ios_base::binary | std::ofstream::ios_base::out);
     os << std::hex;
     for (auto const& c : cons) {
+        std::clog << termcolor::green << c->toString() << termcolor::reset << std::endl;
         Token const instr = c->getInstruction();
         Consumer::Store const storage = c->getStorage();
         std::vector<Token> const args = c->getArgs();

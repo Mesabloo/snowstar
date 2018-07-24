@@ -44,19 +44,23 @@ void Interpreter::configVM() {
 }
 
 void Interpreter::loadConsumersInMemory(ByteLexer& b) {
+    // int i{0};
     while (b.getSize() < m_stream_size) {
+        // std::clog << termcolor::blue << "Line #" << i << "\tRead=" << b.getSize() << "B\tTotal=" << m_stream_size << "B" <<  termcolor::reset << std::endl;
         ByteConsumer* c = b.createConsumerFromLine(b.readLine());
+        // std::clog << *c << std::endl;
         if (c == nullptr) {
             getchar();
             return;
         }
         m_consumers.push_back(c);
+        // ++i;
     }
 }
 
 void Interpreter::checkDomainOfConsumer(ByteConsumer* const& c) {
     uint64_t value = static_cast<uint64_t>(c->getInstruction().getValueIfExisting());
-    int8_t returned;
+    int8_t returned{1};
     switch (value & 0xFF000000) {
         case 0x50000000: // memsegs
             break;
@@ -78,6 +82,7 @@ void Interpreter::checkDomainOfConsumer(ByteConsumer* const& c) {
             returned = -1;
     }
     if (returned <= 0) {
+        std::cout << termcolor::reset;
         getchar();
         exit(returned);
     }
@@ -120,7 +125,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                         } else if (val.isFloatingNumber) {
                             ss << std::setprecision(std::numeric_limits<double>::max_digits10 -1) << val.float_storage;
                         } else {
-                            std::cerr << termcolor::red << "Error 0x2369: Invalid value ('" << val.string_storage << "', " << val.integer_storage << ", " << val.float_storage << ") contained in @param." << '\n'
+                            std::cerr << termcolor::red << "Error 0x4563: Invalid value " << val << " contained in @param." << '\n'
                                 << "If you don't know why it happens, or didn't modify the bytecode by hand, then contact the creator specifying your code and the error code.";
                             return -96;
                         }
@@ -499,7 +504,7 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
             return -85;
         }
         if (!tmp.isIntegerNumber) {
-            std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << tmp.string_storage << "', " << tmp.integer_storage << ", " << tmp.float_storage << ") used as a memory segment index." << '\n'
+            std::cerr << termcolor::red << "Error 0x9834: Invalid integer number " << tmp << " used as a memory segment index." << '\n'
                 << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
             return -32;
         }
@@ -526,7 +531,7 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
             return -85;
         }
         if (!tmp.isIntegerNumber) {
-            std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << tmp.string_storage << "', " << tmp.integer_storage << ", " << tmp.float_storage << ") used as a memory segment index." << '\n'
+            std::cerr << termcolor::red << "Error 0x9834: Invalid integer number " << tmp << " used as a memory segment index." << '\n'
                 << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
             return -32;
         }
@@ -561,7 +566,7 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
         case info::MathsOpcodes::RAND: {
             std::uniform_int_distribution<> distrib(val0.integer_storage, val1.integer_storage);
             result.isIntegerNumber = true;
-            result.integer_storage = distrib(generator);
+            result.integer_storage = static_cast<int64_t>(distrib(generator));
             break;
         }
         case info::MathsOpcodes::MOD: {

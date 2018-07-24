@@ -96,4 +96,8 @@ inline bool operator<=(Interpreter::ValueContainer const a, Interpreter::ValueCo
     return !(a > b);
 }
 
+inline std::ostream& operator<<(std::ostream& os, Interpreter::ValueContainer const a) {
+    return os << "(" << (a.isString?("'" + a.string_storage + "'"):"") << (a.isIntegerNumber?std::to_string(a.integer_storage):"") << (a.isFloatingNumber?std::to_string(a.float_storage):"") << ")"; 
+}
+
 #endif
