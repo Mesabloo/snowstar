@@ -1,4 +1,5 @@
 #include <iostream>
+#include <thread>
 
 #include "../../Common/values.hpp"
 #include "../Lexer/byte_lexer.hpp"
@@ -20,7 +21,6 @@ int main(int argc, const char **argv) {
     }
 
     ByteLexer bl(argv[1]);
-
     Interpreter i(argv[1]);
     i.start(bl);
 
