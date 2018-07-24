@@ -264,11 +264,6 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                 val.string_storage = arg0.getStringValueIfExisting();
             } else if (arg0.isMemory()) {
                 uint64_t const memory_segment = arg0.getValueIfExisting();
-                if (!arg0.isIntegerNumber()) {
-                    std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                        << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                    return -32;
-                }
                 int const index = arg0.getIntegerValueIfExisting();
                 if (index > 0) {
                     if (memory_segment == _mem) {

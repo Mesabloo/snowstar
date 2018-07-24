@@ -26,7 +26,8 @@ int main(int argc, char** argv) {
     }
 
     Lexer l(argv[1]);
-    auto const tokens = l.tokenize();
+    auto tokens = l.tokenize();
+    tokens = l.preprocess(tokens);
     std::cout << termcolor::grey << "Before optimizing: " << std::endl;
     for (auto const& t : tokens) {
         std::cout << "Token<"<< Token::getTypeSignification(t->getType()) << ">(" << t->getValue() << ")" << std::endl;

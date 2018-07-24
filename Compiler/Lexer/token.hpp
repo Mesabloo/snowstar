@@ -25,7 +25,8 @@ class Token {
             EOL,                   // For end of line
             INLINE_COMMENT,        // % comment
             MULTILINE_COMMENT,     // #* comment *#
-            INVALID                // When none of these types are good enough, the Token is marked invalid.
+            INVALID,               // When none of these types are good enough, the Token is marked invalid.
+            PREPROCESSOR           // Preprocessor directive  
         };
         static std::string getTypeSignification(Token::Type);
 

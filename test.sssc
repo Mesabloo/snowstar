@@ -1,3 +1,7 @@
 main:
-    rand[mem, 1] 0, 1
-    add[mem, 2] [mem, 1], 3
+    int 0
+
+% Minimal code for a Snow* application.
+% `int 0` is not needed but it permits
+% you to get the amount of time taken
+% to execute the program entirely.

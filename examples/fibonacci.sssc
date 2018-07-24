@@ -1,0 +1,33 @@
+main:
+    store[mem, 1] 0
+    store[mem, 2] 1
+    store[temp, 1] 0
+
+    push[param] ', '
+    push[param] [mem, 2]
+    push[param] ', '
+    push[param] [mem, 1]
+    sys 1
+    pop[nost] [param]
+    pop[nost] [param]
+    pop[nost] [param]
+    pop[nost] [param]
+
+    while_not_90:
+
+        add[mem, 3] [mem, 1], [mem, 2]
+
+        push[param] ', '
+        push[param] [mem, 3]
+        sys 1
+        pop[nost] [param]
+        pop[nost] [param]
+
+        store[mem, 1] [mem, 2]
+        store[mem, 2] [mem, 3]
+
+        add[temp, 1] [temp, 1], 1
+        cmp [temp, 1], 90
+        jwl while_not_90
+
+    int 0
