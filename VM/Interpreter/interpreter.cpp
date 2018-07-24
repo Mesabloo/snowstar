@@ -18,7 +18,7 @@ Interpreter::Interpreter(std::string const path) {
 Interpreter::~Interpreter() {}
 
 void Interpreter::start(ByteLexer& b) {
-    execution_time = clock();
+    execution_time = std::chrono::system_clock::now();
     loadConsumersInMemory(b);
     configVM();
     if (labels.find("main") == labels.end()) {
@@ -88,7 +88,9 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
     switch (value) {
         case info::SystemOpcodes::INT: {
             int arg0_returncode = c->getArgs()[0].getIntegerValueIfExisting();
-            std::cout << termcolor::yellow << "Process exited with code " << arg0_returncode << " after " << (static_cast<double>(clock() - execution_time)/CLOCKS_PER_SEC*1000) << "ms." << termcolor::reset << std::endl;
+            std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+            auto time_exec = std::chrono::duration<double, std::milli>(end-execution_time).count();
+            std::cout << termcolor::yellow << "Process exited with code " << arg0_returncode << " after " << (time_exec > 1000 ? std::to_string(time_exec/1000) + "s" : std::to_string(time_exec) + "ms") << termcolor::reset << std::endl;
             return 0;
         }
         case info::SystemOpcodes::SYS: {
@@ -462,123 +464,134 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
 
 int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
     uint64_t value = static_cast<uint64_t>(c->getInstruction().getValueIfExisting());
-    switch (value) {
-        case info::MathsOpcodes::ADD: {
-            return 1;
-        }
-        case info::MathsOpcodes::SUB: {
-            return 1;
-        }
-        case info::MathsOpcodes::MUL: {
-            return 1;
-        }
-        case info::MathsOpcodes::DIV: {
-            return 1;
-        }
-        case info::MathsOpcodes::RAND: {
-            uint64_t const memory_value = c->getStorage().getMemory().getValueIfExisting(),
+    uint64_t const memory_value = c->getStorage().getMemory().getValueIfExisting(),
                            _mem = info::m_bytes["mem"],
                            _temp = info::m_bytes["temp"],
                            _param = info::m_bytes["param"],
                            _nost = info::m_bytes["nost"];
-            ByteToken const arg0 = c->getArgs()[0],
-                            arg1 = c->getArgs()[1];
-            if (arg0.isDoubleNumber() || arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                return -32;
-            }
-            if (arg1.isDoubleNumber() || arg1.isString()) {
-                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg1.getStringValueIfExisting() << "', " << arg1.getIntegerValueIfExisting() << ", " << arg1.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                return -32;
-            }
-            ValueContainer val0, val1;
-            if (arg0.isIntegerNumber()) {
-                val0.isIntegerNumber = true;
-                val0.integer_storage = arg0.getIntegerValueIfExisting();
-            } else if (arg0.isMemory()) {
-                uint64_t const seg = arg0.getValueIfExisting();
-                int const index = arg0.getIntegerValueIfExisting();
-                ValueContainer tmp;
-                if (seg == _mem) {
-                    tmp = mem[index];
-                } else if (seg == _temp) {
-                    tmp = temp[index];
-                } else {
-                    std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                        << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-                    return -85;
-                }
-                if (!tmp.isIntegerNumber) {
-                    std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << tmp.string_storage << "', " << tmp.integer_storage << ", " << tmp.float_storage << ") used as a memory segment index." << '\n'
-                        << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                    return -32;
-                }
-                val0 = tmp;
-            } else {
-                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                return -32;
-            }
-            if (arg1.isIntegerNumber()) {
-                val1.isIntegerNumber = true;
-                val1.integer_storage = arg1.getIntegerValueIfExisting();
-            } else if (arg1.isMemory()) {
-                uint64_t const seg = arg1.getValueIfExisting();
-                int const index = arg1.getIntegerValueIfExisting();
-                ValueContainer tmp;
-                if (seg == _mem) {
-                    tmp = mem[index];
-                } else if (seg == _temp) {
-                    tmp = temp[index];
-                } else {
-                    std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                    << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-                    return -85;
-                }
-                if (!tmp.isIntegerNumber) {
-                    std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << tmp.string_storage << "', " << tmp.integer_storage << ", " << tmp.float_storage << ") used as a memory segment index." << '\n'
-                        << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                    return -32;
-                }
-                val1 = tmp;
-            } else {
-                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg1.getStringValueIfExisting() << "', " << arg1.getIntegerValueIfExisting() << ", " << arg1.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                return -32;
-            }
-            ValueContainer random_number;
+    ByteToken const arg0 = c->getArgs()[0],
+                    arg1 = c->getArgs()[1];
+    if (arg0.isDoubleNumber() || arg0.isString()) {
+        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+        return -32;
+    }
+    if (arg1.isDoubleNumber() || arg1.isString()) {
+        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg1.getStringValueIfExisting() << "', " << arg1.getIntegerValueIfExisting() << ", " << arg1.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+        return -32;
+    }
+    ValueContainer val0, val1;
+    if (arg0.isIntegerNumber()) {
+        val0.isIntegerNumber = true;
+        val0.integer_storage = arg0.getIntegerValueIfExisting();
+    } else if (arg0.isMemory()) {
+        uint64_t const seg = arg0.getValueIfExisting();
+        int const index = arg0.getIntegerValueIfExisting();
+        ValueContainer tmp;
+        if (seg == _mem) {
+            tmp = mem[index];
+        } else if (seg == _temp) {
+            tmp = temp[index];
+        } else {
+            std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+            return -85;
+        }
+        if (!tmp.isIntegerNumber) {
+            std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << tmp.string_storage << "', " << tmp.integer_storage << ", " << tmp.float_storage << ") used as a memory segment index." << '\n'
+                << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+            return -32;
+        }
+        val0 = tmp;
+    } else {
+        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+        return -32;
+    }
+    if (arg1.isIntegerNumber()) {
+        val1.isIntegerNumber = true;
+        val1.integer_storage = arg1.getIntegerValueIfExisting();
+    } else if (arg1.isMemory()) {
+        uint64_t const seg = arg1.getValueIfExisting();
+        int const index = arg1.getIntegerValueIfExisting();
+        ValueContainer tmp;
+        if (seg == _mem) {
+            tmp = mem[index];
+        } else if (seg == _temp) {
+            tmp = temp[index];
+        } else {
+            std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+            return -85;
+        }
+        if (!tmp.isIntegerNumber) {
+            std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << tmp.string_storage << "', " << tmp.integer_storage << ", " << tmp.float_storage << ") used as a memory segment index." << '\n'
+                << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+            return -32;
+        }
+        val1 = tmp;
+    } else {
+        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg1.getStringValueIfExisting() << "', " << arg1.getIntegerValueIfExisting() << ", " << arg1.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+        return -32;
+    }
+    ValueContainer result;
+    switch (value) {
+        case info::MathsOpcodes::ADD: {
+            result.isIntegerNumber = true;
+            result.integer_storage = val0.integer_storage + val1.integer_storage;
+            break;
+        }
+        case info::MathsOpcodes::SUB: {
+            result.isIntegerNumber = true;
+            result.integer_storage = val0.integer_storage - val1.integer_storage;
+            break;
+        }
+        case info::MathsOpcodes::MUL: {
+            result.isIntegerNumber = true;
+            result.integer_storage = val0.integer_storage * val1.integer_storage;
+            break;
+        }
+        case info::MathsOpcodes::DIV: {
+            result.isIntegerNumber = true;
+            result.integer_storage = static_cast<int64_t>(val0.integer_storage / val1.integer_storage);
+            break;
+        }
+        case info::MathsOpcodes::RAND: {
             std::uniform_int_distribution<> distrib(val0.integer_storage, val1.integer_storage);
-            random_number.isIntegerNumber = true;
-            random_number.integer_storage = distrib(generator);
-            int const index = c->getStorage().getMemory().getIntegerValueIfExisting();
-            if (index == -1) {
-                return 1;
-            }
-            if (memory_value == _mem) {
-                mem[index] = random_number;
-            } else if (memory_value == _temp) {
-                temp[index] = random_number;
-            } else if (memory_value == _param) {
-                param.push(random_number);
-            } else if (memory_value == _nost) {
-                return 1;
-            } else {
-                std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                    << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-                return -85;
-            }
-            return 1;
+            result.isIntegerNumber = true;
+            result.integer_storage = distrib(generator);
+            break;
         }
         case info::MathsOpcodes::MOD: {
-            return 1;
+            result.isIntegerNumber = true;
+            result.integer_storage = val0.integer_storage % val1.integer_storage;
+            break;
         }
         default:
-            std::cerr << termcolor::red << "Error 0x6314: The opcode '0x" << std::hex << value << "' does not belong to the `maths` category provided by the language." << '\n'
+            std::cerr << termcolor::red << "Error 0x6314: The opcode '0x" << std::hex << value << "' does not belong to the `integer maths` category provided by the language." << '\n'
                 << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
             return -1;
     }
+    int const index = c->getStorage().getMemory().getIntegerValueIfExisting();
+    if (index == -1) {
+        return 1;
+    }
+    if (memory_value == _mem) {
+        mem[index] = result;
+    } else if (memory_value == _temp) {
+        temp[index] = result;
+    } else if (memory_value == _param) {
+        param.push(result);
+    } else if (memory_value == _nost) {
+        return 1;
+    } else {
+        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+        return -85;
+    }
+    return 1;
 }
 
 int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {

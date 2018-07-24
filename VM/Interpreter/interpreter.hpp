@@ -9,6 +9,7 @@
 #include <map>
 #include <random>
 #include <time.h>
+#include <chrono>
 
 #include "../Lexer/byte_consumer.hpp"
 #include "../Lexer/byte_lexer.hpp"
@@ -51,7 +52,7 @@ class Interpreter {
         short int condition;
 
         std::mt19937 generator;
-        clock_t execution_time;
+        std::chrono::system_clock::time_point execution_time;
 };
 
 inline bool operator==(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {

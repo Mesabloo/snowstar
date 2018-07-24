@@ -1,29 +1,30 @@
-% @@import once
-% @@include 'test.sssc'
+lower:
+    push[param] 'The number to guess is greater.\n'
+    sys 1
+    pop[nost] [param]
+    jmp while_not_found
+
+greater:
+    push[param] 'The number to guess is lower.\n'
+    sys 1
+    pop[nost] [param]
+    jmp while_not_found
 
 main:
-    rand[mem, 1] 0, 10
-    store[mem, 2] 1
+    rand[mem, 1] 1, 100
 
-    push[param] ' est: '
-    push[param] [mem, 1]
-    push[param] 'Le factoriel de '
-    sys 1
-    pop[nost] [param]
-    pop[nost] [param]
-    pop[nost] [param]
-    
-    while_mem_l_0:
-        mul[mem, 2] [mem, 1], [mem, 2]
-        sub[mem, 1] [mem, 1], 1
-        cmp [mem, 1], 0
-        jwg while_mem_l_0
+    while_not_found:
+        push[param] 'Please input the number you think is the good one (between 1 and 100): '
+        sys 1
+        pop[nost] [param]
+        sys[mem, 2] 2
+        cmp [mem, 2], [mem, 1]
+        jwl lower
+        jwg greater
+        jwe end
 
-    push[param] [mem, 2]
-    sys 1
-    pop[nost] [param]
-
-    free [mem, 2]
-    free [mem, 1]
-
-    int 0
+    end:
+        push[param] '\nYou found the correct number !\n'
+        sys 1
+        pop[nost] [param]
+        int 0
