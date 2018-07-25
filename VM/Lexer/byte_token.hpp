@@ -19,10 +19,11 @@ class ByteToken {
 
         friend std::ostream& operator<<(std::ostream&, ByteToken::Type const&);
 
-        ByteToken(ByteToken::Type const&, double const, bool const); // keyword or separator or float number
-        ByteToken(ByteToken::Type const&, std::string const); // string literal
-        ByteToken(ByteToken::Type const&, int64_t const); // integer number literal
-        ByteToken(ByteToken::Type const&, double const, int64_t const); // memory literal
+        ByteToken(ByteToken::Type const, int8_t const); // keyword or separator
+        ByteToken(ByteToken::Type const, std::string const); // string literal
+        ByteToken(ByteToken::Type const, int64_t const); // integer number literal
+        ByteToken(ByteToken::Type const, int8_t const, int64_t const); // memory literal
+        ByteToken(ByteToken::Type const, double const); // float number
         ~ByteToken();
 
         bool isString() const;

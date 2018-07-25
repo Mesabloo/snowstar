@@ -19,7 +19,7 @@ class ByteLexer {
         static std::ifstream is;
 
     private:
-        ByteToken* checkValue(double const);
+        ByteToken* checkValue(int8_t const);
 
     protected:
         static long long m_read_size;

@@ -46,7 +46,7 @@ void Interpreter::configVM() {
 void Interpreter::loadConsumersInMemory(ByteLexer& b) {
     // int i{0};
     while (b.getSize() < m_stream_size) {
-        // std::clog << termcolor::blue << "Line #" << i << "\tRead=" << b.getSize() << "B\tTotal=" << m_stream_size << "B" <<  termcolor::reset << std::endl;
+        // std::clog << termcolor::blue << "Line #" << (i+1) << "\tRead=" << b.getSize() << "B\tTotal=" << m_stream_size << "B" <<  termcolor::reset << std::endl;
         ByteConsumer* c = b.createConsumerFromLine(b.readLine());
         // std::clog << *c << std::endl;
         if (c == nullptr) {
@@ -60,20 +60,21 @@ void Interpreter::loadConsumersInMemory(ByteLexer& b) {
 
 void Interpreter::checkDomainOfConsumer(ByteConsumer* const& c) {
     uint64_t value = static_cast<uint64_t>(c->getInstruction().getValueIfExisting());
+    // std::clog << termcolor::green << *c << termcolor::reset << std::endl << std::endl;
     int8_t returned{1};
-    switch (value & 0xFF000000) {
-        case 0x50000000: // memsegs
+    switch (value & 0xF0) {
+        case 0x40: // memsegs
             break;
-        case 0x40000000: // comparative
+        case 0x30: // comparative
             returned = executeComparativeConsumer(c);
             break;
-        case 0x30000000: // memory
+        case 0x20: // memory
             returned = executeMemoryConsumer(c);
             break;
-        case 0x20000000: // maths
+        case 0x10: // maths
             returned = executeMathsConsumer(c);
             break;
-        case 0x10000000: // system
+        case 0x00: // system
             returned = executeSystemConsumer(c);
             break;
         default:
@@ -554,6 +555,11 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
             break;
         }
         case info::MathsOpcodes::DIV: {
+            if (val1.integer_storage == 0) {
+                std::cerr << termcolor::red << "Error 0x4695: Dividing by 0."
+                    << "Please make sure to not divide by 0 anymore !" << termcolor::reset << std::endl;
+                return -24;
+            }
             result.isIntegerNumber = true;
             result.integer_storage = static_cast<int64_t>(val0.integer_storage / val1.integer_storage);
             break;

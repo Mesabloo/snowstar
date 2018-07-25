@@ -172,6 +172,7 @@ auto Lexer::preprocess(std::vector<Token*> const& tokens) const -> std::vector<T
     for (auto const t : copy) {
         if (t->getType() != Token::Type::PREPROCESSOR) continue;
     }
+    return tokens;
 }
 
 auto Lexer::optimize(std::vector<Token*> const& tokens) const -> std::vector<std::vector<Token*>> {
