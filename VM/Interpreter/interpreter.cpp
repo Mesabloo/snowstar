@@ -26,6 +26,7 @@ void Interpreter::start(ByteLexer& b) {
             << "Please add a main entry point to your program and start again." << std::endl;
         return;
     }
+    temp.push({});
     for (line_number = labels["main"];line_number < m_consumers.size();++line_number)
         checkDomainOfConsumer(m_consumers[line_number]);
 }
@@ -172,7 +173,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                     } else if (memory_value == _mem) {
                         mem[memory_index] = val;
                     } else if (memory_value == _temp) {
-                        temp[memory_index] = val;
+                        temp.top()[memory_index] = val;
                     } else if (memory_value == _param) {
                         param.push(val);
                     } else {
@@ -197,6 +198,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
             }
             line_number = call_stack.top();
             call_stack.pop();
+            temp.pop();
             return 1;
         }
         case info::SystemOpcodes::LBL: {
@@ -233,6 +235,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
             }
             call_stack.push(line_number);
             line_number = labels[lbl];
+            temp.push({});
             return 1;
         }
         default:
@@ -270,7 +273,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     if (memory_segment == _mem) {
                         val = mem[index];
                     } else if (memory_segment == _temp) {
-                        val = temp[index];
+                        val = temp.top()[index];
                     } else if (memory_segment == _param) {
                         std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
                             << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
@@ -297,7 +300,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             if (memory_value == _nost) {
                 return 1;
             } else if (memory_value == _temp) {
-                temp[memseg.getIntegerValueIfExisting()] = val;
+                temp.top()[memseg.getIntegerValueIfExisting()] = val;
             } else if (memory_value == _param) {
                 std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $store." << '\n'
                     << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
@@ -344,7 +347,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     if (memory_segment == _mem) {
                         val = mem[index];
                     } else if (memory_segment == _temp) {
-                        val = temp[index];
+                        val = temp.top()[index];
                     } else if (memory_segment == _param) {
                         std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
                             << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
@@ -387,7 +390,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             if (pop_seg == _nost) {
                 return 1;
             }
-            if ((memseg.getValueIfExisting() == _nost)) {
+            if (static_cast<uint8_t>(memseg.getValueIfExisting()) == _nost) {
                 if (pop_seg == _param) {
                     param.pop();
                     return 1;
@@ -411,7 +414,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                 if (seg == _mem) {
                     mem[index] = val;
                 } else if (seg == _temp) {
-                    temp[index] = val;
+                    temp.top()[index] = val;
                 } else if (seg == _param) {
                     param.push(val);
                 }
@@ -444,10 +447,10 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                 return -32;
             }
             if (memory_value == _mem) {
-                mem.erase(index);
+                std::remove(mem.begin(), mem.end(), mem[index]);
                 return 1;
             } else if (memory_value == _temp) {
-                temp.erase(index);
+                std::remove(temp.top().begin(), temp.top().end(), temp.top()[index]);
                 return 1;
             } else {
                 std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
@@ -493,7 +496,7 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
         if (seg == _mem) {
             tmp = mem[index];
         } else if (seg == _temp) {
-            tmp = temp[index];
+            tmp = temp.top()[index];
         } else {
             std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
                 << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
@@ -520,7 +523,7 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
         if (seg == _mem) {
             tmp = mem[index];
         } else if (seg == _temp) {
-            tmp = temp[index];
+            tmp = temp.top()[index];
         } else {
             std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
             << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
@@ -587,7 +590,7 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
     if (memory_value == _mem) {
         mem[index] = result;
     } else if (memory_value == _temp) {
-        temp[index] = result;
+        temp.top()[index] = result;
     } else if (memory_value == _param) {
         param.push(result);
     } else if (memory_value == _nost) {
@@ -625,7 +628,7 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
                     if (seg == _mem) {
                         val0 = mem[index];
                     } else if (seg == _temp) {
-                        val0 = temp[index];
+                        val0 = temp.top()[index];
                     } else {
                         std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << seg << "'." << '\n'
                             << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
@@ -649,7 +652,7 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
                     if (seg == _mem) {
                         val1 = mem[index];
                     } else if (seg == _temp) {
-                        val1 = temp[index];
+                        val1 = temp.top()[index];
                     } else {
                         std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << seg << "'." << '\n'
                             << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";

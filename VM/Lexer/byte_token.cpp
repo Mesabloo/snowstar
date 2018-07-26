@@ -27,7 +27,7 @@ bool ByteToken::isDoubleNumber() const { return isDoubleNumb; }
 bool ByteToken::isMemory() const { return isMem; }
 
 ByteToken::Type ByteToken::getType() const { return m_type; }
-double ByteToken::getValueIfExisting() const {
+int8_t ByteToken::getValueIfExisting() const {
     if (isString() || isIntegerNumber() || isDoubleNumber()) return -1;
     return m_value;
 }

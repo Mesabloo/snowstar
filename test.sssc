@@ -1,4 +1,29 @@
+fib_min_2:
+
+    back
+
+fib_min_1:
+
+    back
+
+fib:  % n = [temp, 1]
+
+    cmp [temp, 1] 2
+    jwl return
+
+
+
+    back
+
+return:
+    back
+
 main:
+
+    
+    store[temp, 1] 34
+    call fib
+
     int 0
 
 % Minimal code for a Snow* application.

@@ -73,8 +73,6 @@ ByteToken* ByteLexer::checkValue(int8_t const val) {
     }
     if (isNumber) {
         if (val == info::Dividers::NUMBER_INTEGER) {
-            //std::reverse(integer_buffer.begin(), integer_buffer.end());
-            char* end;
             ByteToken* t = new ByteToken(ByteToken::Type::LITERAL_NUMBER, static_cast<int64_t>(std::stoll(integer_buffer)));
             integer_buffer = "";
             isNumber = false;

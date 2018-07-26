@@ -1,0 +1,3 @@
+```cpp
+std::array => Process exited with code 0 after 35.751153s
+std::vector =>

@@ -1,0 +1,6 @@
+main:
+    store[mem, 0] 'Hello, World!\n'
+    push[param] [mem, 0]
+    sys 1
+    pop[nost] [param]
+    int 0
