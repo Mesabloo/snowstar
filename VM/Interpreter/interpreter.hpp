@@ -54,6 +54,8 @@ class Interpreter {
 
         std::mt19937 generator;
         std::chrono::system_clock::time_point execution_time;
+
+        int socket_id, sock;
 };
 
 inline bool operator==(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {

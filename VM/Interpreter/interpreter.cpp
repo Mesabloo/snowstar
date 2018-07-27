@@ -6,11 +6,17 @@
 
 #include <math.h>
 
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <unistd.h>
+
 #include "interpreter.hpp"
 #include "../../Common/Utils/utils.hpp"
 #include "../../Common/termcolor.hpp"
 
 #include "../../Common/info.hpp"
+#include "../../Common/values.hpp"
 
 Interpreter::Interpreter(std::string const path) {
     m_stream_size = utils::file_getsize(path);
@@ -18,6 +24,56 @@ Interpreter::Interpreter(std::string const path) {
 Interpreter::~Interpreter() {}
 
 void Interpreter::start(ByteLexer& b) {
+    if (vars::DEBUG) {
+        // start socket server here.
+        // and wait for the client to connect.
+        // while not client connected, wait.
+        // until client connects (here, the debugger).
+        int newsockfd, portno = 9999;
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock < 0) {
+            std::cerr << termcolor::red << "An error occured while trying to open a new socket." << '\n'
+                << "What happened: ";
+            perror("");
+            std::cerr << termcolor::reset << std::endl;
+            return;
+        }
+
+        sockaddr_in serv_addr;
+        bzero(reinterpret_cast<char*>(&serv_addr), sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_addr.s_addr = INADDR_ANY;
+        serv_addr.sin_port = htons(portno);
+
+        if (bind(sock, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
+            std::cerr << termcolor::red << "An error occured while binding the address to the socket." << '\n'
+                << "What happened: ";
+            perror("");
+            std::cerr << termcolor::reset << std::endl;
+            return;
+            return;
+        }
+
+        listen(sock, 1);
+
+        newsockfd = accept(sock, 0, 0);
+        // waiting for any incoming connection.
+        // When one will be found, it will send a heartbeat
+        // which will be sent back to confirm it is connected.
+        // After that we can start the VM.
+
+        socket_id = static_cast<int>(newsockfd);
+
+        char buf[1024];
+        read(socket_id, buf, 1024);
+        std::clog << "Received " << buf << " from Debugger." << std::endl;
+        std::clog << "Sending heartbeat..." << std::endl;
+        std::string response = "heartbeat";
+        write(socket_id, response.c_str(), strlen(response.c_str()));
+
+        std::clog << "Debugger attached succesfully !" << std::endl;
+    }
+
     execution_time = std::chrono::system_clock::now();
     loadConsumersInMemory(b);
     configVM();
@@ -29,6 +85,12 @@ void Interpreter::start(ByteLexer& b) {
     temp.push({});
     for (line_number = labels["main"];line_number < m_consumers.size();++line_number)
         checkDomainOfConsumer(m_consumers[line_number]);
+    
+    if (vars::DEBUG) {
+        write(socket_id, "exit", 5);
+        close(sock);
+        close(socket_id);
+    }
 }
 
 void Interpreter::configVM() {
