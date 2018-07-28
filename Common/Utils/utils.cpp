@@ -6,7 +6,7 @@
 #include "utils.hpp"
 
 namespace utils {
-    std::vector<std::string> str_split(std::string const& str, char const& separator) {
+    std::vector<std::string> str_split(std::string const& str, char const separator) {
         std::vector<std::string> vect;
         std::istringstream f{str};
         std::string s;

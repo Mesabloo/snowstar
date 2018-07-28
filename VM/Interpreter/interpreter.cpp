@@ -3,6 +3,7 @@
 #include <limits>
 #include <iomanip>
 #include <iostream>
+#include <thread>
 
 #include <math.h>
 
@@ -10,6 +11,8 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #include "interpreter.hpp"
 #include "../../Common/Utils/utils.hpp"
@@ -51,10 +54,11 @@ void Interpreter::start(ByteLexer& b) {
             perror("");
             std::cerr << termcolor::reset << std::endl;
             return;
-            return;
         }
 
         listen(sock, 1);
+
+        std::clog << termcolor::on_red << "Waiting for the debugger to connect..." << termcolor::reset << std::endl;
 
         newsockfd = accept(sock, 0, 0);
         // waiting for any incoming connection.
@@ -66,12 +70,10 @@ void Interpreter::start(ByteLexer& b) {
 
         char buf[1024];
         read(socket_id, buf, 1024);
-        std::clog << "Received " << buf << " from Debugger." << std::endl;
-        std::clog << "Sending heartbeat..." << std::endl;
-        std::string response = "heartbeat";
-        write(socket_id, response.c_str(), strlen(response.c_str()));
+        strncpy(buf, "heartbeat", 10);
+        write(socket_id, buf, strlen(buf));
 
-        std::clog << "Debugger attached succesfully !" << std::endl;
+        std::clog << termcolor::green << "Debugger attached successfully !" << termcolor::reset << std::endl;
     }
 
     execution_time = std::chrono::system_clock::now();
@@ -83,13 +85,38 @@ void Interpreter::start(ByteLexer& b) {
         return;
     }
     temp.push({});
-    for (line_number = labels["main"];line_number < m_consumers.size();++line_number)
+    for (line_number = labels["main"];line_number < m_consumers.size();++line_number) {
+        if (vars::DEBUG) {
+            if (exec_count == 0) {
+                char buf[4096] = {'\0'};
+                write(socket_id, buf, 4096);
+                char buffer[4096];
+                read(socket_id, buffer, 4096);
+                std::string cmd{buffer, 4096};
+                std::vector<std::string> splitted = utils::str_split(cmd, ' ');
+                std::string& command = splitted[0];
+                std::cout << termcolor::green << command << std::endl;
+                if (command == "exec") {
+                    uint32_t count = static_cast<uint32_t>(std::stoull(splitted[1]));
+                    exec_count = count;
+                } else {
+                    char buf[4096] = {'\0'};
+                    write(socket_id, buf, 4096);
+                    line_number--;
+                    continue;
+                }
+            } else
+                exec_count--;
+        }
         checkDomainOfConsumer(m_consumers[line_number]);
+    }
     
     if (vars::DEBUG) {
         write(socket_id, "exit", 5);
-        close(sock);
-        close(socket_id);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::cerr << close(sock) << std::endl;
+        std::cerr << close(socket_id) << std::endl;
+        getchar();
     }
 }
 
@@ -147,6 +174,13 @@ void Interpreter::checkDomainOfConsumer(ByteConsumer* const& c) {
     }
     if (returned <= 0) {
         std::cout << termcolor::reset;
+        if (vars::DEBUG) {
+            write(socket_id, "exit", 5);
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            //getchar();
+            std::cerr << close(sock) << std::endl;
+            std::cerr << close(socket_id) << std::endl;
+        }
         getchar();
         exit(returned);
     }

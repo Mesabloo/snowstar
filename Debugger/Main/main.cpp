@@ -1,19 +1,15 @@
 #include <iostream>
-#include <thread>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
 
-
+#include "../../Common/termcolor.hpp"
 #include "../Listener/listener.hpp"
 
-int main(int argc, const char** argv) {
+int main(/* int argc, const char** argv */) {
     Listener l;
     l.engageConnection();
     if (l.isConnectionEstablished())
         l.listen();
 
-    getchar();
-    shutdown(l.getSocket(), SHUT_RDWR);
+    std::cerr << shutdown(l.getSocket(), SHUT_RDWR) << ": ";
+    perror("");
+    std::cerr << termcolor::reset << std::endl;
 }

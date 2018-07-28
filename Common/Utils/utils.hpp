@@ -8,7 +8,7 @@
 #include <cstring>
 
 namespace utils {
-    std::vector<std::string> str_split(std::string const&, char const&);
+    std::vector<std::string> str_split(std::string const&, char const);
     bool str_endswith(std::string const&, std::string const&);
     bool str_endswith(std::string const&, std::string const&, unsigned);
     bool str_startswith(std::string const&, std::string const&);

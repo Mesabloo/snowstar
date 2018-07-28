@@ -56,6 +56,7 @@ class Interpreter {
         std::chrono::system_clock::time_point execution_time;
 
         int socket_id, sock;
+        uint32_t exec_count{0};
 };
 
 inline bool operator==(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {
