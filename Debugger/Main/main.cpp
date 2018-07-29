@@ -9,7 +9,8 @@ int main(/* int argc, const char** argv */) {
     if (l.isConnectionEstablished())
         l.listen();
 
-    std::cerr << shutdown(l.getSocket(), SHUT_RDWR) << ": ";
+    std::cerr << termcolor::yellow << "Debugger process terminated with code " << shutdown(l.getSocket(), SHUT_RDWR) << ": ";
     perror("");
     std::cerr << termcolor::reset << std::endl;
+    getchar();
 }

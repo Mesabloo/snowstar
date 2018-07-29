@@ -47,4 +47,8 @@ namespace utils {
         return std::find_if(s.begin(), s.end(),
             [=] (char c) { return !std::isdigit(c) && c != '.'; }) == s.end();
     }
+
+    std::string str_join(std::string const& first, std::string const& second, char const div) {
+        return std::string{first + div + second};
+    }
 }

@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <iostream>
 #include <thread>
+#include <cstring>
 
 #include <math.h>
 
@@ -58,22 +59,20 @@ void Interpreter::start(ByteLexer& b) {
 
         listen(sock, 1);
 
-        std::clog << termcolor::on_red << "Waiting for the debugger to connect..." << termcolor::reset << std::endl;
+        std::clog << termcolor::red << "Waiting for the debugger to connect..." << termcolor::reset << std::endl;
 
-        newsockfd = accept(sock, 0, 0);
-        // waiting for any incoming connection.
-        // When one will be found, it will send a heartbeat
-        // which will be sent back to confirm it is connected.
-        // After that we can start the VM.
+        while ((newsockfd = accept(sock, 0, 0))) {
+            socket_id = static_cast<int>(newsockfd);
 
-        socket_id = static_cast<int>(newsockfd);
-
-        char buf[1024];
-        read(socket_id, buf, 1024);
-        strncpy(buf, "heartbeat", 10);
-        write(socket_id, buf, strlen(buf));
+            char buf[10];
+            read(socket_id, buf, 10);
+            char send[10] = {'h', 'e', 'a', 'r', 't', 'b', 'e', 'a', 't', '\0'};
+            write(socket_id, send, 10);
+            if (std::string{buf, 9} == "heartbeat") break;
+        }
 
         std::clog << termcolor::green << "Debugger attached successfully !" << termcolor::reset << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     execution_time = std::chrono::system_clock::now();
@@ -88,20 +87,46 @@ void Interpreter::start(ByteLexer& b) {
     for (line_number = labels["main"];line_number < m_consumers.size();++line_number) {
         if (vars::DEBUG) {
             if (exec_count == 0) {
-                char buf[4096] = {'\0'};
+                char buf[4096];
+                std::stringstream ss;
+                ss << "stats mem=" << mem.max_size() << ";" << (mem.empty()?"empty":std::to_string(mem.size())) << "\n"
+                    << "temp=" << temp.top().max_size() << ";" << (temp.top().empty()?"empty":std::to_string(temp.top().size())) << "\n"
+                    << "param=" << (param.empty()?"empty":std::to_string(param.size())) << "\n"
+                    << *m_consumers[line_number];
+                std::string s = ss.str();
+                buf[0] = static_cast<unsigned char>(s.size());
+                for (size_t i{0};i < s.size();++i) {
+                    if (i > 4096) break;
+                    buf[i+1] = s[i];
+                }
+                char const null[1] = {'\0'};
+                for (auto length{s.size()+1};length < 4096;++length)
+                    strcat(buf, null);
                 write(socket_id, buf, 4096);
-                char buffer[4096];
-                read(socket_id, buffer, 4096);
-                std::string cmd{buffer, 4096};
+                char buffer[256];
+                read(socket_id, buffer, 256);
+                uint8_t const size = static_cast<uint8_t>(buffer[0]);
+                int i{1};
+                std::string cmd;
+                while (buffer[i] != '\0' && i <= size) {
+                    cmd += buffer[i];
+                    i++;
+                }
                 std::vector<std::string> splitted = utils::str_split(cmd, ' ');
                 std::string& command = splitted[0];
-                std::cout << termcolor::green << command << std::endl;
                 if (command == "exec") {
                     uint32_t count = static_cast<uint32_t>(std::stoull(splitted[1]));
-                    exec_count = count;
+                    exec_count = count-1;
+                } else if (command == "exit") {
+                    char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
+                    write(socket_id, buf, 5);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                    close(sock);
+                    close(socket_id);
+                    std::cerr << termcolor::yellow << "Process exited with code 0" << termcolor::reset << std::endl;
+                    getchar();
+                    exit(0);
                 } else {
-                    char buf[4096] = {'\0'};
-                    write(socket_id, buf, 4096);
                     line_number--;
                     continue;
                 }
@@ -112,11 +137,14 @@ void Interpreter::start(ByteLexer& b) {
     }
     
     if (vars::DEBUG) {
-        write(socket_id, "exit", 5);
+        char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
+        write(socket_id, buf, 5);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        std::cerr << close(sock) << std::endl;
-        std::cerr << close(socket_id) << std::endl;
+        close(sock);
+        close(socket_id);
+        std::cerr << termcolor::yellow << "Process exited with code 0" << termcolor::reset << std::endl;
         getchar();
+        exit(0);
     }
 }
 
@@ -175,11 +203,11 @@ void Interpreter::checkDomainOfConsumer(ByteConsumer* const& c) {
     if (returned <= 0) {
         std::cout << termcolor::reset;
         if (vars::DEBUG) {
-            write(socket_id, "exit", 5);
+            char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
+            write(socket_id, buf, 5);
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            //getchar();
-            std::cerr << close(sock) << std::endl;
-            std::cerr << close(socket_id) << std::endl;
+            close(sock);
+            close(socket_id);
         }
         getchar();
         exit(returned);
