@@ -3,14 +3,24 @@
 #include <limits>
 #include <iomanip>
 #include <iostream>
+#include <thread>
+#include <cstring>
 
 #include <math.h>
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #include "interpreter.hpp"
 #include "../../Common/Utils/utils.hpp"
 #include "../../Common/termcolor.hpp"
 
 #include "../../Common/info.hpp"
+#include "../../Common/values.hpp"
 
 Interpreter::Interpreter(std::string const path) {
     m_stream_size = utils::file_getsize(path);
@@ -18,6 +28,53 @@ Interpreter::Interpreter(std::string const path) {
 Interpreter::~Interpreter() {}
 
 void Interpreter::start(ByteLexer& b) {
+    if (vars::DEBUG) {
+        // start socket server here.
+        // and wait for the client to connect.
+        // while not client connected, wait.
+        // until client connects (here, the debugger).
+        int newsockfd, portno = 9999;
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock < 0) {
+            std::cerr << termcolor::red << "An error occured while trying to open a new socket." << '\n'
+                << "What happened: ";
+            perror("");
+            std::cerr << termcolor::reset << std::endl;
+            return;
+        }
+
+        sockaddr_in serv_addr;
+        bzero(reinterpret_cast<char*>(&serv_addr), sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_addr.s_addr = INADDR_ANY;
+        serv_addr.sin_port = htons(portno);
+
+        if (bind(sock, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
+            std::cerr << termcolor::red << "An error occured while binding the address to the socket." << '\n'
+                << "What happened: ";
+            perror("");
+            std::cerr << termcolor::reset << std::endl;
+            return;
+        }
+
+        listen(sock, 1);
+
+        std::clog << termcolor::red << "Waiting for the debugger to connect..." << termcolor::reset << std::endl;
+
+        while ((newsockfd = accept(sock, 0, 0))) {
+            socket_id = static_cast<int>(newsockfd);
+
+            char buf[10];
+            read(socket_id, buf, 10);
+            char send[10] = {'h', 'e', 'a', 'r', 't', 'b', 'e', 'a', 't', '\0'};
+            write(socket_id, send, 10);
+            if (std::string{buf, 9} == "heartbeat") break;
+        }
+
+        std::clog << termcolor::green << "Debugger attached successfully !" << termcolor::reset << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
     execution_time = std::chrono::system_clock::now();
     loadConsumersInMemory(b);
     configVM();
@@ -26,8 +83,69 @@ void Interpreter::start(ByteLexer& b) {
             << "Please add a main entry point to your program and start again." << std::endl;
         return;
     }
-    for (line_number = labels["main"];line_number < m_consumers.size();++line_number)
+    temp.push({});
+    for (line_number = labels["main"];line_number < m_consumers.size();++line_number) {
+        if (vars::DEBUG) {
+            if (exec_count == 0) {
+                char buf[4096];
+                std::stringstream ss;
+                ss << "stats mem=" << mem.max_size() << ";" << (mem.empty()?"empty":std::to_string(mem.size())) << "\n"
+                    << "temp=" << temp.top().max_size() << ";" << (temp.top().empty()?"empty":std::to_string(temp.top().size())) << "\n"
+                    << "param=" << (param.empty()?"empty":std::to_string(param.size())) << "\n"
+                    << *m_consumers[line_number];
+                std::string s = ss.str();
+                buf[0] = static_cast<unsigned char>(s.size());
+                for (size_t i{0};i < s.size();++i) {
+                    if (i > 4096) break;
+                    buf[i+1] = s[i];
+                }
+                char const null[1] = {'\0'};
+                for (auto length{s.size()+1};length < 4096;++length)
+                    strcat(buf, null);
+                write(socket_id, buf, 4096);
+                char buffer[256];
+                read(socket_id, buffer, 256);
+                uint8_t const size = static_cast<uint8_t>(buffer[0]);
+                int i{1};
+                std::string cmd;
+                while (buffer[i] != '\0' && i <= size) {
+                    cmd += buffer[i];
+                    i++;
+                }
+                std::vector<std::string> splitted = utils::str_split(cmd, ' ');
+                std::string& command = splitted[0];
+                if (command == "exec") {
+                    uint32_t count = static_cast<uint32_t>(std::stoull(splitted[1]));
+                    exec_count = count-1;
+                } else if (command == "exit") {
+                    char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
+                    write(socket_id, buf, 5);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                    close(sock);
+                    close(socket_id);
+                    std::cerr << termcolor::yellow << "Process exited with code 0" << termcolor::reset << std::endl;
+                    getchar();
+                    exit(0);
+                } else {
+                    line_number--;
+                    continue;
+                }
+            } else
+                exec_count--;
+        }
         checkDomainOfConsumer(m_consumers[line_number]);
+    }
+    
+    if (vars::DEBUG) {
+        char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
+        write(socket_id, buf, 5);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        close(sock);
+        close(socket_id);
+        std::cerr << termcolor::yellow << "Process exited with code 0" << termcolor::reset << std::endl;
+        getchar();
+        exit(0);
+    }
 }
 
 void Interpreter::configVM() {
@@ -46,7 +164,7 @@ void Interpreter::configVM() {
 void Interpreter::loadConsumersInMemory(ByteLexer& b) {
     // int i{0};
     while (b.getSize() < m_stream_size) {
-        // std::clog << termcolor::blue << "Line #" << i << "\tRead=" << b.getSize() << "B\tTotal=" << m_stream_size << "B" <<  termcolor::reset << std::endl;
+        // std::clog << termcolor::blue << "Line #" << (i+1) << "\tRead=" << b.getSize() << "B\tTotal=" << m_stream_size << "B" <<  termcolor::reset << std::endl;
         ByteConsumer* c = b.createConsumerFromLine(b.readLine());
         // std::clog << *c << std::endl;
         if (c == nullptr) {
@@ -60,20 +178,21 @@ void Interpreter::loadConsumersInMemory(ByteLexer& b) {
 
 void Interpreter::checkDomainOfConsumer(ByteConsumer* const& c) {
     uint64_t value = static_cast<uint64_t>(c->getInstruction().getValueIfExisting());
+    // std::clog << termcolor::green << *c << termcolor::reset << std::endl << std::endl;
     int8_t returned{1};
-    switch (value & 0xFF000000) {
-        case 0x50000000: // memsegs
+    switch (value & 0xF0) {
+        case 0x40: // memsegs
             break;
-        case 0x40000000: // comparative
+        case 0x30: // comparative
             returned = executeComparativeConsumer(c);
             break;
-        case 0x30000000: // memory
+        case 0x20: // memory
             returned = executeMemoryConsumer(c);
             break;
-        case 0x20000000: // maths
+        case 0x10: // maths
             returned = executeMathsConsumer(c);
             break;
-        case 0x10000000: // system
+        case 0x00: // system
             returned = executeSystemConsumer(c);
             break;
         default:
@@ -83,6 +202,13 @@ void Interpreter::checkDomainOfConsumer(ByteConsumer* const& c) {
     }
     if (returned <= 0) {
         std::cout << termcolor::reset;
+        if (vars::DEBUG) {
+            char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
+            write(socket_id, buf, 5);
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            close(sock);
+            close(socket_id);
+        }
         getchar();
         exit(returned);
     }
@@ -171,7 +297,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                     } else if (memory_value == _mem) {
                         mem[memory_index] = val;
                     } else if (memory_value == _temp) {
-                        temp[memory_index] = val;
+                        temp.top()[memory_index] = val;
                     } else if (memory_value == _param) {
                         param.push(val);
                     } else {
@@ -196,6 +322,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
             }
             line_number = call_stack.top();
             call_stack.pop();
+            temp.pop();
             return 1;
         }
         case info::SystemOpcodes::LBL: {
@@ -232,6 +359,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
             }
             call_stack.push(line_number);
             line_number = labels[lbl];
+            temp.push({});
             return 1;
         }
         default:
@@ -264,17 +392,12 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                 val.string_storage = arg0.getStringValueIfExisting();
             } else if (arg0.isMemory()) {
                 uint64_t const memory_segment = arg0.getValueIfExisting();
-                if (!arg0.isIntegerNumber()) {
-                    std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                        << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                    return -32;
-                }
                 int const index = arg0.getIntegerValueIfExisting();
                 if (index > 0) {
                     if (memory_segment == _mem) {
                         val = mem[index];
                     } else if (memory_segment == _temp) {
-                        val = temp[index];
+                        val = temp.top()[index];
                     } else if (memory_segment == _param) {
                         std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
                             << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
@@ -301,7 +424,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             if (memory_value == _nost) {
                 return 1;
             } else if (memory_value == _temp) {
-                temp[memseg.getIntegerValueIfExisting()] = val;
+                temp.top()[memseg.getIntegerValueIfExisting()] = val;
             } else if (memory_value == _param) {
                 std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $store." << '\n'
                     << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
@@ -348,7 +471,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     if (memory_segment == _mem) {
                         val = mem[index];
                     } else if (memory_segment == _temp) {
-                        val = temp[index];
+                        val = temp.top()[index];
                     } else if (memory_segment == _param) {
                         std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
                             << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
@@ -391,7 +514,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             if (pop_seg == _nost) {
                 return 1;
             }
-            if ((memseg.getValueIfExisting() == _nost)) {
+            if (static_cast<uint8_t>(memseg.getValueIfExisting()) == _nost) {
                 if (pop_seg == _param) {
                     param.pop();
                     return 1;
@@ -415,7 +538,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                 if (seg == _mem) {
                     mem[index] = val;
                 } else if (seg == _temp) {
-                    temp[index] = val;
+                    temp.top()[index] = val;
                 } else if (seg == _param) {
                     param.push(val);
                 }
@@ -448,10 +571,10 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                 return -32;
             }
             if (memory_value == _mem) {
-                mem.erase(index);
+                std::remove(mem.begin(), mem.end(), mem[index]);
                 return 1;
             } else if (memory_value == _temp) {
-                temp.erase(index);
+                std::remove(temp.top().begin(), temp.top().end(), temp.top()[index]);
                 return 1;
             } else {
                 std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
@@ -497,7 +620,7 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
         if (seg == _mem) {
             tmp = mem[index];
         } else if (seg == _temp) {
-            tmp = temp[index];
+            tmp = temp.top()[index];
         } else {
             std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
                 << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
@@ -524,7 +647,7 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
         if (seg == _mem) {
             tmp = mem[index];
         } else if (seg == _temp) {
-            tmp = temp[index];
+            tmp = temp.top()[index];
         } else {
             std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
             << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
@@ -559,6 +682,11 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
             break;
         }
         case info::MathsOpcodes::DIV: {
+            if (val1.integer_storage == 0) {
+                std::cerr << termcolor::red << "Error 0x4695: Dividing by 0."
+                    << "Please make sure to not divide by 0 anymore !" << termcolor::reset << std::endl;
+                return -24;
+            }
             result.isIntegerNumber = true;
             result.integer_storage = static_cast<int64_t>(val0.integer_storage / val1.integer_storage);
             break;
@@ -586,7 +714,7 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
     if (memory_value == _mem) {
         mem[index] = result;
     } else if (memory_value == _temp) {
-        temp[index] = result;
+        temp.top()[index] = result;
     } else if (memory_value == _param) {
         param.push(result);
     } else if (memory_value == _nost) {
@@ -624,7 +752,7 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
                     if (seg == _mem) {
                         val0 = mem[index];
                     } else if (seg == _temp) {
-                        val0 = temp[index];
+                        val0 = temp.top()[index];
                     } else {
                         std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << seg << "'." << '\n'
                             << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
@@ -648,7 +776,7 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
                     if (seg == _mem) {
                         val1 = mem[index];
                     } else if (seg == _temp) {
-                        val1 = temp[index];
+                        val1 = temp.top()[index];
                     } else {
                         std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << seg << "'." << '\n'
                             << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";

@@ -8,13 +8,14 @@
 #include <cstring>
 
 namespace utils {
-    std::vector<std::string> str_split(std::string const&, char const&);
+    std::vector<std::string> str_split(std::string const&, char const);
     bool str_endswith(std::string const&, std::string const&);
     bool str_endswith(std::string const&, std::string const&, unsigned);
     bool str_startswith(std::string const&, std::string const&);
     bool str_startswith(std::string const&, std::string const&, unsigned);
     std::streamsize file_getsize(std::string const&);
     bool str_is_number(std::string const&);
+    std::string str_join(std::string const&, std::string const&, char const);
 
     template <typename T>
     T number_fromString(std::string const& value) {

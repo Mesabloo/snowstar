@@ -14,10 +14,11 @@ std::ostream& operator<<(std::ostream& os, ByteToken::Type const& t) {
     return os;
 }
 
-ByteToken::ByteToken(ByteToken::Type const& type, double const value, bool const isFloat) : m_type(type), m_value(isFloat?-1:value), m_double_value(isFloat?value:-1), isStr(false), isIntNumb(false), isDoubleNumb(isFloat), isMem(false) {}
-ByteToken::ByteToken(ByteToken::Type const& type, std::string const str_value) : m_type(type), m_string_value(str_value), isStr(true), isIntNumb(false), isDoubleNumb(false), isMem(false) {}
-ByteToken::ByteToken(ByteToken::Type const& type, int64_t int_value) : m_type(type), m_integer_value(int_value), isStr(false), isIntNumb(true), isDoubleNumb(false), isMem(false) {}
-ByteToken::ByteToken(ByteToken::Type const& type, double const memseg, int64_t const index) : m_type(type), m_value(memseg), m_integer_value(index), isStr(false), isIntNumb(false), isDoubleNumb(false), isMem(true) {}
+ByteToken::ByteToken(ByteToken::Type const type, int8_t const value) : m_type(type), m_value(value), isStr(false), isIntNumb(false), isDoubleNumb(false), isMem(false) {}
+ByteToken::ByteToken(ByteToken::Type const type, std::string const str_value) : m_type(type), m_string_value(str_value), isStr(true), isIntNumb(false), isDoubleNumb(false), isMem(false) {}
+ByteToken::ByteToken(ByteToken::Type const type, int64_t int_value) : m_type(type), m_integer_value(int_value), isStr(false), isIntNumb(true), isDoubleNumb(false), isMem(false) {}
+ByteToken::ByteToken(ByteToken::Type const type, int8_t const memseg, int64_t const index) : m_type(type), m_value(memseg), m_integer_value(index), isStr(false), isIntNumb(false), isDoubleNumb(false), isMem(true) {}
+ByteToken::ByteToken(ByteToken::Type const type, double value) : m_type(type), m_double_value(value), isStr(false), isIntNumb(false), isDoubleNumb(true), isMem(false) {}
 ByteToken::~ByteToken() {}
 
 bool ByteToken::isString() const { return isStr; }
@@ -26,7 +27,7 @@ bool ByteToken::isDoubleNumber() const { return isDoubleNumb; }
 bool ByteToken::isMemory() const { return isMem; }
 
 ByteToken::Type ByteToken::getType() const { return m_type; }
-double ByteToken::getValueIfExisting() const {
+int8_t ByteToken::getValueIfExisting() const {
     if (isString() || isIntegerNumber() || isDoubleNumber()) return -1;
     return m_value;
 }

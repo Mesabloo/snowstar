@@ -6,7 +6,7 @@
 #include "utils.hpp"
 
 namespace utils {
-    std::vector<std::string> str_split(std::string const& str, char const& separator) {
+    std::vector<std::string> str_split(std::string const& str, char const separator) {
         std::vector<std::string> vect;
         std::istringstream f{str};
         std::string s;
@@ -46,5 +46,9 @@ namespace utils {
     bool str_is_number(const std::string& s) {
         return std::find_if(s.begin(), s.end(),
             [=] (char c) { return !std::isdigit(c) && c != '.'; }) == s.end();
+    }
+
+    std::string str_join(std::string const& first, std::string const& second, char const div) {
+        return std::string{first + div + second};
     }
 }

@@ -42,7 +42,8 @@ class Interpreter {
         std::vector<ByteConsumer*> m_consumers;
         std::streampos m_stream_size;
 
-        std::map<uint32_t, ValueContainer> mem, temp;
+        std::array<ValueContainer, 256> mem;
+        std::stack<std::array<ValueContainer, 32>> temp;
         std::stack<ValueContainer> param;
 
         std::map<std::string, uint32_t> labels;
@@ -53,6 +54,9 @@ class Interpreter {
 
         std::mt19937 generator;
         std::chrono::system_clock::time_point execution_time;
+
+        int socket_id, sock;
+        uint32_t exec_count{0};
 };
 
 inline bool operator==(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {

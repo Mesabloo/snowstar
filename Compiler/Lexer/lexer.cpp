@@ -161,7 +161,18 @@ auto Lexer::checkToken(std::string const& buf) const -> Token* {
     Token* tmp = m_gen_tokens[m_gen_tokens.size()-1];
     if (tmp->getValue() == "call" || tmp->getValue() == "jmp" || tmp->getValue() == "jwe" || tmp->getValue() == "jwd" || tmp->getValue() == "jwg" || tmp->getValue() == "jwl")
         return new Token(Token::Type::LITERAL_STRING, "'" + buf + "'");
+    if (std::regex_match(buf, std::regex("^@@.+$")))
+        return new Token(Token::Type::PREPROCESSOR, buf);
     return new Token(Token::Type::INVALID, buf);
+}
+
+auto Lexer::preprocess(std::vector<Token*> const& tokens) const -> std::vector<Token*> {
+    std::vector<Token*> copy{tokens};
+    std::vector<Token*> directives;
+    for (auto const t : copy) {
+        if (t->getType() != Token::Type::PREPROCESSOR) continue;
+    }
+    return tokens;
 }
 
 auto Lexer::optimize(std::vector<Token*> const& tokens) const -> std::vector<std::vector<Token*>> {

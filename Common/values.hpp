@@ -6,6 +6,7 @@
 typedef struct Vars vars;
 struct Vars {
     static std::string PATH;
+    static bool DEBUG;
 };
 
 #endif

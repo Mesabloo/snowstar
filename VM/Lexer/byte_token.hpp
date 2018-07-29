@@ -19,10 +19,11 @@ class ByteToken {
 
         friend std::ostream& operator<<(std::ostream&, ByteToken::Type const&);
 
-        ByteToken(ByteToken::Type const&, double const, bool const); // keyword or separator or float number
-        ByteToken(ByteToken::Type const&, std::string const); // string literal
-        ByteToken(ByteToken::Type const&, int64_t const); // integer number literal
-        ByteToken(ByteToken::Type const&, double const, int64_t const); // memory literal
+        ByteToken(ByteToken::Type const, int8_t const); // keyword or separator
+        ByteToken(ByteToken::Type const, std::string const); // string literal
+        ByteToken(ByteToken::Type const, int64_t const); // integer number literal
+        ByteToken(ByteToken::Type const, int8_t const, int64_t const); // memory literal
+        ByteToken(ByteToken::Type const, double const); // float number
         ~ByteToken();
 
         bool isString() const;
@@ -31,7 +32,7 @@ class ByteToken {
         bool isMemory() const;
 
         ByteToken::Type getType() const;
-        double getValueIfExisting() const;
+        int8_t getValueIfExisting() const;
         std::string getStringValueIfExisting() const;
         int64_t getIntegerValueIfExisting() const;
         double getDoubleValueIfExisting() const;
@@ -42,7 +43,7 @@ class ByteToken {
     protected:
         ByteToken::Type m_type;
 
-        double m_value;
+        int8_t m_value;
         std::string m_string_value;
         int64_t m_integer_value;
         double m_double_value;

@@ -14,7 +14,7 @@ main:
         pop[nost] [param]
         pop[nost] [param]
 
-        rand[mem, 1] 0, 15
+        rand[mem, 1] 0, 25
         store[mem, 2] 1
 
         push[param] ' is: '
