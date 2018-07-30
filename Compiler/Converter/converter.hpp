@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 
-#include "../Lexer/token.hpp"
+#include <Lexer/token.hpp>
 
 class Converter {
     public:

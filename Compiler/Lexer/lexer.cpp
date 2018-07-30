@@ -3,8 +3,8 @@
 #include <regex>
 
 #include "lexer.hpp"
-#include "../../Common/Utils/utils.hpp"
-#include "../../Common/info.hpp"
+#include <Utils/utils.hpp>
+#include <info.hpp>
 
 Lexer::Lexer(std::string const path): isString{false}, isLComment{false}, isMLComment{false}, buffer{""}, m_path{path} {}
 Lexer::~Lexer() {}

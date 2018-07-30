@@ -12,8 +12,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "../Lexer/byte_consumer.hpp"
-#include "../Lexer/byte_lexer.hpp"
+#include <Lexer/byte_consumer.hpp>
+#include <Lexer/byte_lexer.hpp>
 
 class Interpreter {
     public:

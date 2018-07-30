@@ -39,3 +39,6 @@ static_syntax.txt
 out.*
 .vscode/*.json
 .vscode
+build/*/*.*
+build/*.*
+build/*

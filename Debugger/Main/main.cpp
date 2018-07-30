@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "../../Common/termcolor.hpp"
-#include "../Listener/listener.hpp"
+#include <termcolor.hpp>
+#include <Listener/listener.hpp>
 
 int main(/* int argc, const char** argv */) {
     Listener l;

@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../Common/termcolor.hpp"
-#include "../../Common/Utils/utils.hpp"
+#include <termcolor.hpp>
+#include <Utils/utils.hpp>
 
 #include "listener.hpp"
 

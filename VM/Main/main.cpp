@@ -1,11 +1,11 @@
 #include <iostream>
 #include <thread>
 
-#include "../../Common/values.hpp"
-#include "../Lexer/byte_lexer.hpp"
-#include "../../Common/Utils/utils.hpp"
-#include "../Interpreter/interpreter.hpp"
-#include "../../Common/termcolor.hpp"
+#include <values.hpp>
+#include <Lexer/byte_lexer.hpp>
+#include <Utils/utils.hpp>
+#include <Interpreter/interpreter.hpp>
+#include <termcolor.hpp>
 
 int main(int argc, const char **argv) {
     if (argc < 2) {

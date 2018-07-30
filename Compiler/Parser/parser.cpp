@@ -1,8 +1,8 @@
 #include <algorithm>
 
 #include "parser.hpp"
-#include "../../Common/info.hpp"
-#include "../../Common/Utils/utils.hpp"
+#include <info.hpp>
+#include <Utils/utils.hpp>
 
 Parser::Parser(std::vector<std::vector<Token*>> const& lines) {
     std::vector<std::vector<Token*>> no_comment;

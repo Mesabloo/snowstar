@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "../Lexer/token.hpp"
+#include <Lexer/token.hpp>
 #include "except.hpp"
 
 class Parser {

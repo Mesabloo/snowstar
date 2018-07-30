@@ -3,11 +3,11 @@
 #include <bits/stdc++.h>
 
 #include "byte_lexer.hpp"
-#include "../../Common/Utils/utils.hpp"
+#include <Utils/utils.hpp>
 
-#include "../../Common/info.hpp"
+#include <info.hpp>
 
-#include "../../Common/termcolor.hpp"
+#include <termcolor.hpp>
 
 std::ifstream ByteLexer::is = std::ifstream();
 long long ByteLexer::m_read_size = 0;

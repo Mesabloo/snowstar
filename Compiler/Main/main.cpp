@@ -1,10 +1,10 @@
 #include <iostream>
 
-#include "../Lexer/lexer.hpp"
-#include "../Parser/parser.hpp"
-#include "../Converter/converter.hpp"
-#include "../../Common/values.hpp"
-#include "../../Common/termcolor.hpp"
+#include <Lexer/lexer.hpp>
+#include <Parser/parser.hpp>
+#include <Converter/converter.hpp>
+#include <values.hpp>
+#include <termcolor.hpp>
 
 int main(int argc, char** argv) {
     if (argc < 2) {

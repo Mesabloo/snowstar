@@ -4,11 +4,10 @@
 #include <regex>
 
 #include "converter.hpp"
-#include "../../Common/values.hpp"
-#include "../../Common/Utils/utils.hpp"
-#include "../../Common/termcolor.hpp"
-
-#include "../../Common/info.hpp"
+#include <values.hpp>
+#include <Utils/utils.hpp>
+#include <termcolor.hpp>
+#include <info.hpp>
 
 Converter::Converter() {}
 Converter::~Converter() {}

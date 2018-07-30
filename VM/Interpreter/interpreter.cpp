@@ -15,11 +15,11 @@
 #include <stdio.h>
 
 #include "interpreter.hpp"
-#include "../../Common/Utils/utils.hpp"
-#include "../../Common/termcolor.hpp"
+#include <Utils/utils.hpp>
+#include <termcolor.hpp>
 
-#include "../../Common/info.hpp"
-#include "../../Common/values.hpp"
+#include <info.hpp>
+#include <values.hpp>
 
 Interpreter::Interpreter(std::string const path) {
     m_stream_size = utils::file_getsize(path);
