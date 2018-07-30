@@ -1,4 +1,6 @@
 #include <iostream>
+#include <iomanip>
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -52,9 +54,16 @@ void Listener::listen() {
         if (valid) {
             char buf[4096];
             read(m_socket, buf, 4096);
-            uint8_t const size = static_cast<uint8_t>(buf[0]);
+            uint16_t size = static_cast<uint16_t>(buf[0]);
             // std::clog << "Official size (first byte in packet)=" << std::to_string(size) << " // Real size (strlen)=" << std::to_string(strlen(buf)-1) << std::endl;
-            int i{1};
+            int i;
+            // std::clog << termcolor::grey << "Packet_buffer=" << buf << termcolor::reset << std::endl;
+            if (buf[0] == 'e' && buf[1] == 'r' && buf[2] == 'r' && buf[3] == 'o' && buf[4] == 'r') {
+                size = 4096;
+                i = 0;
+            } else {
+                i = 1;
+            }
             std::string cmd;
             // std::clog << "Packet='" << buf << "'";
             while (buf[i] != '\0' && i <= size) {
@@ -104,7 +113,7 @@ bool Listener::interpret(std::string const& buffer) const {
     if (splitted[0] == "stats") {
         std::clog << termcolor::magenta;
         std::string arguments{""};
-        for (unsigned int i{1};i < splitted.size();++i) {
+        for (size_t i{1};i < splitted.size();++i) {
             if (i == 1)
                 arguments = splitted[i];
             else
@@ -113,12 +122,47 @@ bool Listener::interpret(std::string const& buffer) const {
         // std::clog << termcolor::red << arguments << termcolor::reset << std::endl;
         std::vector<std::string> args = utils::str_split(arguments, '\n');
         // mem = args[0]
+        {
+            std::vector<std::string> stats = utils::str_split(args[0], '=');
+            stats = utils::str_split(stats[1], ';');
+            float max_size = static_cast<float>(std::stoi(stats[0])),
+                size{0};
+            if (stats[1] != "empty")
+                size = static_cast<float>(std::stoi(stats[1]));
+            std::clog << "-> Memory: { " << "Max size=" << max_size << ", Used size=" << size << ", Percentage of the memory=" << std::setprecision(3) << (size*100/max_size) << "% }" << std::endl;
+        }
         // temp = args[1]
+        {
+            std::vector<std::string> stats = utils::str_split(args[1], '=');
+            stats = utils::str_split(stats[1], ';');
+            float max_size = static_cast<float>(std::stoi(stats[0])),
+                size{0};
+            if (stats[1] != "empty")
+                size = static_cast<float>(std::stoi(stats[1]));
+            std::clog << "-> Temporary: { " << "Max size=" << max_size << ", Used size=" << size << ", Percentage of the memory=" << std::setprecision(3) << (size*100/max_size) << "% }" << std::endl;
+        }
         // param = args[2]
+        {
+            std::vector<std::string> stats = utils::str_split(args[2], '=');
+            float size{0};
+            if (stats[1] != "empty")
+                size = static_cast<float>(std::stoi(stats[1]));
+            std::clog << "-> Parameters: { Size=" << size << " }" << std::endl;
+        }
         // current instruction = args[3]+args[4...]
-        std::clog << "-> Current line: " << args[3];
+        std::string consumer{args[3]};
+        for (size_t i{4};i < args.size();++i)
+            consumer = utils::str_join(consumer, 'n'+args[i], '\\');
+        std::clog << "-> Current line: " << consumer;
         std::clog << termcolor::reset << std::endl;
         return true;
+    }
+    if (splitted[0] == "error") {
+        std::string error{splitted[1]};
+        for (size_t i{2};i < splitted.size();++i)
+            error = utils::str_join(error, splitted[i], ' ');
+        std::clog << termcolor::red << "/!\\\t" << error << termcolor::reset << std::endl;
+        return false;
     }
     return true;
 }

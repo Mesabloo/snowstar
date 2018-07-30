@@ -7,7 +7,6 @@
 #include <cstring>
 
 #include <math.h>
-
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -79,8 +78,13 @@ void Interpreter::start(ByteLexer& b) {
     loadConsumersInMemory(b);
     configVM();
     if (labels.find("main") == labels.end()) {
-        std::cerr << termcolor::red << "Error 0x0000: No main entry point in the code given." << '\n'
-            << "Please add a main entry point to your program and start again." << std::endl;
+        if (vars::DEBUG) {
+            std::stringstream ss;
+            ss << "error " << "Error 0x0000: No main entry point in the code given." << '\n'
+                << "Please add a main entry point to your program and start again.";
+            std::string val{ss.str()};
+            write(socket_id, val.c_str(), 4096);
+        }
         return;
     }
     temp.push({});
@@ -88,9 +92,16 @@ void Interpreter::start(ByteLexer& b) {
         if (vars::DEBUG) {
             if (exec_count == 0) {
                 char buf[4096];
+                int mem_size{0}, temp_size{0};
+                for (auto const v : mem) {
+                    if (!v.isNull) mem_size++;
+                }
+                for (auto const v : temp.top()) {
+                    if (!v.isNull) temp_size++;
+                }
                 std::stringstream ss;
-                ss << "stats mem=" << mem.max_size() << ";" << (mem.empty()?"empty":std::to_string(mem.size())) << "\n"
-                    << "temp=" << temp.top().max_size() << ";" << (temp.top().empty()?"empty":std::to_string(temp.top().size())) << "\n"
+                ss << "stats mem=" << mem.max_size() << ";" << (mem_size==0?"empty":std::to_string(mem_size)) << "\n"
+                    << "temp=" << temp.top().max_size() << ";" << (temp_size==0?"empty":std::to_string(temp_size)) << "\n"
                     << "param=" << (param.empty()?"empty":std::to_string(param.size())) << "\n"
                     << *m_consumers[line_number];
                 std::string s = ss.str();
@@ -119,7 +130,8 @@ void Interpreter::start(ByteLexer& b) {
                     exec_count = count-1;
                 } else if (command == "exit") {
                     char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
-                    write(socket_id, buf, 5);
+                    if (!ERROR)
+                        write(socket_id, buf, 5);
                     std::this_thread::sleep_for(std::chrono::milliseconds(500));
                     close(sock);
                     close(socket_id);
@@ -138,7 +150,8 @@ void Interpreter::start(ByteLexer& b) {
     
     if (vars::DEBUG) {
         char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
-        write(socket_id, buf, 5);
+        if (!ERROR)
+            write(socket_id, buf, 5);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         close(sock);
         close(socket_id);
@@ -195,19 +208,29 @@ void Interpreter::checkDomainOfConsumer(ByteConsumer* const& c) {
         case 0x00: // system
             returned = executeSystemConsumer(c);
             break;
-        default:
-            std::cerr << termcolor::red << "Error 0x5698: The opcode '0x" << std::hex << value << "' does not belong to any category provided by the language." << '\n'
-                << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
+        default: {
+            if (vars::DEBUG) {
+                std::stringstream ss;
+                ss << "error " << "Error 0x5698: The opcode '0x" << std::hex << value << "' does not belong to any category provided by the language." << '\n'
+                    << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
+                std::string val{ss.str()};
+                write(socket_id, val.c_str(), 4096);
+                ERROR = true;
+            }
             returned = -1;
+        }
     }
     if (returned <= 0) {
         std::cout << termcolor::reset;
         if (vars::DEBUG) {
             char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
-            write(socket_id, buf, 5);
+            if (!ERROR)
+                write(socket_id, buf, 5);
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             close(sock);
             close(socket_id);
+            if (ERROR)
+                std::clog << termcolor::yellow << "Process exited on error with code " << std::to_string(returned) << "." << termcolor::reset << std::endl;
         }
         getchar();
         exit(returned);
@@ -227,14 +250,26 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
         case info::SystemOpcodes::SYS: {
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isIntegerNumber()) {
-                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                        << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -32;
             }
             int code = arg0.getIntegerValueIfExisting();
             if (code < 0) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
+                        << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -7;
             }
             switch (code) {
@@ -251,8 +286,14 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                         } else if (val.isFloatingNumber) {
                             ss << std::setprecision(std::numeric_limits<double>::max_digits10 -1) << val.float_storage;
                         } else {
-                            std::cerr << termcolor::red << "Error 0x4563: Invalid value " << val << " contained in @param." << '\n'
-                                << "If you don't know why it happens, or didn't modify the bytecode by hand, then contact the creator specifying your code and the error code.";
+                            if (vars::DEBUG) {
+                                std::stringstream ss;
+                                ss << "error " << "Error 0x4563: Invalid value " << val << " contained in @param." << '\n'
+                                    << "If you don't know why it happens, or didn't modify the bytecode by hand, then contact the creator specifying your code and the error code.";
+                                std::string val{ss.str()};
+                                write(socket_id, val.c_str(), 4096);
+                                ERROR = true;
+                            }
                             return -96;
                         }
                     }
@@ -275,6 +316,7 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                     std::string input;
                     std::getline(std::cin, input);
                     ValueContainer val;
+                    val.isNull = false;
                     if (utils::str_is_number(input)) {
                         val.string_storage = "";
                         if (std::regex_match(input, std::regex(".*(\\.[0-9]*){1}"))) {
@@ -301,23 +343,42 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
                     } else if (memory_value == _param) {
                         param.push(val);
                     } else {
-                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator witht the error code and the value given.";
+                        if (vars::DEBUG) {
+                            std::stringstream ss;
+                            ss << "error " << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                                << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                            std::string val{ss.str()};
+                            write(socket_id, val.c_str(), 4096);
+                            ERROR = true;
+                        }
                         return -85;
                     }
                     return 1;
                 }
-                default:
-                    std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
-                        << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                default: {
+                    if (vars::DEBUG) {
+                        std::stringstream ss;
+                        ss << "error " << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
+                            << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                        std::string val{ss.str()};
+                        write(socket_id, val.c_str(), 4096);
+                        ERROR = true;
+                    }
                     return -7;
+                }
             }
             return 1;
         }
         case info::SystemOpcodes::BACK: {
             if (call_stack.empty()) {
-                std::cerr << "Error 0x3678: Empty call stack while using $back" << '\n'
-                    << "This is entirely your fault. You put one $back too much, or made one $call too much. Please review your code.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x3678: Empty call stack while using $back" << '\n'
+                        << "This is entirely your fault. You put one $back too much, or made one $call too much. Please review your code.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -45;
             }
             line_number = call_stack.top();
@@ -331,14 +392,26 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
         case info::SystemOpcodes::JMP: {
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
+                        << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -7;
             }
             std::string const lbl = arg0.getStringValueIfExisting();
             if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
+                        << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -65;
             }
             line_number = labels[lbl];
@@ -347,14 +420,26 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
         case info::SystemOpcodes::CALL: {
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
+                        << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -7;
             }
             std::string const lbl = arg0.getStringValueIfExisting();
             if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
+                        << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -65;
             }
             call_stack.push(line_number);
@@ -362,10 +447,17 @@ int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
             temp.push({});
             return 1;
         }
-        default:
-            std::cerr << termcolor::red << "Error 0x6312: The opcode '0x" << std::hex << value << "' does not belong to the `system` category provided by the language." << '\n'
-                << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
+        default: {
+            if (vars::DEBUG) {
+                std::stringstream ss;
+                ss << "error " << "Error 0x6312: The opcode '0x" << std::hex << value << "' does not belong to the `system` category provided by the language." << '\n'
+                    << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
+                std::string val{ss.str()};
+                write(socket_id, val.c_str(), 4096);
+                ERROR = true;
+            }
             return -1;
+        }
     }
 }
 
@@ -380,6 +472,7 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                            _param = info::m_bytes["param"],
                            _nost = info::m_bytes["nost"];
             ValueContainer val;
+            val.isNull = false;
             ByteToken const arg0 = c->getArgs()[0];
             if (arg0.isIntegerNumber()) {
                 val.isIntegerNumber = true;
@@ -399,23 +492,47 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     } else if (memory_segment == _temp) {
                         val = temp.top()[index];
                     } else if (memory_segment == _param) {
-                        std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
-                            << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                        if (vars::DEBUG) {
+                            std::stringstream ss;
+                            ss << "error " << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
+                                << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                            std::string val{ss.str()};
+                            write(socket_id, val.c_str(), 4096);
+                            ERROR = true;
+                        }
                         return -87;
                     } else if (memory_value != _nost) {
-                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                        if (vars::DEBUG) {
+                            std::stringstream ss;
+                            ss << "error " << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                                << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                            std::string val{ss.str()};
+                            write(socket_id, val.c_str(), 4096);
+                            ERROR = true;
+                        }
                         return -85;
                     }
                 }
             } else {
-                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
-                    << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
+                        << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -63;
             }
             if (!memseg.isMemory()) {
-                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                        << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -32;
             }
             if (memseg.getIntegerValueIfExisting() < 0) {
@@ -426,14 +543,26 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             } else if (memory_value == _temp) {
                 temp.top()[memseg.getIntegerValueIfExisting()] = val;
             } else if (memory_value == _param) {
-                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $store." << '\n'
-                    << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $store." << '\n'
+                        << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -87;
             } else if (memory_value == _mem) {
                 mem[memseg.getIntegerValueIfExisting()] = val;
             } else {
-                std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                    << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                        << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -85;
             }
             return 1;
@@ -446,14 +575,21 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                            _param = info::m_bytes["param"],
                            _nost = info::m_bytes["nost"];
             if (memory_value == _mem || memory_value == _temp) {
-                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $push." << '\n'
-                    << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $push." << '\n'
+                        << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -87;
             }
             if (memory_value == _nost) {
                 return 1;
             }
             ValueContainer val;
+            val.isNull = false;
             ByteToken const arg0 = c->getArgs()[0];
             if (arg0.isIntegerNumber()) {
                 val.isIntegerNumber = true;
@@ -473,18 +609,36 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                     } else if (memory_segment == _temp) {
                         val = temp.top()[index];
                     } else if (memory_segment == _param) {
-                        std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
-                            << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                        if (vars::DEBUG) {
+                            std::stringstream ss;
+                            ss << "error " << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
+                                << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                            std::string val{ss.str()};
+                            write(socket_id, val.c_str(), 4096);
+                            ERROR = true;
+                        }
                         return -87;
                     } else if (memory_value != _nost) {
-                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                        if (vars::DEBUG) {
+                            std::stringstream ss;
+                            ss << "error " << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                                << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                            std::string val{ss.str()};
+                            write(socket_id, val.c_str(), 4096);
+                            ERROR = true;
+                        }
                         return -85;
                     }
                 }
             } else {
-                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
-                    << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
+                        << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -63;
             }
             if (memory_value == _param) {
@@ -501,14 +655,26 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                            _nost = info::m_bytes["nost"];
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isMemory()) {
-                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
-                    << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
+                        << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -63;
             }
             double const pop_seg = arg0.getValueIfExisting();
             if (pop_seg == _mem || pop_seg == _temp) {
-                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $pop." << '\n'
-                    << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $pop." << '\n'
+                        << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -87;
             }
             if (pop_seg == _nost) {
@@ -522,8 +688,14 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             } else {
                 ValueContainer val;
                 if (!memseg.isIntegerNumber()) {
-                    std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                        << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+                    if (vars::DEBUG) {
+                        std::stringstream ss;
+                        ss << "error " << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+                        std::string val{ss.str()};
+                        write(socket_id, val.c_str(), 4096);
+                        ERROR = true;
+                    }
                     return -32;
                 }
                 int const index = memseg.getIntegerValueIfExisting();
@@ -548,8 +720,14 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
         case info::MemoryOpcodes::FREE: {
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isMemory()) {
-                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
-                    << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
+                        << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -63;
             }
             uint64_t const memory_value = arg0.getValueIfExisting(),
@@ -560,14 +738,26 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
             if (memory_value == _nost) {
                 return 1;
             } else if (memory_value == _param) {
-                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $free." << '\n'
-                    << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $free." << '\n'
+                        << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -87;
             }
             int const index = arg0.getIntegerValueIfExisting();
             if (index < 0) {
-                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                        << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -32;
             }
             if (memory_value == _mem) {
@@ -577,16 +767,29 @@ int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
                 std::remove(temp.top().begin(), temp.top().end(), temp.top()[index]);
                 return 1;
             } else {
-                std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                    << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                        << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -85;
             }
             return 1;
         }
-        default:
-            std::cerr << termcolor::red << "Error 0x6313: The opcode '0x" << std::hex << value << "' does not belong to the `memory` category provided by the language." << '\n'
-                << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
+        default: {
+            if (vars::DEBUG) {
+                std::stringstream ss;
+                ss << "error " << "Error 0x6313: The opcode '0x" << std::hex << value << "' does not belong to the `memory` category provided by the language." << '\n'
+                    << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
+                std::string val{ss.str()};
+                write(socket_id, val.c_str(), 4096);
+                ERROR = true;
+            }
             return -1;
+        }
     }
 }
 
@@ -600,16 +803,30 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
     ByteToken const arg0 = c->getArgs()[0],
                     arg1 = c->getArgs()[1];
     if (arg0.isDoubleNumber() || arg0.isString()) {
-        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+        if (vars::DEBUG) {
+            std::stringstream ss;
+            ss << "error " << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+            std::string val{ss.str()};
+            write(socket_id, val.c_str(), 4096);
+            ERROR = true;
+        }
         return -32;
     }
     if (arg1.isDoubleNumber() || arg1.isString()) {
-        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg1.getStringValueIfExisting() << "', " << arg1.getIntegerValueIfExisting() << ", " << arg1.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+        if (vars::DEBUG) {
+            std::stringstream ss;
+            ss << "error " << "Error 0x9834: Invalid integer number ('" << arg1.getStringValueIfExisting() << "', " << arg1.getIntegerValueIfExisting() << ", " << arg1.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+            std::string val{ss.str()};
+            write(socket_id, val.c_str(), 4096);
+            ERROR = true;
+        }
         return -32;
     }
     ValueContainer val0, val1;
+    val0.isNull = false;
+    val1.isNull = false;
     if (arg0.isIntegerNumber()) {
         val0.isIntegerNumber = true;
         val0.integer_storage = arg0.getIntegerValueIfExisting();
@@ -622,19 +839,37 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
         } else if (seg == _temp) {
             tmp = temp.top()[index];
         } else {
-            std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+            if (vars::DEBUG) {
+                std::stringstream ss;
+                ss << "error " << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                    << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                std::string val{ss.str()};
+                write(socket_id, val.c_str(), 4096);
+                ERROR = true;
+            }
             return -85;
         }
         if (!tmp.isIntegerNumber) {
-            std::cerr << termcolor::red << "Error 0x9834: Invalid integer number " << tmp << " used as a memory segment index." << '\n'
-                << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+            if (vars::DEBUG) {
+                std::stringstream ss;
+                ss << "error " << "Error 0x9834: Invalid integer number " << tmp << " used as a memory segment index." << '\n'
+                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+                std::string val{ss.str()};
+                write(socket_id, val.c_str(), 4096);
+                ERROR = true;
+            }
             return -32;
         }
         val0 = tmp;
     } else {
-        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+        if (vars::DEBUG) {
+            std::stringstream ss;
+            ss << "error " << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+            std::string val{ss.str()};
+            write(socket_id, val.c_str(), 4096);
+            ERROR = true;
+        }
         return -32;
     }
     if (arg1.isIntegerNumber()) {
@@ -649,22 +884,41 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
         } else if (seg == _temp) {
             tmp = temp.top()[index];
         } else {
-            std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+            if (vars::DEBUG) {
+                std::stringstream ss;
+                ss << "error " << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                    << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                std::string val{ss.str()};
+                write(socket_id, val.c_str(), 4096);
+                ERROR = true;
+            }
             return -85;
         }
         if (!tmp.isIntegerNumber) {
-            std::cerr << termcolor::red << "Error 0x9834: Invalid integer number " << tmp << " used as a memory segment index." << '\n'
-                << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+            if (vars::DEBUG) {
+                std::stringstream ss;
+                ss << "error " << "Error 0x9834: Invalid integer number " << tmp << " used as a memory segment index." << '\n'
+                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+                std::string val{ss.str()};
+                write(socket_id, val.c_str(), 4096);
+                ERROR = true;
+            }
             return -32;
         }
         val1 = tmp;
     } else {
-        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg1.getStringValueIfExisting() << "', " << arg1.getIntegerValueIfExisting() << ", " << arg1.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+        if (vars::DEBUG) {
+            std::stringstream ss;
+            ss << "error " << "Error 0x9834: Invalid integer number ('" << arg1.getStringValueIfExisting() << "', " << arg1.getIntegerValueIfExisting() << ", " << arg1.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
+                << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
+            std::string val{ss.str()};
+            write(socket_id, val.c_str(), 4096);
+            ERROR = true;
+        }
         return -32;
     }
     ValueContainer result;
+    result.isNull = false;
     switch (value) {
         case info::MathsOpcodes::ADD: {
             result.isIntegerNumber = true;
@@ -683,8 +937,14 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
         }
         case info::MathsOpcodes::DIV: {
             if (val1.integer_storage == 0) {
-                std::cerr << termcolor::red << "Error 0x4695: Dividing by 0."
-                    << "Please make sure to not divide by 0 anymore !" << termcolor::reset << std::endl;
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x4695: Dividing by 0." << '\n'
+                        << "Please make sure to not divide by 0 anymore !";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -24;
             }
             result.isIntegerNumber = true;
@@ -702,10 +962,17 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
             result.integer_storage = val0.integer_storage % val1.integer_storage;
             break;
         }
-        default:
-            std::cerr << termcolor::red << "Error 0x6314: The opcode '0x" << std::hex << value << "' does not belong to the `integer maths` category provided by the language." << '\n'
-                << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
+        default: {
+            if (vars::DEBUG) {
+                std::stringstream ss;
+                ss << "error " << "Error 0x6314: The opcode '0x" << std::hex << value << "' does not belong to the `integer maths` category provided by the language." << '\n'
+                    << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
+                std::string val{ss.str()};
+                write(socket_id, val.c_str(), 4096);
+                ERROR = true;
+            }
             return -1;
+        }
     }
     int const index = c->getStorage().getMemory().getIntegerValueIfExisting();
     if (index == -1) {
@@ -720,8 +987,14 @@ int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
     } else if (memory_value == _nost) {
         return 1;
     } else {
-        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+        if (vars::DEBUG) {
+            std::stringstream ss;
+            ss << "error " << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
+                << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+            std::string val{ss.str()};
+            write(socket_id, val.c_str(), 4096);
+            ERROR = true;
+        }
         return -85;
     }
     return 1;
@@ -736,6 +1009,8 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
             ByteToken const arg0 = c->getArgs()[0],
                             arg1 = c->getArgs()[1];
             ValueContainer val0, val1;
+            val0.isNull = false;
+            val1.isNull = false;
             if (arg0.isDoubleNumber()) {
                 val0.isFloatingNumber = true;
                 val0.float_storage = arg0.getDoubleValueIfExisting();
@@ -754,8 +1029,14 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
                     } else if (seg == _temp) {
                         val0 = temp.top()[index];
                     } else {
-                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << seg << "'." << '\n'
-                            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                        if (vars::DEBUG) {
+                            std::stringstream ss;
+                            ss << "error " << "Error 0x2369: Invalid memseg '0x" << std::hex << seg << "'." << '\n'
+                                << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                            std::string val{ss.str()};
+                            write(socket_id, val.c_str(), 4096);
+                            ERROR = true;
+                        }
                         return -85;
                     }
                 }
@@ -778,8 +1059,14 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
                     } else if (seg == _temp) {
                         val1 = temp.top()[index];
                     } else {
-                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << seg << "'." << '\n'
-                            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                        if (vars::DEBUG) {
+                            std::stringstream ss;
+                            ss << "error " << "Error 0x2369: Invalid memseg '0x" << std::hex << seg << "'." << '\n'
+                                << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
+                            std::string val{ss.str()};
+                            write(socket_id, val.c_str(), 4096);
+                            ERROR = true;
+                        }
                         return -85;
                     }
                 }
@@ -799,14 +1086,26 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
         case info::ComparativeOpcodes::JWE: {
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
+                        << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -7;
             }
             std::string const lbl = arg0.getStringValueIfExisting();
             if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
+                        << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -65;
             }
             if (condition == 1) {
@@ -817,14 +1116,26 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
         case info::ComparativeOpcodes::JWD: {
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
+                        << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -7;
             }
             std::string const lbl = arg0.getStringValueIfExisting();
             if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
+                        << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -65;
             }
             if (condition != 1 && condition != 0) {
@@ -835,14 +1146,26 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
         case info::ComparativeOpcodes::JWG: {
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
+                        << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -7;
             }
             std::string const lbl = arg0.getStringValueIfExisting();
             if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
+                        << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -65;
             }
             if (condition == 2) {
@@ -853,14 +1176,26 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
         case info::ComparativeOpcodes::JWL: {
             ByteToken const arg0 = c->getArgs()[0];
             if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
+                        << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -7;
             }
             std::string const lbl = arg0.getStringValueIfExisting();
             if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                if (vars::DEBUG) {
+                    std::stringstream ss;
+                    ss << "error " << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
+                        << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
+                    std::string val{ss.str()};
+                    write(socket_id, val.c_str(), 4096);
+                    ERROR = true;
+                }
                 return -65;
             }
             if (condition == -2) {
@@ -868,9 +1203,16 @@ int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
             }
             return 1;
         }
-        default:
-            std::cerr << termcolor::red << "Error 0x6315: The opcode '0x" << std::hex << value << "' does not belong to the `comparative` category provided by the language." << '\n'
-                << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
+        default: {
+            if (vars::DEBUG) {
+                std::stringstream ss;
+                ss << "error " << "Error 0x6315: The opcode '0x" << std::hex << value << "' does not belong to the `comparative` category provided by the language." << '\n'
+                    << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
+                std::string val{ss.str()};
+                write(socket_id, val.c_str(), 4096);
+                ERROR = true;
+            }
             return -1;
+        }
     }
 }

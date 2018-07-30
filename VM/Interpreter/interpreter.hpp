@@ -4,12 +4,13 @@
 #include <string>
 #include <vector>
 #include <stack>
-#include <stdlib.h>
 #include <utility>
 #include <map>
 #include <random>
-#include <time.h>
 #include <chrono>
+
+#include <stdlib.h>
+#include <time.h>
 
 #include "../Lexer/byte_consumer.hpp"
 #include "../Lexer/byte_lexer.hpp"
@@ -27,6 +28,7 @@ class Interpreter {
             std::string string_storage{""};
 
             bool isIntegerNumber{false}, isFloatingNumber{false}, isString{false};
+            bool isNull{true};
         };
 
     private:
@@ -57,6 +59,8 @@ class Interpreter {
 
         int socket_id, sock;
         uint32_t exec_count{0};
+
+        bool ERROR{false};
 };
 
 inline bool operator==(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {
@@ -65,7 +69,8 @@ inline bool operator==(Interpreter::ValueContainer const a, Interpreter::ValueCo
         a.string_storage == b.string_storage &&
         a.isIntegerNumber == b.isIntegerNumber &&
         a.isFloatingNumber == b.isFloatingNumber &&
-        a.isString == b.isString;
+        a.isString == b.isString &&
+        a.isNull == b.isNull;
 }
 
 inline bool operator!=(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {
