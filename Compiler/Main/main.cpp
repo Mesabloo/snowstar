@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     Parser p(new_tokens);
 
     std::cout << std::endl << std::endl << termcolor::grey << "After uncommenting: " << std::endl;
-    auto const opt_tokens = p.getLines();
+    auto opt_tokens = p.getLines();
     if (opt_tokens.empty()) {
         getchar();
         return -23;
@@ -83,17 +83,16 @@ int main(int argc, char** argv) {
     } else {
         std::cout << termcolor::yellow << "No semantical errors !" << "\033[0m" << std::endl;
     }
-    auto const& c = p.getConsumers();
 
     std::cout << std::endl;
 
     Converter co;
-    if (!co.start(c)) {
+    if (!co.start(p.getConsumers())) {
         getchar();
         return -67;
     }
 
-    std::cout << std::endl << termcolor::green << "File written. You can now use the VM !" << "\033[0m" << std::endl;
+    std::cout << std::endl << termcolor::green << "File written. You may now use the VM !" << "\033[0m" << std::endl;
 
     getchar();
     return 0;

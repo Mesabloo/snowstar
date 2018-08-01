@@ -26,7 +26,12 @@ class Token {
             INLINE_COMMENT,        // % comment
             MULTILINE_COMMENT,     // #* comment *#
             INVALID,               // When none of these types are good enough, the Token is marked invalid.
-            PREPROCESSOR           // Preprocessor directive  
+            PREPROCESSOR,          // Preprocessor directive
+            LABEL,
+
+            CONST_TABLE,
+            MEM_TABLE,
+            LABEL_TABLE
         };
         static std::string getTypeSignification(Token::Type);
 

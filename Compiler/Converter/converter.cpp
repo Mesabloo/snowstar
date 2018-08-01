@@ -1,130 +1,251 @@
 #include <fstream>
-#include <sstream>
-#include <iomanip>
-#include <regex>
+#include <string>
+#include <iostream>
+#include <algorithm>
 
-#include "converter.hpp"
-#include <values.hpp>
 #include <Utils/utils.hpp>
-#include <termcolor.hpp>
 #include <info.hpp>
+#include "converter.hpp"
+#include <termcolor.hpp>
+#include <values.hpp>
 
 Converter::Converter() {}
 Converter::~Converter() {}
 
-bool Converter::start(std::vector<Consumer*> const& cons) const {
-    std::ofstream os;
-    os.open(vars::PATH + "/out.ssbc", std::ofstream::ios_base::binary | std::ofstream::ios_base::out);
-    os << std::hex;
-    for (auto const& c : cons) {
-        std::clog << termcolor::green << c->toString() << termcolor::reset << std::endl;
-        Token const instr = c->getInstruction();
-        Consumer::Store const storage = c->getStorage();
-        std::vector<Token> const args = c->getArgs();
-
-        utils::stream_write<int8_t>(os, info::m_bytes[instr.getValue()]);
-        if (storage.getIndex().getValue() != "-1") {
-            utils::stream_write<int8_t>(os, info::Dividers::MEMORY);
-            utils::stream_write<int8_t>(os, info::m_bytes[storage.getMemseg().getValue()]);
-            std::string val = storage.getIndex().getValue();
-            std::string value;
+bool Converter::start(std::vector<Consumer*> consumers) const {
+    std::string const header{"snowstar"};
+    std::vector<std::string> labels_table,
+                             consts_table,
+                             code_table;
+    std::map<std::string, uint16_t> label_corres;
+    uint16_t labels_id{1},
+             consts_id{0},
+             instrs_no{0};
+    int line{0};
+    for (size_t i{0};i < consumers.size();++i) {
+        Consumer*& c{consumers[i]};
+        if (c->getInstruction().getType() == Token::Type::EOL) continue;
+        for (auto const& arg : c->getArgs()) {
+            if (utils::str_startswith(Token::getTypeSignification(arg.getType()), "Literal."))
+                line++;
+        }
+        if (c->getInstruction().getValue() == "lbl") {
+            std::string id_no{""};
+            std::string instruction{"LABEL "};
+            if (c->getArgs()[0].getValue() == "main") {
+                id_no += static_cast<unsigned char>(0 & 0x00ff);
+                id_no += static_cast<unsigned char>(0 & 0xff00);
+                instruction += static_cast<unsigned char>(0 & 0x00ff);
+                instruction += static_cast<unsigned char>(0 & 0xff00);
+                label_corres[c->getArgs()[0].getValue()] = 0;
+            } else {
+                id_no += static_cast<unsigned char>(labels_id & 0x00ff);
+                id_no += static_cast<unsigned char>(labels_id & 0xff00);
+                instruction += static_cast<unsigned char>(labels_id & 0x00ff);
+                instruction += static_cast<unsigned char>(labels_id & 0xff00);
+                label_corres[c->getArgs()[0].getValue()] = labels_id;
+            }
+            id_no += static_cast<unsigned char>((i+line) & 0x00ff);
+            id_no += static_cast<unsigned char>((i+line) & 0xff00);
+            labels_table.push_back(id_no);
+            code_table.resize(i+line+1);
+            code_table[i+line] = instruction;
+            std::cout << "Label at line " << (i+line) << std::endl;
+            if (c->getArgs()[0].getValue() != "main")
+                labels_id++;
+            continue;
+        }
+        //line++;
+    }
+    for (auto& c : consumers) {
+        if (c->getInstruction().getType() == Token::Type::EOL) continue;
+        for (auto& t : c->getArgs()) {
+            if (utils::str_startswith(Token::getTypeSignification(t.getType()), "Literal.")) {
+                uint16_t size{4};
+                std::string value{""};
+                switch (t.getType()) {
+                    case Token::Type::LITERAL_MEMORY: {
+                        std::string name{utils::str_split(t.getValue(), '.')[0]};
+                        std::string index{utils::str_split(t.getValue(), '.')[1]};
+                        uint16_t mem{info::m_bytes[name]};
+                        value += static_cast<unsigned char>(mem & 0x00ff);
+                        value += static_cast<unsigned char>(mem & 0xff00);
+                        value += static_cast<unsigned char>(static_cast<uint8_t>(std::stoi(index)));
+                        t = Token(Token::Type::MEM_TABLE, value);
+                        if (instrs_no+1 > code_table.size())
+                            code_table.resize(code_table.size()+1);
+                        code_table[instrs_no] = "LOAD_MEM " + value;
+                        break;
+                    }
+                    case Token::Type::LITERAL_NUMBER_FLOAT: {
+                        value += static_cast<unsigned char>(size & 0x00ff);
+                        value += static_cast<unsigned char>(size & 0xff00);
+                        unsigned char* hexa;
+                        float val{std::stof(t.getValue())};
+                        memcpy(hexa, &val, sizeof(val));
+                        for (int i{0};i < sizeof(val);++i)
+                            value += *(hexa + i);
+                        t = Token(Token::Type::CONST_TABLE, std::to_string(consts_id));
+                        std::string id_no{""};
+                        id_no += static_cast<unsigned char>(consts_id & 0x00ff);
+                        id_no += static_cast<unsigned char>(consts_id & 0xff00);
+                        id_no += value;
+                        consts_table.push_back(id_no);
+                        std::string instruction{"LOAD_CONST "};
+                        instruction += static_cast<unsigned char>(consts_id & 0x00ff);
+                        instruction += static_cast<unsigned char>(consts_id & 0xff00);
+                        if (instrs_no+1 > code_table.size())
+                            code_table.resize(code_table.size()+1);
+                        code_table[instrs_no] = instruction;
+                        consts_id++;
+                        break;
+                    }
+                    case Token::Type::LITERAL_NUMBER_INT: {
+                        value += static_cast<unsigned char>(size & 0x00ff);
+                        value += static_cast<unsigned char>(size & 0xff00);
+                        std::string hex = utils::int_to_hex<int16_t>(std::stoll(t.getValue()));
+                        for (auto const c : hex)
+                            value += c + 0x10;
+                        t = Token(Token::Type::CONST_TABLE, std::to_string(consts_id));
+                        std::string id_no{""};
+                        id_no += static_cast<unsigned char>(consts_id & 0x00ff);
+                        id_no += static_cast<unsigned char>(consts_id & 0xff00);
+                        id_no += value;
+                        consts_table.push_back(id_no);
+                        std::string instruction{"LOAD_CONST "};
+                        instruction += static_cast<unsigned char>(consts_id & 0x00ff);
+                        instruction += static_cast<unsigned char>(consts_id & 0xff00);
+                        if (instrs_no+1 > code_table.size())
+                            code_table.resize(code_table.size()+1);
+                        code_table[instrs_no] = instruction;
+                        consts_id++;
+                        break;
+                    }
+                    case Token::Type::LITERAL_STRING: {
+                        size = t.getValue().size()-2;
+                        std::string val{t.getValue().substr(1, size)};
+                        value += static_cast<unsigned char>(size & 0x00ff);
+                        value += static_cast<unsigned char>(size & 0xff00);
+                        for (auto const charac : val)
+                            value += static_cast<unsigned char>(charac + 0x20);
+                        t = Token(Token::Type::CONST_TABLE, std::to_string(consts_id));
+                        std::string id_no{""};
+                        id_no += static_cast<unsigned char>(consts_id & 0x00ff);
+                        id_no += static_cast<unsigned char>(consts_id & 0xff00);
+                        id_no += value;
+                        consts_table.push_back(id_no);
+                        std::string instruction{"LOAD_CONST "};
+                        instruction += static_cast<unsigned char>(consts_id & 0x00ff);
+                        instruction += static_cast<unsigned char>(consts_id & 0xff00);
+                        if (instrs_no+1 > code_table.size())
+                            code_table.resize(code_table.size()+1);
+                        code_table[instrs_no] = instruction;
+                        consts_id++;
+                        break;
+                    }
+                }
+                instrs_no++;
+            }
+        }
+        std::string instr{c->getInstruction().getValue()},
+                    memseg{c->getStorage().getMemseg().getValue()},
+                    index{c->getStorage().getIndex().getValue()};;
+        std::transform(instr.begin(), instr.end(), instr.begin(), utils::to_upper);
+        if (instr != "LBL") {
+            instr += ' ';
+            //std::cout << instrs_no << " // " << instr << std::endl;
+            if (instr == "JMP " || instr == "CALL " || instr == "JWE " || instr == "JWD " || instr == "JWL " || instr == "JWG ") {
+                uint16_t instr_number = label_corres[c->getArgs()[0].getValue()];
+                std::string instruction{""};
+                instruction += static_cast<unsigned char>(instr_number & 0x00ff);
+                instruction += static_cast<unsigned char>(instr_number & 0xff00);
+                instr += instruction;
+            }
+            if (index != "-1") {
+                uint16_t mem{info::m_bytes[memseg]};
+                instr += static_cast<char>(mem & 0x00ff);
+                instr += static_cast<char>(mem & 0xff00);
+                instr += static_cast<char>(static_cast<uint8_t>(std::stoi(index)));
+            }
             try {
-                value = std::to_string(std::stoll(val));
-            } catch (std::invalid_argument& e) {
-                std::cerr << termcolor::red << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
-                    << "IllegalTypeException" << ": " << "Invalid integer '" << val << "'." << "\033[0m" << std::endl;
-                return false;
+                std::string lbl = code_table.at(instrs_no);
+                if (!utils::str_startswith(lbl, "LABEL")) throw std::out_of_range{""};
+                std::cout << "There's a label at line " << instrs_no << std::endl;
+            } catch (const std::out_of_range& oor) {
+                if (instrs_no+1 > code_table.size())
+                    code_table.resize(code_table.size()+1);
+                code_table[instrs_no] = instr;
+                std::cout << "We inserted " << instr << " at line " << instrs_no << std::endl;
             }
-            int8_t div = info::Dividers::NUMBER_INTEGER;
-            utils::stream_write<int8_t>(os, div);
-            for (char const& c : value)
-                utils::stream_write<char>(os, c);
-            utils::stream_write<int8_t>(os, div);
-            utils::stream_write<int8_t>(os, info::Dividers::MEMORY);
+            //instrs_no++;
         }
-
-        utils::stream_write<int8_t>(os, info::Dividers::INSTR_PARAMS);
-
-        for (Token const& t : args) {
-            switch (t.getType()) {
-                case Token::Type::KEYWORD: {
-                    utils::stream_write<int8_t>(os, info::m_bytes[t.getValue()]);
-                    break;
-                }
-                case Token::Type::LITERAL_STRING: {
-                    std::string val = t.getValue();
-                    val.erase(val.begin(), val.begin()+1);
-                    val.erase(val.end()-1, val.end());
-                    utils::stream_write<int8_t>(os, info::Dividers::STRING);
-                    for (char const& c : val) {
-                        utils::stream_write<int8_t>(os, c + 0x21);
-                    }
-                    utils::stream_write<int8_t>(os, info::Dividers::STRING);
-                    break;
-                }
-                case Token::Type::LITERAL_NUMBER_INT: {
-                    std::string val = t.getValue();
-                    std::string value;
-                    try {
-                        value = std::to_string(std::stoll(val));
-                    } catch (std::invalid_argument& e) {
-                        std::cerr << termcolor::red << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
-                            << "IllegalTypeException" << ": " << "Invalid integer '" << val << "'." << "\033[0m" << std::endl;
-                        return false;
-                    }
-                    int8_t div = info::Dividers::NUMBER_INTEGER;
-                    utils::stream_write<int8_t>(os, div);
-                    for (char const& c : value)
-                        utils::stream_write<char>(os, c);
-                    utils::stream_write<int8_t>(os, div);
-                    break;
-                }
-                case Token::Type::LITERAL_NUMBER_FLOAT: {
-                    std::string val = t.getValue();
-                    double value;
-                    try {
-                        value = std::stod(val);
-                    } catch (std::invalid_argument& e) {
-                        std::cerr << termcolor::red << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
-                            << "IllegalTypeException" << ": " << "Invalid float number '" << val << "'." << "\033[0m" << std::endl;
-                        return false;
-                    }
-                    int8_t div = info::Dividers::NUMBER_FLOAT;
-                    utils::stream_write<int8_t>(os, div);
-                    utils::stream_write_float(os, value);
-                    utils::stream_write<int8_t>(os, div);
-                    break;
-                }
-                case Token::Type::LITERAL_MEMORY: {
-                    utils::stream_write<int8_t>(os, info::Dividers::MEMORY);
-                    std::string const seg = utils::str_split(t.getValue(), '.')[0],
-                                      val = utils::str_split(t.getValue(), '.')[1];
-                    utils::stream_write<int8_t>(os, info::m_bytes[seg]);
-                    std::string value;
-                    try {
-                        value = std::to_string(std::stoll(val));
-                    } catch (std::invalid_argument& e) {
-                        std::cerr << termcolor::red << "Compilation aborted. Error code: 0x" << std::hex << 0x10594972 << '\n'
-                            << "IllegalTypeException" << ": " << "Invalid integer '" << val << "'." << "\033[0m" << std::endl;
-                        return false;
-                    }
-                    int8_t div = info::Dividers::NUMBER_INTEGER;
-                    utils::stream_write<int8_t>(os, div);
-                    for (char const& c : value)
-                        utils::stream_write<char>(os, c);
-                    utils::stream_write<int8_t>(os, div);
-                    utils::stream_write<int8_t>(os, info::Dividers::MEMORY);
-                    break;
-                }
-                default:
-                    break;
-            }
-        }
-        utils::stream_write<int8_t>(os, info::Dividers::EOL);
-        std::cout << std::endl;
+        instrs_no++;
     }
 
-    os.flush();
-    os.close();
+    std::cout << termcolor::magenta << "Pseudo bytecode:" << std::endl;
+
+    std::clog << header << std::endl;
+    uint16_t label_no0{labels_id};
+    std::cout << "LABEL_TABLE " << label_no0 << std::endl;
+    for (auto const& l : labels_table)
+        std::cout << l << std::endl;
+    uint16_t const_no0{consts_id};
+    std::cout << "CONST_TABLE " << const_no0 << std::endl;
+    for (auto const& c : consts_table)
+        std::cout << c << std::endl;
+    uint16_t instr_no0{instrs_no};
+    std::cout << "CODE_TABLE " << instr_no0 << std::endl;
+    for (auto const& s : code_table)
+        std::cout << s << std::endl;
+
+
+    std::ofstream out{vars::PATH + "/out.ssbc"};
+    std::cout << std::endl << termcolor::reset << termcolor::red << "Bytecode:" << std::endl;
+
+    for (auto hchar : header) {
+        //std::cout << hchar;
+        utils::stream_write<unsigned char>(out, hchar);
+    }
+    uint16_t label_no{labels_id};
+    //std::cout << info::m_bytes["LABEL_TABLE"] << static_cast<unsigned char>(label_no & 0x00ff) << static_cast<unsigned char>(label_no & 0xff00);
+    utils::stream_write<unsigned char>(out, info::m_bytes["LABEL_TABLE"]);
+    utils::stream_write<uint16_t>(out, label_no);
+    for (auto const& l : labels_table) {
+        //std::cout << l;
+        for (auto hchar : l)
+            utils::stream_write<unsigned char>(out, hchar);
+    }
+    uint16_t const_no{consts_id};
+    //std::cout << info::m_bytes["CONST_TABLE"] << static_cast<unsigned char>(const_no & 0x00ff) << static_cast<unsigned char>(const_no & 0xff00);
+    utils::stream_write<unsigned char>(out, info::m_bytes["CONST_TABLE"]);
+    utils::stream_write<uint16_t>(out, const_no);
+    for (auto const& c : consts_table) {
+        //std::cout << c;
+        for (auto hchar : c)
+            utils::stream_write<unsigned char>(out, hchar);
+    }
+    uint16_t instr_no{instrs_no};
+    //std::cout << info::m_bytes["CODE_TABLE"] << static_cast<unsigned char>(instr_no & 0x00ff) << static_cast<unsigned char>(instr_no & 0xff00);
+    utils::stream_write<unsigned char>(out, info::m_bytes["CODE_TABLE"]);
+    utils::stream_write<uint16_t>(out, instr_no);
+    for (auto const& s : code_table) {
+        std::vector<std::string> splitted = utils::str_split(s, ' ');
+        if (splitted.size() == 1) {
+            //std::cout << '\x01' << info::m_bytes[splitted[0]];
+            utils::stream_write<unsigned char>(out, '\x00');
+            utils::stream_write<unsigned char>(out, info::m_bytes[splitted[0]]);
+        } else {
+            //std::cout << '\x02' << info::m_bytes[splitted[0]] << splitted[1];
+            utils::stream_write<unsigned char>(out, '\x01');
+            utils::stream_write<unsigned char>(out, info::m_bytes[splitted[0]]);
+            for (auto hchar : splitted[1])
+                utils::stream_write<unsigned char>(out, hchar);
+        }
+    }
+
+    std::cout << termcolor::reset << std::endl;
+    out.flush();
+    out.close();
+
     return true;
 }

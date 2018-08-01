@@ -6,24 +6,24 @@ main:
 
     while_not_1000000_iterations:
 
-        push[param] '\t:'
+        #*push[param] '\t:'
         push[param] [temp, 1]
         push[param] 'Iteration #'
         sys 1
         pop[nost] [param]
         pop[nost] [param]
-        pop[nost] [param]
+        pop[nost] [param]*#
 
         rand[mem, 1] 0, 25
         store[mem, 2] 1
 
-        push[param] ' is: '
+        #*push[param] ' is: '
         push[param] [mem, 1]
         push[param] 'The factorial of '
         sys 1
         pop[nost] [param]
         pop[nost] [param]
-        pop[nost] [param]
+        pop[nost] [param]*#
     
         while_mem_l_0:
             mul[mem, 2] [mem, 1], [mem, 2]
@@ -31,10 +31,10 @@ main:
             cmp [mem, 1], 0
             jwg while_mem_l_0
 
-        push[param] [mem, 2]
+        #*push[param] [mem, 2]
         sys 1
         pop[nost] [param]
-        sys 1
+        sys 1*#
 
         add[temp, 1] [temp, 1], 1
         cmp [temp, 1], 1000000

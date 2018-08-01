@@ -49,14 +49,14 @@ std::vector<Consumer> info::m_syntax = {
     Consumer(Token(Token::Type::KEYWORD, "rand"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
     Consumer(Token(Token::Type::KEYWORD, "rand"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_NUMBER_INT, "high_bound")}), // Literal.Memory
     Consumer(Token(Token::Type::KEYWORD, "rand"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
-    Consumer(Token(Token::Type::KEYWORD, "lbl"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
-    Consumer(Token(Token::Type::KEYWORD, "jmp"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
-    Consumer(Token(Token::Type::KEYWORD, "call"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "lbl"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "jmp"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "call"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
     Consumer(Token(Token::Type::KEYWORD, "back"), Consumer::Store(), {}),
-    Consumer(Token(Token::Type::KEYWORD, "jwe"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
-    Consumer(Token(Token::Type::KEYWORD, "jwd"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
-    Consumer(Token(Token::Type::KEYWORD, "jwg"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
-    Consumer(Token(Token::Type::KEYWORD, "jwl"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "jwe"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "jwd"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "jwg"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
+    Consumer(Token(Token::Type::KEYWORD, "jwl"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
     Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_NUMBER_INT, "first_value"), Token(Token::Type::LITERAL_NUMBER_INT, "second_value")}),
     Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_NUMBER_FLOAT, "first_value"), Token(Token::Type::LITERAL_NUMBER_FLOAT, "second_value")}),
     Consumer(Token(Token::Type::KEYWORD, "cmp"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "first_value"), Token(Token::Type::LITERAL_STRING, "second_value")}),
@@ -89,41 +89,48 @@ std::vector<Consumer> info::m_syntax = {
     Consumer(Token(Token::Type::KEYWORD, "mod"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}) // Literal.Memory
 };
 
-std::map<std::string, double const> info::m_bytes = {
+std::map<std::string, uint8_t const> info::m_bytes = {
     // system category: 0x10000000 + index
-    {"int", 0x00 + 0x0},
-    {"sys", 0x00 + 0x1},
-    {"back", 0x00 + 0x2},
-    {"lbl", 0x00 + 0x3},
-    {"jmp", 0x00 + 0x4},
-    {"call", 0x00 + 0x5},
+    {"INT", 0x00 + 0x0},
+    {"SYS", 0x00 + 0x1},
+    {"BACK", 0x00 + 0x2},
+    {"LABEL", 0x00 + 0x3},
+    {"JMP", 0x00 + 0x4},
+    {"CALL", 0x00 + 0x5},
 
     // math category: 0x20000000 + index
-    {"add", 0x10 + 0x1},
-    {"sub", 0x10 + 0x2},
-    {"mul", 0x10 + 0x3},
-    {"div", 0x10 + 0x4},
-    {"mod", 0x10 + 0xA},
-    {"rand", 0x10 + 0xB},
+    {"ADD", 0x10 + 0x1},
+    {"SUB", 0x10 + 0x2},
+    {"MUL", 0x10 + 0x3},
+    {"DIV", 0x10 + 0x4},
+    {"MOD", 0x10 + 0xA},
+    {"RAND", 0x10 + 0xB},
 
     // memory category: 0x30000000 + index
-    {"push", 0x20 + 0x0},
-    {"pop", 0x20 + 0x1},
-    {"store", 0x20 + 0x2},
-    {"free", 0x20 + 0x3},
+    {"PUSH", 0x20 + 0x0},
+    {"POP", 0x20 + 0x1},
+    {"STORE", 0x20 + 0x2},
+    {"FREE", 0x20 + 0x3},
 
     // comparative category: 0x40000000 + index
-    {"cmp", 0x30 + 0x0},
-    {"jwe", 0x30 + 0x1},
-    {"jwd", 0x30 + 0x2},
-    {"jwg", 0x30 + 0x3},
-    {"jwl", 0x30 + 0x4},
+    {"CMP", 0x30 + 0x0},
+    {"JWE", 0x30 + 0x1},
+    {"JWD", 0x30 + 0x2},
+    {"JWG", 0x30 + 0x3},
+    {"JWL", 0x30 + 0x4},
 
     // memsegs category: 0x50000000 + index
     {"mem", 0x40 + 0x0},
     {"temp", 0x40 + 0x1},
     {"param", 0x40 + 0x2},
-    {"nost", 0x40 + 0x3}
+    {"nost", 0x40 + 0x3},
 
     // strings category: 0x21 + index
+
+    // special instructions category: 0x60 + index
+    {"LOAD_CONST", 0x50 + 0x0},
+    {"LOAD_MEM", 0x50 + 0x1},
+    {"LABEL_TABLE", 0x50 + 0x2},
+    {"CONST_TABLE", 0x50 + 0x3},
+    {"CODE_TABLE", 0x50 + 0x4}
 };

@@ -6,12 +6,12 @@
 
 #include <stdlib.h>
 
-#include "../Compiler/Lexer/token.hpp"
+#include <Lexer/token.hpp>
 
 struct info {
     static std::vector<Token> m_keywords;
     static std::vector<Consumer> m_syntax;
-    static std::map<std::string, double const> m_bytes;
+    static std::map<std::string, uint8_t const> m_bytes;
     
     enum Dividers {
         EOL = '\x16',
@@ -27,7 +27,7 @@ struct info {
         INT = 0x00 + 0x0,
         SYS = 0x00 + 0x1,
         BACK = 0x00 + 0x2,
-        LBL = 0x00 + 0x3,
+        LABEL = 0x00 + 0x3,
         JMP = 0x00 + 0x4,
         CALL = 0x00 + 0x5
     };
@@ -65,6 +65,15 @@ struct info {
         TEMP = 0x40 + 0x1,
         PARAM = 0x40 + 0x2,
         NOST = 0x40 + 0x3
+    };
+
+    enum SpecialOpcodes {
+        // special opcodes category: 0x50 + index
+        LOAD_CONST = 0x50 + 0x0,
+        LOAD_MEM = 0x50 + 0x1,
+        LABEL_TABLE = 0x50 + 0x2,
+        CONST_TABLE = 0x50 + 0x3,
+        CODE_TABLE = 0x50 + 0x4
     };
 };
 

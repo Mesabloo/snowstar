@@ -13,6 +13,12 @@ std::string Token::getTypeSignification(Token::Type type) {
         case Token::Type::EOL: return "EOL";
         case Token::Type::INLINE_COMMENT: return "Comment.Inline";
         case Token::Type::MULTILINE_COMMENT: return "Comment.Multiline";
+        case Token::Type::LABEL: return "Label";
+
+        case Token::Type::LABEL_TABLE: return "Table.Labels";
+        case Token::Type::CONST_TABLE: return "Table.Constants";
+        case Token::Type::MEM_TABLE: return "Table.Memory";
+
         case Token::Type::INVALID: [[fallthrough]];
         default: return "Invalid";
     }

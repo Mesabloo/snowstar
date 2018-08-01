@@ -1,11 +1,6 @@
 #ifndef CONVERTER_HPP
 #define CONVERTER_HPP
 
-#include <vector>
-#include <map>
-
-#include <stdint.h>
-
 #include <Lexer/token.hpp>
 
 class Converter {
@@ -13,7 +8,7 @@ class Converter {
         Converter();
         ~Converter();
 
-        bool start(std::vector<Consumer*> const&) const;
+        bool start(std::vector<Consumer*>) const;
 };
 
 #endif
