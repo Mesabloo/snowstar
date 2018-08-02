@@ -25,7 +25,7 @@ int main(int argc, char const** argv) {
     }
 
     Interpreter i;
-    //BENCHMARK_MRSTATS("VM test", i.start(argv[1]), 10000, ms);
+    //BENCHMARK_MRSTATS("VM test", i.start(argv[1]), 1000000, ms);
     i.start(argv[1]);
 
     getchar();

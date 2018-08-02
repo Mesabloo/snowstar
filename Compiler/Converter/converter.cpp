@@ -61,7 +61,7 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
         if (c->getInstruction().getType() == Token::Type::EOL) continue;
         for (auto& t : c->getArgs()) {
             if (utils::str_startswith(Token::getTypeSignification(t.getType()), "Literal.")) {
-                uint16_t size{4};
+                uint16_t size{8};
                 std::string value{""};
                 switch (t.getType()) {
                     case Token::Type::LITERAL_MEMORY: {
@@ -81,7 +81,7 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
                         value += static_cast<unsigned char>(size & 0x00ff);
                         value += static_cast<unsigned char>(size & 0xff00);
                         unsigned char* hexa;
-                        float val{std::stof(t.getValue())};
+                        double val{std::stod(t.getValue())};
                         memcpy(hexa, &val, sizeof(val));
                         for (int i{0};i < sizeof(val);++i)
                             value += *(hexa + i);
@@ -104,7 +104,7 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
                         value += '\x04';
                         value += static_cast<unsigned char>(size & 0x00ff);
                         value += static_cast<unsigned char>(size & 0xff00);
-                        std::string hex = utils::int_to_hex<int16_t>(std::stoll(t.getValue()));
+                        std::string hex = utils::int_to_hex<int64_t>(std::stoll(t.getValue()));
                         for (auto const c : hex)
                             value += c + 0x10;
                         t = Token(Token::Type::CONST_TABLE, std::to_string(consts_id));

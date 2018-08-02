@@ -25,7 +25,7 @@ namespace utils {
     template <typename T = int, typename = std::enable_if<std::is_integral<T>::value>>
     std::string int_to_hex(T val) {
         std::stringstream ss;
-        ss << std::setw(sizeof(T)*2) << std::setfill('0') << std::hex << val;
+        ss << std::setw(sizeof(T)) << std::setfill('0') << std::hex << val;
         return std::string{ss.str()};
     }
 
