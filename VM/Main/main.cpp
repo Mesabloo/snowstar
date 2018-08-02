@@ -3,6 +3,7 @@
 #include <Interpreter/interpreter.hpp>
 #include <termcolor.hpp>
 #include <values.hpp>
+#include <benchmark.hpp>
 
 int main(int argc, char const** argv) {
     if (argc < 2) {
@@ -24,6 +25,7 @@ int main(int argc, char const** argv) {
     }
 
     Interpreter i;
+    //BENCHMARK_MRSTATS("VM test", i.start(argv[1]), 10000, ms);
     i.start(argv[1]);
 
     getchar();

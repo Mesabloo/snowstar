@@ -21,7 +21,7 @@ class Interpreter {
 
     private:
         bool make(std::string const&);
-        void domain(AtomicToken* const&);
+        bool domain(AtomicToken* const&);
         int8_t exec_system(AtomicToken* const&);
         int8_t exec_maths(AtomicToken* const&);
         int8_t exec_memory(AtomicToken* const&);

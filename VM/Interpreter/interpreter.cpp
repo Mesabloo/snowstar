@@ -14,21 +14,22 @@ Interpreter::~Interpreter() {}
 
 void Interpreter::start(std::string const& path) {
     std::cout.sync_with_stdio(false);
+    temp.push({});
     begin = std::chrono::system_clock::now();
     if (!this->make(path)) {
         std::cerr << termcolor::red << "Failed parsing file header. It may not be a Snow* bytecode file." << termcolor::reset << std::endl;
         return;
     }
-    line_number = label_table[0]->getLine();
+    line_number = label_table[0]->getLine()+1;
     while (true) {
         //std::cout << std::hex << code_table[i]->getInstruction() << " / " << (*code_table[i]->getArgument()) << std::endl;
-        domain(code_table[line_number]);
+        if (!domain(code_table[line_number])) break;
         ++line_number;
     }
     return;
 }
 
-void Interpreter::domain(AtomicToken* const& token) {
+bool Interpreter::domain(AtomicToken* const& token) {
     int8_t returned{-1};
     //std::cout << std::hex << token->getInstruction() << std::endl;
     switch (token->getInstruction() & 0xf0) {
@@ -55,9 +56,10 @@ void Interpreter::domain(AtomicToken* const& token) {
     }
     if (returned <= 0) {
         std::cout.flush();
-        getchar();
-        exit(returned);
+        //getchar();
+        return false;
     }
+    return true;
 }
 
 int8_t Interpreter::exec_system(AtomicToken* const& token) {
@@ -66,20 +68,19 @@ int8_t Interpreter::exec_system(AtomicToken* const& token) {
             switch (std::get<int32_t>(loaded.top())) {
                 case 1: {
                     std::stack<Value> copy{param};
-                    std::stringstream ss;
                     while (!copy.empty()) {
-                        ss << std::get<std::string>(copy.top());
+                        std::cout << std::get<std::string>(copy.top());
                         copy.pop();
                     }
-                    std::cout << ss.str();
                     std::cout.flush();
+                    loaded.pop();
                     return 1;
                 }
                 case 2: {
+                    loaded.pop();
                     return 1;
                 }
             }
-            loaded.pop();
             return -1;
         }
         case info::SystemOpcodes::LABEL: {
@@ -132,13 +133,22 @@ int8_t Interpreter::exec_maths(AtomicToken* const& token) {
 int8_t Interpreter::exec_memory(AtomicToken* const& token) {
     switch (token->getInstruction()) {
         case info::MemoryOpcodes::FREE: {
-            return 1;
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = std::variant<std::string, int32_t, float>{};
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = std::variant<std::string, int32_t, float>{};
+                    return 1;
+                }
+            }
+            return -1;
         }
         case info::MemoryOpcodes::POP: {
             Value const& v{param.top()};
             switch (*(token->getArgument()) & 0xff) {
                 case info::MemsegOpcodes::PARAM: {
-                    loaded.pop();
                     param.pop();
                     return 1;
                 }
@@ -146,7 +156,6 @@ int8_t Interpreter::exec_memory(AtomicToken* const& token) {
             return -1;
         }
         case info::MemoryOpcodes::PUSH: {
-            //std::clog << std::hex << (*(token->getArgument())) << " -> " << info::MemsegOpcodes::PARAM << std::endl;
             switch (*(token->getArgument()) & 0xff) {
                 case info::MemsegOpcodes::PARAM: {
                     param.push(loaded.top());
@@ -157,7 +166,20 @@ int8_t Interpreter::exec_memory(AtomicToken* const& token) {
             return -1;
         }
         case info::MemoryOpcodes::STORE: {
-            return 1;
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = loaded.top();
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = loaded.top();
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
         }
     }
     return -1;
@@ -187,18 +209,21 @@ int8_t Interpreter::exec_comparative(AtomicToken* const& token) {
 int8_t Interpreter::exec_special(AtomicToken* const& token) {
     switch (token->getInstruction()) {
         case info::SpecialOpcodes::LOAD_CONST: {
+            //std::cout << "Loading constant at index=" << *(token->getArgument()) << std::endl;
             loaded.push(const_table[*(token->getArgument())]->getValue());
             //std::clog << std::get<std::string>(const_table[*(token->getArgument())]->getValue()) << std::endl;
             return 1;
         }
         case info::SpecialOpcodes::LOAD_MEM: {
+            //std::cout << std::hex << *(token->getArgument()) << std::endl;
             switch (*(token->getArgument()) & 0xff) {
                 case info::MemsegOpcodes::MEM: {
-                    loaded.push(mem[*(token->getArgument()) & 0xff00]);
+                    //std::cout << "Loading memory at index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    loaded.push(mem[((*(token->getArgument()) & 0xff00) >> 8)]);
                     return 1;
                 }
                 case info::MemsegOpcodes::TEMP: {
-                    loaded.push(temp.top()[*(token->getArgument()) & 0xff00]);
+                    loaded.push(temp.top()[((*(token->getArgument()) & 0xff00) >> 8)]);
                     return 1;
                 }
                 case info::MemsegOpcodes::PARAM: {

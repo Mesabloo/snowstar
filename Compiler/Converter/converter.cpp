@@ -67,9 +67,8 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
                     case Token::Type::LITERAL_MEMORY: {
                         std::string name{utils::str_split(t.getValue(), '.')[0]};
                         std::string index{utils::str_split(t.getValue(), '.')[1]};
-                        uint16_t mem{info::m_bytes[name]};
-                        value += static_cast<unsigned char>(mem & 0x00ff);
-                        value += static_cast<unsigned char>(mem & 0xff00);
+                        uint8_t mem{info::m_bytes[name]};
+                        value += static_cast<unsigned char>(mem & 0xff);
                         value += static_cast<unsigned char>(static_cast<uint8_t>(std::stoi(index)));
                         t = Token(Token::Type::MEM_TABLE, value);
                         if (instrs_no+1 > code_table.size())
