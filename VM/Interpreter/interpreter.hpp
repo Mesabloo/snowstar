@@ -8,6 +8,7 @@
 #include <vector>
 #include <limits>
 #include <chrono>
+#include <random>
 
 #include <Token/token.hpp>
 #include <Token/value.hpp>
@@ -43,6 +44,8 @@ class Interpreter {
         std::stack<Value> loaded;
 
         std::stack<uint16_t> call_stack;
+        int8_t conditioner;
+        std::mt19937 generator;
 };
 
 #endif

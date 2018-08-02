@@ -5,6 +5,6 @@
 #include <string>
 #include <stdint.h>
 
-using Value = std::variant<std::string, int32_t, float>;
+using Value = std::variant<std::string, int64_t, double>;
 
 #endif

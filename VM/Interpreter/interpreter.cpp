@@ -15,6 +15,8 @@ Interpreter::~Interpreter() {}
 void Interpreter::start(std::string const& path) {
     std::cout.sync_with_stdio(false);
     temp.push({});
+    std::random_device rd;
+    generator = std::mt19937{rd()};
     begin = std::chrono::system_clock::now();
     if (!this->make(path)) {
         std::cerr << termcolor::red << "Failed parsing file header. It may not be a Snow* bytecode file." << termcolor::reset << std::endl;
@@ -65,7 +67,7 @@ bool Interpreter::domain(AtomicToken* const& token) {
 int8_t Interpreter::exec_system(AtomicToken* const& token) {
     switch (token->getInstruction()) {
         case info::SystemOpcodes::SYS: {
-            switch (std::get<int32_t>(loaded.top())) {
+            switch (std::get<int64_t>(loaded.top())) {
                 case 1: {
                     std::stack<Value> copy{param};
                     while (!copy.empty()) {
@@ -89,17 +91,22 @@ int8_t Interpreter::exec_system(AtomicToken* const& token) {
         case info::SystemOpcodes::INT: {
             auto end = std::chrono::system_clock::now();
             auto time_taken = std::chrono::duration<double, std::milli>(end-begin).count();
-            std::cout << termcolor::yellow << "Process exited with code " << std::get<int32_t>(loaded.top()) << " after " << time_taken << "ms." << '\n' << termcolor::reset;
+            std::cout << termcolor::yellow << "Process exited with code " << std::get<int64_t>(loaded.top()) << " after " << time_taken << "ms." << '\n' << termcolor::reset;
             loaded.pop();
             return 0;
         }
         case info::SystemOpcodes::JMP: {
+            line_number = label_table[*(token->getArgument())]->getLine();
             return 1;
         }
         case info::SystemOpcodes::CALL: {
+            call_stack.push(line_number);
+            line_number = label_table[*(token->getArgument())]->getLine();
             return 1;
         }
         case info::SystemOpcodes::BACK: {
+            line_number = call_stack.top();
+            call_stack.pop();
             return 1;
         }
     }
@@ -107,23 +114,111 @@ int8_t Interpreter::exec_system(AtomicToken* const& token) {
 }
 
 int8_t Interpreter::exec_maths(AtomicToken* const& token) {
+    Value const& v1{loaded.top()};
+    loaded.pop();
+    Value const& v0{loaded.top()};
+    loaded.pop();
     switch (token->getInstruction()) {
         case info::MathsOpcodes::ADD: {
-            return 1;
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[*(token->getArgument())] = std::get<int64_t>(v0) + std::get<int64_t>(v1);
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[*(token->getArgument())] = std::get<int64_t>(v0) + std::get<int64_t>(v1);
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) + std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return -1;
         }
         case info::MathsOpcodes::DIV: {
-            return 1;
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[*(token->getArgument())] = std::get<int64_t>(v0) / std::get<int64_t>(v1);
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[*(token->getArgument())] = std::get<int64_t>(v0) / std::get<int64_t>(v1);
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) / std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return -1;
         }
         case info::MathsOpcodes::MOD: {
-            return 1;
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[*(token->getArgument())] = std::get<int64_t>(v0) % std::get<int64_t>(v1);
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[*(token->getArgument())] = std::get<int64_t>(v0) % std::get<int64_t>(v1);
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) % std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return -1;
         }
         case info::MathsOpcodes::MUL: {
-            return 1;
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[*(token->getArgument())] = std::get<int64_t>(v0) * std::get<int64_t>(v1);
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[*(token->getArgument())] = std::get<int64_t>(v0) * std::get<int64_t>(v1);
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) * std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return -1;
         }
         case info::MathsOpcodes::RAND: {
-            return 1;
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[*(token->getArgument())] = std::uniform_int_distribution<int64_t>(std::get<int64_t>(v0), std::get<int64_t>(v1))(generator);
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[*(token->getArgument())] = std::uniform_int_distribution<int64_t>(std::get<int64_t>(v0), std::get<int64_t>(v1))(generator);
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::uniform_int_distribution<int64_t>(std::get<int64_t>(v0), std::get<int64_t>(v1))(generator));
+                    return 1;
+                }
+            }
+            return -1;
         }
         case info::MathsOpcodes::SUB: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[*(token->getArgument())] = std::get<int64_t>(v0) - std::get<int64_t>(v1);
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[*(token->getArgument())] = std::get<int64_t>(v0) - std::get<int64_t>(v1);
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) - std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
             return 1;
         }
     }
@@ -135,11 +230,11 @@ int8_t Interpreter::exec_memory(AtomicToken* const& token) {
         case info::MemoryOpcodes::FREE: {
             switch (*(token->getArgument()) & 0xff) {
                 case info::MemsegOpcodes::MEM: {
-                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = std::variant<std::string, int32_t, float>{};
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = std::variant<std::string, int64_t, double>{};
                     return 1;
                 }
                 case info::MemsegOpcodes::TEMP: {
-                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = std::variant<std::string, int32_t, float>{};
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = std::variant<std::string, int64_t, double>{};
                     return 1;
                 }
             }
@@ -188,18 +283,41 @@ int8_t Interpreter::exec_memory(AtomicToken* const& token) {
 int8_t Interpreter::exec_comparative(AtomicToken* const& token) {
     switch (token->getInstruction()) {
         case info::ComparativeOpcodes::CMP: {
+            Value const& v1{loaded.top()};
+            loaded.pop();
+            Value const& v0{loaded.top()};
+            loaded.pop();
+            if (v0 == v1) {
+                conditioner = 0;
+            } else if (v0 > v1) {
+                conditioner = 1;
+            } else if (v0 < v1) {
+                conditioner = -1;
+            }
             return 1;
         }
         case info::ComparativeOpcodes::JWD: {
+            if (conditioner != 0) {
+                line_number = label_table[*(token->getArgument())]->getLine();
+            }
             return 1;
         }
         case info::ComparativeOpcodes::JWE: {
+            if (conditioner == 0) {
+                line_number = label_table[*(token->getArgument())]->getLine();
+            }
             return 1;
         }
         case info::ComparativeOpcodes::JWG: {
+            if (conditioner == 1) {
+                line_number = label_table[*(token->getArgument())]->getLine();
+            }
             return 1;
         }
         case info::ComparativeOpcodes::JWL: {
+            if (conditioner == -1) {
+                line_number = label_table[*(token->getArgument())]->getLine();
+            }
             return 1;
         }
     }
@@ -288,10 +406,10 @@ bool Interpreter::make(std::string const& path) {
         if (type == '\x04') { // is int
             for (auto& c : val)
                 c -= 0x10;
-            value.emplace<int32_t>(std::strtoll(val.c_str(), nullptr, 16));
+            value.emplace<int64_t>(std::strtoll(val.c_str(), nullptr, 16));
         }
         if (type == '\x05') { // is float
-            value.emplace<float>(std::strtof(val.c_str(), nullptr));
+            value.emplace<double>(std::strtof(val.c_str(), nullptr));
         }
         const_table[id] = new ConstToken(id, value);
     }
