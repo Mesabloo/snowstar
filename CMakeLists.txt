@@ -5,4 +5,4 @@ project(SnowStar)
 
 add_subdirectory(Compiler/)
 # add_subdirectory(Debugger/)
-# add_subdirectory(VM/)
+add_subdirectory(VM/)

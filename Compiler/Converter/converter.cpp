@@ -78,6 +78,7 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
                         break;
                     }
                     case Token::Type::LITERAL_NUMBER_FLOAT: {
+                        value += '\x05';
                         value += static_cast<unsigned char>(size & 0x00ff);
                         value += static_cast<unsigned char>(size & 0xff00);
                         unsigned char* hexa;
@@ -101,6 +102,7 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
                         break;
                     }
                     case Token::Type::LITERAL_NUMBER_INT: {
+                        value += '\x04';
                         value += static_cast<unsigned char>(size & 0x00ff);
                         value += static_cast<unsigned char>(size & 0xff00);
                         std::string hex = utils::int_to_hex<int16_t>(std::stoll(t.getValue()));
@@ -122,6 +124,7 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
                         break;
                     }
                     case Token::Type::LITERAL_STRING: {
+                        value += '\x03';
                         size = t.getValue().size()-2;
                         std::string val{t.getValue().substr(1, size)};
                         value += static_cast<unsigned char>(size & 0x00ff);
@@ -162,10 +165,9 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
                 instr += instruction;
             }
             if (index != "-1") {
-                uint16_t mem{info::m_bytes[memseg]};
-                instr += static_cast<char>(mem & 0x00ff);
-                instr += static_cast<char>(mem & 0xff00);
-                instr += static_cast<char>(static_cast<uint8_t>(std::stoi(index)));
+                uint8_t mem{info::m_bytes[memseg]};
+                instr += static_cast<unsigned char>(mem);
+                instr += static_cast<unsigned char>(static_cast<uint8_t>(std::stoi(index)));
             }
             try {
                 std::string lbl = code_table.at(instrs_no);
@@ -199,7 +201,7 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
         std::cout << s << std::endl;
 
 
-    std::ofstream out{vars::PATH + "/out.ssbc"};
+    std::ofstream out{vars::PATH + "/out.ssbc", std::ios_base::binary};
     std::cout << std::endl << termcolor::reset << termcolor::red << "Bytecode:" << std::endl;
 
     for (auto hchar : header) {

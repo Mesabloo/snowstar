@@ -58,8 +58,11 @@ namespace utils {
     template <typename Word>
     std::istream& stream_read(std::istream& ins, Word& value) {
         value = 0;
-        for (unsigned size = 0; size < sizeof(Word); ++size)
+        for (unsigned size = 0; size < sizeof(Word); ++size) {
             value |= ins.get() << (8 * size);
+            //std::cout << std::hex << std::setfill('0') << std::setw(2) << (value & 0xFF) << " ";
+            //std::cout.flush();
+        }
         return ins;
     }
 

@@ -6,7 +6,7 @@
 #include <values.hpp>
 #include <termcolor.hpp>
 
-int main(int argc, char** argv) {
+int main(int argc, char const** argv) {
     if (argc < 2) {
         std::cerr << termcolor::red << "Program usage: " << argv[0] << " {file.sssc}" << '\n' << '\t' << "{file.sssc}: the path to the file to compile" << std::endl;
         getchar();

@@ -1,8 +1,8 @@
 main:
-    store[mem, 1] 'Hello, World!\n'
-    push[param] [mem, 1]
-    % push[param] 'Hello, World!\n'
+    % store[mem, 1] 'Hello, World!\n'
+    % push[param] [mem, 1]
+    push[param] 'Hello, World!\n'
     sys 1
-    pop[nost] [param]
-    jmp main
+    pop[param]
+    % jmp main
     int 0
