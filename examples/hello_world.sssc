@@ -2,6 +2,6 @@ main:
     store[mem, 1] 'Hello, World!\n'
     push[param] [mem, 1]
     sys 1
-    pop[param]
-    free[mem, 1]
+    pop [param]
+    free [mem, 1]
     int 0

@@ -1,19 +1,21 @@
 lower:
     push[param] 'The number to guess is greater.\n'
     sys 1
-    pop[nost] [param]
+    pop [param]
     jmp while_not_found
+
 greater:
     push[param] 'The number to guess is lower.\n'
     sys 1
-    pop[nost] [param]
+    pop [param]
     jmp while_not_found
+
 main:
     rand[mem, 1] 1, 100
     while_not_found:
         push[param] 'Please input the number you think is the good one (between 1 and 100): '
         sys 1
-        pop[nost] [param]
+        pop [param]
         sys[mem, 2] 2
         cmp [mem, 2], [mem, 1]
         jwl lower
@@ -22,5 +24,5 @@ main:
     end:
         push[param] '\nYou found the correct number !\n'
         sys 1
-        pop[nost] [param]
+        pop [param]
         int 0

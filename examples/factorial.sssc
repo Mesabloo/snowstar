@@ -6,13 +6,13 @@ main:
 
     while_1000000:
 
-        push[param] '\n'
+        #* push[param] '\n'
         itos[param] [temp, 1]
         sys 1
         pop [param]
-        pop [param]
+        pop [param] *#
 
-        rand[mem, 1] 0, 25
+        rand[mem, 1] 0, 20
         store[mem, 2] 1
 
         while_mem_l_0:
