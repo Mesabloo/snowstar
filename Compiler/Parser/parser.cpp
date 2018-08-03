@@ -3,6 +3,7 @@
 #include "parser.hpp"
 #include <info.hpp>
 #include <Utils/utils.hpp>
+#include <termcolor.hpp>
 
 Parser::Parser(std::vector<std::vector<Token*>> const& lines) {
     std::vector<std::vector<Token*>> no_comment;
@@ -77,17 +78,30 @@ auto Parser::assertSemantics() -> std::vector<Exception*> {
             if (c == info::m_syntax.end() && !found)
                 excepts.push_back(new Exception("InstructionNotFoundException", 0x23D9645B, "Unknown instruction '" + instr->getValue() + "' at line " + std::to_string(i+1)));
             else {
-                uint8_t const argc = c->getArgs().size();
+                if (c == info::m_syntax.end()) continue;
+                uint8_t argc{0}, to_deduce{0};
+                Token* tmp{instr};
+                while (tmp->getType() != Token::Type::EOL) {
+                    argc++;
+                    tmp = line[argc];
+                    if (tmp->getType() == Token::Type::SEPARATOR) {
+                        to_deduce++;
+                        continue;
+                    }
+                }
                 std::vector<Token> args;
                 uint8_t offset{0};
                 if (c->getStorage().getMemseg().getValue() == "nost" && c->getStorage().getIndex().getValue() == "-1")
-                    // no storage specifier. offset = 1 (args at offset+x) (instr args)
+                    // no storage specifier. offset = 1 (args at offset+x) (instr [args, ...])
                     offset = 1;
                 else
-                    // storage specifier. offset = 2 (args at offset+x) (instr [ memseg , index ] args)
+                    // storage specifier. offset = 2 (args at offset+x) (instr [storage] [args, ...])
                     offset = 2;
-                for (uint8_t i{0};i < argc*2;i += 2)
+                argc -= offset;
+                argc -= to_deduce;
+                for (uint8_t i{0};i < argc*2;i += 2) {
                     args.push_back(*line[offset+i]);
+                }
 
                 Consumer::Store st;
                 if (offset == 2) {
@@ -112,6 +126,21 @@ auto Parser::assertSemantics() -> std::vector<Exception*> {
                 if (*cons == *c) {
                     found = true;
                     m_cons.push_back(cons);
+                    Consumer::Store const& cons_store{cons->getStorage()},
+                               c_store{c->getStorage()};
+                    std::string cons_seg{cons_store.getMemseg().getValue()},
+                                c_seg{c_store.getMemseg().getValue()};
+                    if (c_seg == "memory") {
+                        if (cons_seg != "mem" && cons_seg != "temp") {
+                            excepts.push_back(new Exception("InvalidMemorySegmentException", 0x25AD6F3E, "Illegal use of memory segment '" + cons_seg + "' for instruction " + c->getInstruction().getValue() + " at line " + std::to_string(i+1)));
+                            continue;
+                        }
+                    } else if (c_seg == "stack") {
+                        if (cons_seg != "param") {
+                            excepts.push_back(new Exception("InvalidMemorySegmentException", 0x25AD6F3E, "Illegal use of memory segment '" + cons_seg + "' for instruction " + c->getInstruction().getValue() + " at line " + std::to_string(i+1)));
+                            continue;
+                        }
+                    }
                     break;
                 } else {
                     holder.push_back(c);

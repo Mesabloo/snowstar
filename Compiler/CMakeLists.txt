@@ -34,5 +34,5 @@ if (MSVC)
 endif (MSVC)
 
 if (CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS "-std=c++17 -O2 -march=native -DNDEBUG")
+    set(CMAKE_CXX_FLAGS "-std=c++17 -O2 -march=native -DNDEBUG -ggdb")
 endif()
