@@ -29,7 +29,11 @@ std::vector<Token> info::m_keywords = {
     Token(Token::Type::KEYWORD, "mod"), // MODulo instruction
     Token(Token::Type::KEYWORD, "rand"), // RaNDom instruction
     Token(Token::Type::KEYWORD, "itos"), // IntegerTOString instruction
-    Token(Token::Type::KEYWORD, "ftos") // FloatTOString instruction
+    Token(Token::Type::KEYWORD, "ftos"), // FloatTOString instruction
+    Token(Token::Type::KEYWORD, "and"), // bitwise AND instruction
+    Token(Token::Type::KEYWORD, "or"), // bitwise OR instruction
+    Token(Token::Type::KEYWORD, "xor"), // bitwise XOR instruction
+    Token(Token::Type::KEYWORD, "not") // bitwise NOT instruction
 };
 
 std::vector<Consumer> info::m_syntax = {
@@ -93,10 +97,24 @@ std::vector<Consumer> info::m_syntax = {
     Consumer(Token(Token::Type::KEYWORD, "itos"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_cast")}), // Literal.Memory
     Consumer(Token(Token::Type::KEYWORD, "ftos"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "to_cast")}), // Literal
     Consumer(Token(Token::Type::KEYWORD, "ftos"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_cast")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "not"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "to_negate")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "not"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_negate")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "and"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "first"), Token(Token::Type::LITERAL_NUMBER_INT, "second")}), // Literal + Literal
+    Consumer(Token(Token::Type::KEYWORD, "and"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "first"), Token(Token::Type::LITERAL_NUMBER_INT, "second")}), // Literal.Memory + Literal
+    Consumer(Token(Token::Type::KEYWORD, "and"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "first"), Token(Token::Type::LITERAL_MEMORY, "second")}), // Literal + Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "and"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "first"), Token(Token::Type::LITERAL_MEMORY, "second")}), // Literal.Memory + Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "or"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "first"), Token(Token::Type::LITERAL_NUMBER_INT, "second")}), // Literal + Literal
+    Consumer(Token(Token::Type::KEYWORD, "or"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "first"), Token(Token::Type::LITERAL_NUMBER_INT, "second")}), // Literal.Memory + Literal
+    Consumer(Token(Token::Type::KEYWORD, "or"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "first"), Token(Token::Type::LITERAL_MEMORY, "second")}), // Literal + Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "or"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "first"), Token(Token::Type::LITERAL_MEMORY, "second")}), // Literal.Memory + Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "xor"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "first"), Token(Token::Type::LITERAL_NUMBER_INT, "second")}), // Literal + Literal
+    Consumer(Token(Token::Type::KEYWORD, "xor"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "first"), Token(Token::Type::LITERAL_NUMBER_INT, "second")}), // Literal.Memory + Literal
+    Consumer(Token(Token::Type::KEYWORD, "xor"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "first"), Token(Token::Type::LITERAL_MEMORY, "second")}), // Literal + Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "xor"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "first"), Token(Token::Type::LITERAL_MEMORY, "second")}), // Literal.Memory + Literal.Memory
 };
 
 std::map<std::string, uint8_t const> info::m_bytes = {
-    // system category: 0x10000000 + index
+    // system category: 0x00 + index
     {"INT", 0x00 + 0x0},
     {"SYS", 0x00 + 0x1},
     {"BACK", 0x00 + 0x2},
@@ -104,15 +122,19 @@ std::map<std::string, uint8_t const> info::m_bytes = {
     {"JMP", 0x00 + 0x4},
     {"CALL", 0x00 + 0x5},
 
-    // math category: 0x20000000 + index
-    {"ADD", 0x10 + 0x1},
-    {"SUB", 0x10 + 0x2},
-    {"MUL", 0x10 + 0x3},
-    {"DIV", 0x10 + 0x4},
-    {"MOD", 0x10 + 0xA},
-    {"RAND", 0x10 + 0xB},
+    // math category: 0x10 + index
+    {"ADD", 0x10 + 0x0},
+    {"SUB", 0x10 + 0x1},
+    {"MUL", 0x10 + 0x2},
+    {"DIV", 0x10 + 0x3},
+    {"MOD", 0x10 + 0x4},
+    {"RAND", 0x10 + 0x5},
+    {"AND", 0x10 + 0x6},
+    {"OR", 0x10 + 0x7},
+    {"XOR", 0x10 + 0x8},
+    {"NOT", 0x10 + 0x9},
 
-    // memory category: 0x30000000 + index
+    // memory category: 0x20 + index
     {"PUSH", 0x20 + 0x0},
     {"POP", 0x20 + 0x1},
     {"STORE", 0x20 + 0x2},
@@ -120,14 +142,14 @@ std::map<std::string, uint8_t const> info::m_bytes = {
     {"ITOS", 0x20 + 0x4},
     {"FTOS", 0x20 + 0x5},
 
-    // comparative category: 0x40000000 + index
+    // comparative category: 0x30 + index
     {"CMP", 0x30 + 0x0},
     {"JWE", 0x30 + 0x1},
     {"JWD", 0x30 + 0x2},
     {"JWG", 0x30 + 0x3},
     {"JWL", 0x30 + 0x4},
 
-    // memsegs category: 0x50000000 + index
+    // memsegs category: 0x40 + index
     {"mem", 0x40 + 0x0},
     {"temp", 0x40 + 0x1},
     {"param", 0x40 + 0x2},
@@ -135,7 +157,7 @@ std::map<std::string, uint8_t const> info::m_bytes = {
 
     // strings category: 0x21 + index
 
-    // special instructions category: 0x60 + index
+    // special instructions category: 0x50 + index
     {"LOAD_CONST", 0x50 + 0x0},
     {"LOAD_MEM", 0x50 + 0x1},
     {"LABEL_TABLE", 0x50 + 0x2},

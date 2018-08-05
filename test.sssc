@@ -1,10 +1,7 @@
-label:
-    store[mem, 1] 'test'
-    jmp labelx
-
-labelx:
-    jmp label
-
 main:
-    jmp label
+    store[temp, 1] 'test'
+    and[temp, 2] 171, 255
+    itos[param] [temp, 2]
+    sys 1
+    pop [param]
     int 0

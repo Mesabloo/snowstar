@@ -69,18 +69,37 @@ int8_t Interpreter::exec_system(AtomicToken* const& token) {
         case info::SystemOpcodes::SYS: {
             switch (std::get<int64_t>(loaded.top())) {
                 case 1: {
+                    loaded.pop();
                     std::stack<Value> copy{param};
                     while (!copy.empty()) {
                         std::cout << std::get<std::string>(copy.top());
                         copy.pop();
                     }
                     std::cout.flush();
-                    loaded.pop();
                     return 1;
                 }
                 case 2: {
                     loaded.pop();
-                    return 1;
+                    std::string value;
+                    std::cin >> value;
+                    switch (*(token->getArgument()) & 0xff) {
+                        case info::MemsegOpcodes::MEM: {
+                            mem[((*(token->getArgument()) & 0xff00) >> 8)] = value;
+                            return 1;
+                        }
+                        case info::MemsegOpcodes::TEMP: {
+                            temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = value;
+                            return 1;
+                        }
+                        case info::MemsegOpcodes::PARAM: {
+                            param.push(value);
+                            return 1;
+                        }    
+                        case info::MemsegOpcodes::NOST: {
+                            return 1;
+                        }                
+                    }
+                    return -1;
                 }
             }
             return -1;
@@ -116,8 +135,11 @@ int8_t Interpreter::exec_system(AtomicToken* const& token) {
 int8_t Interpreter::exec_maths(AtomicToken* const& token) {
     Value const& v1{loaded.top()};
     loaded.pop();
-    Value const& v0{loaded.top()};
-    loaded.pop();
+    Value v0;
+    if (!loaded.empty()) {
+        v0 = loaded.top();
+        loaded.pop();
+    }
     //std::cout << (*(token->getArgument()) & 0xff) << std::endl;
     //std::cout << "Inserting value at index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
     switch (token->getInstruction()) {
@@ -218,6 +240,74 @@ int8_t Interpreter::exec_maths(AtomicToken* const& token) {
                 }
                 case info::MemsegOpcodes::PARAM: {
                     param.push(std::get<int64_t>(v0) - std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return 1;
+        }
+        case info::MathsOpcodes::AND: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) & std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) & std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) & std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return 1;
+        }
+        case info::MathsOpcodes::OR: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) | std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) | std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) | std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return 1;
+        }
+        case info::MathsOpcodes::XOR: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) ^ std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) ^ std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) ^ std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return 1;
+        }
+        case info::MathsOpcodes::NOT: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (~std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (~std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(~std::get<int64_t>(v1));
                     return 1;
                 }
             }
