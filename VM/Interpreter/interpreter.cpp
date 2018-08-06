@@ -243,7 +243,7 @@ int8_t Interpreter::exec_maths(AtomicToken* const& token) {
                     return 1;
                 }
             }
-            return 1;
+            return -1;
         }
         case info::MathsOpcodes::AND: {
             switch (*(token->getArgument()) & 0xff) {
@@ -260,7 +260,7 @@ int8_t Interpreter::exec_maths(AtomicToken* const& token) {
                     return 1;
                 }
             }
-            return 1;
+            return -1;
         }
         case info::MathsOpcodes::OR: {
             switch (*(token->getArgument()) & 0xff) {
@@ -277,7 +277,7 @@ int8_t Interpreter::exec_maths(AtomicToken* const& token) {
                     return 1;
                 }
             }
-            return 1;
+            return -1;
         }
         case info::MathsOpcodes::XOR: {
             switch (*(token->getArgument()) & 0xff) {
@@ -294,7 +294,7 @@ int8_t Interpreter::exec_maths(AtomicToken* const& token) {
                     return 1;
                 }
             }
-            return 1;
+            return -1;
         }
         case info::MathsOpcodes::NOT: {
             switch (*(token->getArgument()) & 0xff) {
@@ -311,7 +311,92 @@ int8_t Interpreter::exec_maths(AtomicToken* const& token) {
                     return 1;
                 }
             }
-            return 1;
+            return -1;
+        }
+        case info::MathsOpcodes::ADDF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) + std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) + std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<double>(v0) + std::get<double>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::DIVF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) / std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) / std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<double>(v0) / std::get<double>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::MULF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) * std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) * std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<double>(v0) * std::get<double>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::RANDF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = std::uniform_real_distribution<double>(std::get<double>(v0), std::get<double>(v1))(generator);
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = std::uniform_real_distribution<double>(std::get<double>(v0), std::get<double>(v1))(generator);
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::uniform_real_distribution<double>(std::get<double>(v0), std::get<double>(v1))(generator));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::SUBF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) - std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) - std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<double>(v0) - std::get<double>(v1));
+                    return 1;
+                }
+            }
+            return -1;
         }
     }
     return -1;
@@ -529,11 +614,11 @@ bool Interpreter::make(std::string const& path) {
         utils::stream_read<uint16_t>(is, id);
         utils::stream_read<uint8_t>(is, type);
         utils::stream_read<uint16_t>(is, size);
-        //std::clog << "Const_size=" << size*2 << std::endl;
+        std::clog << "Const_size=" << size << std::endl;
         std::string val{""};
         for (int j{0};j < size;++j) {
-            unsigned char y;
-            utils::stream_read<unsigned char>(is, y);
+            uint8_t y;
+            utils::stream_read<uint8_t>(is, y);
             val += y;
         }
         if (type == '\x03') { // is string
@@ -547,7 +632,9 @@ bool Interpreter::make(std::string const& path) {
             value.emplace<int64_t>(std::strtoll(val.c_str(), nullptr, 16));
         }
         if (type == '\x05') { // is float
-            value.emplace<double>(std::strtof(val.c_str(), nullptr));
+            for (auto& c : val)
+                c -= 0x20;
+            value.emplace<double>(std::stod(val.c_str()));
         }
         const_table[id] = new ConstToken(id, value);
     }

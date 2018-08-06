@@ -77,14 +77,13 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
                         break;
                     }
                     case Token::Type::LITERAL_NUMBER_FLOAT: {
+                        std::string hexa{t.getValue()};
+                        size = hexa.size();
                         value += '\x05';
                         value += static_cast<unsigned char>(size & 0x00ff);
                         value += static_cast<unsigned char>(size & 0xff00);
-                        unsigned char* hexa;
-                        double val{std::stod(t.getValue())};
-                        memcpy(hexa, &val, sizeof(val));
-                        for (int i{0};i < sizeof(val);++i)
-                            value += *(hexa + i);
+                        for (int i{0};i < size;++i)
+                            value += hexa[i] + 0x20;
                         t = Token(Token::Type::CONST_TABLE, std::to_string(consts_id));
                         std::string id_no{""};
                         id_no += static_cast<unsigned char>(consts_id & 0x00ff);
