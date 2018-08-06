@@ -1,11 +1,7 @@
 main:
-    store[temp, 1] 'test'
-    and[temp, 2] 171, 255
-    itos[param] [temp, 2]
-    free [temp, 2]
-    addf[temp, 2] 0.0, 5.0
-    ftos[param] [temp, 2]
-    free [temp, 2]
+    stof[temp, 1] '0.2356987'
+    push[param] '\n'
+    ftos[param] [temp, 1]
     sys 1
     pop [param]
     pop [param]

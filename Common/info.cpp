@@ -38,7 +38,11 @@ std::vector<Token> info::m_keywords = {
     Token(Token::Type::KEYWORD, "subf"), // SUB Float instruction
     Token(Token::Type::KEYWORD, "mulf"), // MUL Float instruction
     Token(Token::Type::KEYWORD, "divf"), // DIV Float instruction
-    Token(Token::Type::KEYWORD, "randf") // RAND Float instruction
+    Token(Token::Type::KEYWORD, "randf"), // RAND Float instruction
+    Token(Token::Type::KEYWORD, "itof"), // IntegerTOFloat instruction
+    Token(Token::Type::KEYWORD, "ftoi"), // FloatTOInteger instruction
+    Token(Token::Type::KEYWORD, "stoi"), // StringTOInteger instruction
+    Token(Token::Type::KEYWORD, "stof") // StringTOFloat instruction
 };
 
 std::vector<Consumer> info::m_syntax = {
@@ -136,6 +140,14 @@ std::vector<Consumer> info::m_syntax = {
     Consumer(Token(Token::Type::KEYWORD, "randf"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_FLOAT, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
     Consumer(Token(Token::Type::KEYWORD, "randf"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_NUMBER_FLOAT, "high_bound")}), // Literal.Memory
     Consumer(Token(Token::Type::KEYWORD, "randf"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "itof"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "to_cast")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "itof"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_cast")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "ftoi"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_FLOAT, "to_cast")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "ftoi"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_cast")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "stoi"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_STRING, "to_cast")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "stoi"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_cast")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "stof"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_STRING, "to_cast")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "stof"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_cast")}), // Literal.Memory
 };
 
 std::map<std::string, uint8_t const> info::m_bytes = {
@@ -171,6 +183,10 @@ std::map<std::string, uint8_t const> info::m_bytes = {
     {"FREE", 0x20 + 0x3},
     {"ITOS", 0x20 + 0x4},
     {"FTOS", 0x20 + 0x5},
+    {"FTOI", 0x20 + 0x6},
+    {"ITOF", 0x20 + 0x7},
+    {"STOI", 0x20 + 0x8},
+    {"STOF", 0x20 + 0x9},
 
     // comparative category: 0x30 + index
     {"CMP", 0x30 + 0x0},

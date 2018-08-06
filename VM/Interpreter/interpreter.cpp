@@ -496,6 +496,90 @@ int8_t Interpreter::exec_memory(AtomicToken* const& token) {
             }
             return -1;
         }
+        case info::MemoryOpcodes::ITOF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<double>(std::get<int64_t>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<double>(std::get<int64_t>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(static_cast<double>(std::get<int64_t>(loaded.top())));
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MemoryOpcodes::FTOI: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<int64_t>(std::get<double>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<int64_t>(std::get<double>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(static_cast<int64_t>(std::get<double>(loaded.top())));
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MemoryOpcodes::STOI: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<int64_t>(std::strtoll(std::get<std::string>(loaded.top()).c_str(), nullptr, 10));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<int64_t>(std::strtoll(std::get<std::string>(loaded.top()).c_str(), nullptr, 10));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(static_cast<int64_t>(std::strtoll(std::get<std::string>(loaded.top()).c_str(), nullptr, 10)));
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MemoryOpcodes::STOF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = std::strtod(std::get<std::string>(loaded.top()).c_str(), nullptr);
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = std::strtod(std::get<std::string>(loaded.top()).c_str(), nullptr);
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::strtod(std::get<std::string>(loaded.top()).c_str(), nullptr));
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
     }
     return -1;
 }
@@ -614,7 +698,7 @@ bool Interpreter::make(std::string const& path) {
         utils::stream_read<uint16_t>(is, id);
         utils::stream_read<uint8_t>(is, type);
         utils::stream_read<uint16_t>(is, size);
-        std::clog << "Const_size=" << size << std::endl;
+        //std::clog << "Const_size=" << size << std::endl;
         std::string val{""};
         for (int j{0};j < size;++j) {
             uint8_t y;

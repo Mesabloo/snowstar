@@ -49,7 +49,11 @@ struct info {
         STORE = 0x20 + 0x2,
         FREE = 0x20 + 0x3,
         ITOS = 0x20 + 0x4,
-        FTOS = 0x20 + 0x5
+        FTOS = 0x20 + 0x5,
+        FTOI = 0x20 + 0x6,
+        ITOF = 0x20 + 0x7,
+        STOI = 0x20 + 0x8,
+        STOF = 0x20 + 0x9
     };
 
     enum ComparativeOpcodes {
@@ -76,6 +80,10 @@ struct info {
         LABEL_TABLE = 0x50 + 0x2,
         CONST_TABLE = 0x50 + 0x3,
         CODE_TABLE = 0x50 + 0x4
+    };
+
+    enum StringOpcodes {
+        // String opcodes category: 0x60 + index
     };
 };
 
