@@ -199,7 +199,7 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
         std::cout << s << std::endl;
 
 
-    std::ofstream out{vars::PATH + "/out.ssbc", std::ios_base::binary};
+    std::ofstream out{vars::PATH + "/out.cwsc", std::ios_base::binary};
     std::cout << std::endl << termcolor::reset << termcolor::red << "Bytecode:" << std::endl;
 
     for (auto hchar : header) {

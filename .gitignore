@@ -36,9 +36,10 @@ vm
 compiler
 debugger
 static_syntax.txt
-out.*
-.vscode/*.json
+.vscode/*.*
 .vscode
 build/*/*.*
 build/*.*
 build/*
+build
+test.*
