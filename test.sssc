@@ -1,5 +1,6 @@
 main:
-    stof[temp, 1] '0.2356987'
+    %stof[temp, 1] '0.2356987'
+    store[temp, 1] 3.0
     push[param] '\n'
     ftos[param] [temp, 1]
     sys 1

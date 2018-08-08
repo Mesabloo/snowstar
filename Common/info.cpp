@@ -21,7 +21,6 @@ std::vector<Token> info::m_keywords = {
     Token(Token::Type::KEYWORD, "jwg"), // JumpWhenGreater instruction
     Token(Token::Type::KEYWORD, "jwl"), // JumpWhenLower instruction
     Token(Token::Type::KEYWORD, "back"), // BACK instruction
-    Token(Token::Type::KEYWORD, "len"), // LENgth instruction
     Token(Token::Type::KEYWORD, "add"), // ADDition instruction
     Token(Token::Type::KEYWORD, "sub"), // SUBstraction instruction
     Token(Token::Type::KEYWORD, "mul"), // MULtiplication instruction
@@ -104,7 +103,7 @@ std::vector<Consumer> info::m_syntax = {
     Consumer(Token(Token::Type::KEYWORD, "mod"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "low_bound"), Token(Token::Type::LITERAL_MEMORY, "high_bound")}), // Literal.Memory
     Consumer(Token(Token::Type::KEYWORD, "itos"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "to_cast")}), // Literal
     Consumer(Token(Token::Type::KEYWORD, "itos"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_cast")}), // Literal.Memory
-    Consumer(Token(Token::Type::KEYWORD, "ftos"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "to_cast")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "ftos"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_FLOAT, "to_cast")}), // Literal
     Consumer(Token(Token::Type::KEYWORD, "ftos"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_cast")}), // Literal.Memory
     Consumer(Token(Token::Type::KEYWORD, "not"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_NUMBER_INT, "to_negate")}), // Literal
     Consumer(Token(Token::Type::KEYWORD, "not"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_negate")}), // Literal.Memory

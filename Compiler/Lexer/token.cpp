@@ -43,9 +43,9 @@ Consumer::Consumer(Token const& instr, Consumer::Store const& store, std::vector
 
 Token Consumer::getInstruction() const { return m_instruction; }
 Consumer::Store Consumer::getStorage() const { return m_storage; }
-std::vector<Token> Consumer::getArgs() const { return m_args; }
+std::vector<Token>& Consumer::getArgs() { return m_args; }
 
-std::string Consumer::toString() const {
+std::string Consumer::toString() {
     std::string args;
     for (auto const& t : getArgs())
         args += t.getValue() + ", ";
@@ -58,7 +58,7 @@ bool operator==(Token const& a, Token const& b) {
     return a.getType() == b.getType() && a.getValue() == b.getValue();
 }
 
-bool operator==(Consumer const& a, Consumer const& b) {
+bool operator==(Consumer a, Consumer b) {
     bool are_args_valid = true;
     if (a.getArgs().size() == b.getArgs().size()) {
         for (size_t i{0};i < a.getArgs().size();++i) {

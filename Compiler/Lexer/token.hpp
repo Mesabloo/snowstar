@@ -66,9 +66,9 @@ class Consumer {
 
         Token getInstruction() const;
         Consumer::Store getStorage() const;
-        std::vector<Token> getArgs() const;
+        std::vector<Token>& getArgs();
 
-        std::string toString() const;
+        std::string toString();
 
     protected:
         Token m_instruction;
@@ -77,6 +77,6 @@ class Consumer {
 };
 
 bool operator==(Token const&, Token const&);
-bool operator==(Consumer const&, Consumer const&);
+bool operator==(Consumer, Consumer);
 
 #endif
