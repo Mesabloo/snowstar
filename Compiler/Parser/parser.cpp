@@ -88,7 +88,7 @@ auto Parser::assertSemantics() -> std::vector<std::unique_ptr<Exception>> {
             else {
                 if (c == info::m_syntax.end()) continue;
                 uint8_t argc{0}, to_deduce{0};
-                std::shared_ptr<Token> tmp{std::make_shared<Token>(&instr)};
+                std::shared_ptr<Token> tmp{instr};
                 while (tmp->getType() != Token::Type::EOL) {
                     argc++;
                     tmp = line[argc];
