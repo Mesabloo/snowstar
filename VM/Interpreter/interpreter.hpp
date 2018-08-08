@@ -2,106 +2,50 @@
 #define INTERPRETER_HPP
 
 #include <string>
-#include <vector>
+#include <variant>
 #include <stack>
-#include <stdlib.h>
-#include <utility>
-#include <map>
-#include <random>
-#include <time.h>
+#include <array>
+#include <vector>
+#include <limits>
 #include <chrono>
+#include <random>
 
-#include "../Lexer/byte_consumer.hpp"
-#include "../Lexer/byte_lexer.hpp"
+#include <Token/token.hpp>
+#include <Token/value.hpp>
 
 class Interpreter {
     public:
-        Interpreter(std::string const);
+        Interpreter();
         ~Interpreter();
 
-        void start(ByteLexer&);
-
-        struct ValueContainer {
-            int64_t integer_storage{0};
-            double float_storage{0};
-            std::string string_storage{""};
-
-            bool isIntegerNumber{false}, isFloatingNumber{false}, isString{false};
-        };
+        void start(std::string const&);
 
     private:
-        void loadConsumersInMemory(ByteLexer&);
-        void configVM();
-        void checkDomainOfConsumer(ByteConsumer* const&);
-        int8_t executeSystemConsumer(ByteConsumer* const&);
-        int8_t executeMathsConsumer(ByteConsumer* const&);
-        int8_t executeMemoryConsumer(ByteConsumer* const&);
-        int8_t executeComparativeConsumer(ByteConsumer* const&);
+        bool make(std::string const&);
+        bool domain(AtomicToken* const&);
+        int8_t exec_system(AtomicToken* const&);
+        int8_t exec_maths(AtomicToken* const&);
+        int8_t exec_memory(AtomicToken* const&);
+        int8_t exec_comparative(AtomicToken* const&);
+        int8_t exec_special(AtomicToken* const&);
+
+        std::chrono::system_clock::time_point begin;
+        uint16_t line_number;
 
     protected:
-        std::vector<ByteConsumer*> m_consumers;
-        std::streampos m_stream_size;
+        std::array<ConstToken*, std::numeric_limits<uint16_t>::max()> const_table;
+        std::array<LabelToken*, std::numeric_limits<uint16_t>::max()> label_table;
+        std::array<AtomicToken*, std::numeric_limits<uint16_t>::max()> code_table;
 
-        std::array<ValueContainer, 256> mem;
-        std::stack<std::array<ValueContainer, 32>> temp;
-        std::stack<ValueContainer> param;
+        std::stack<Value> param;
+        std::array<Value, 256> mem;
+        std::stack<std::array<Value, 32>> temp;
+        
+        std::stack<Value> loaded;
 
-        std::map<std::string, uint32_t> labels;
-        std::stack<uint32_t> call_stack;
-        uint32_t line_number{0};
-
-        short int condition;
-
+        std::stack<uint16_t> call_stack;
+        int8_t conditioner;
         std::mt19937 generator;
-        std::chrono::system_clock::time_point execution_time;
-
-        int socket_id, sock;
-        uint32_t exec_count{0};
 };
-
-inline bool operator==(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {
-    return a.integer_storage == b.integer_storage &&
-        a.float_storage == b.float_storage &&
-        a.string_storage == b.string_storage &&
-        a.isIntegerNumber == b.isIntegerNumber &&
-        a.isFloatingNumber == b.isFloatingNumber &&
-        a.isString == b.isString;
-}
-
-inline bool operator!=(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {
-    return !(a == b);
-}
-
-inline bool operator<(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {
-    if (a.isIntegerNumber ^ b.isIntegerNumber) return false;
-    if (a.isFloatingNumber ^ b.isFloatingNumber) return false;
-    if (a.isString ^ b.isString) return false;
-    if (a.isIntegerNumber && b.isIntegerNumber) return a.integer_storage < b.integer_storage;
-    if (a.isFloatingNumber && b.isFloatingNumber) return a.float_storage < b.float_storage;
-    if (a.isString && b.isString) return a.string_storage < b.string_storage;
-    return false;
-}
-
-inline bool operator>=(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {
-    return !(a < b);
-}
-
-inline bool operator>(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {
-    if (a.isIntegerNumber ^ b.isIntegerNumber) return false;
-    if (a.isFloatingNumber ^ b.isFloatingNumber) return false;
-    if (a.isString ^ b.isString) return false;
-    if (a.isIntegerNumber && b.isIntegerNumber) return a.integer_storage > b.integer_storage;
-    if (a.isFloatingNumber && b.isFloatingNumber) return a.float_storage > b.float_storage;
-    if (a.isString && b.isString) return a.string_storage > b.string_storage;
-    return false;
-}
-
-inline bool operator<=(Interpreter::ValueContainer const a, Interpreter::ValueContainer const b) {
-    return !(a > b);
-}
-
-inline std::ostream& operator<<(std::ostream& os, Interpreter::ValueContainer const a) {
-    return os << "(" << (a.isString?("'" + a.string_storage + "'"):"") << (a.isIntegerNumber?std::to_string(a.integer_storage):"") << (a.isFloatingNumber?std::to_string(a.float_storage):"") << ")"; 
-}
 
 #endif

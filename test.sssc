@@ -1,32 +1,9 @@
-fib_min_2:
-
-    back
-
-fib_min_1:
-
-    back
-
-fib:  % n = [temp, 1]
-
-    cmp [temp, 1] 2
-    jwl return
-
-
-
-    back
-
-return:
-    back
-
 main:
-
-    
-    store[temp, 1] 34
-    call fib
-
+    %stof[temp, 1] '0.2356987'
+    store[temp, 1] 3.0
+    push[param] '\n'
+    ftos[param] [temp, 1]
+    sys 1
+    pop [param]
+    pop [param]
     int 0
-
-% Minimal code for a Snow* application.
-% `int 0` is not needed but it permits
-% you to get the amount of time taken
-% to execute the program entirely.

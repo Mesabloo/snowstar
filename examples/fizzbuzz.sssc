@@ -1,14 +1,14 @@
 fizz:
     push[param] 'Fizz '
     sys 1
-    pop[nost] [param]
+    pop [param]
     store[mem, 2] 1
     jmp next
 
 buzz:
     push[param] 'Buzz '
     sys 1
-    pop[nost] [param]
+    pop [param]
     jmp end
 
 main:
@@ -29,12 +29,12 @@ main:
 
         push[param] [mem, 1]
         sys 1
-        pop[nost] [param]
+        pop [param]
 
         end:
         push[param] ' || '
         sys 1
-        pop[nost] [param]
+        pop [param]
 
         add[mem, 1] [mem, 1], 1
         store[mem, 2] 0

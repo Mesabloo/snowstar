@@ -26,7 +26,12 @@ class Token {
             INLINE_COMMENT,        // % comment
             MULTILINE_COMMENT,     // #* comment *#
             INVALID,               // When none of these types are good enough, the Token is marked invalid.
-            PREPROCESSOR           // Preprocessor directive  
+            PREPROCESSOR,          // Preprocessor directive
+            LABEL,
+
+            CONST_TABLE,
+            MEM_TABLE,
+            LABEL_TABLE
         };
         static std::string getTypeSignification(Token::Type);
 
@@ -61,9 +66,9 @@ class Consumer {
 
         Token getInstruction() const;
         Consumer::Store getStorage() const;
-        std::vector<Token> getArgs() const;
+        std::vector<Token>& getArgs();
 
-        std::string toString() const;
+        std::string toString();
 
     protected:
         Token m_instruction;
@@ -72,6 +77,6 @@ class Consumer {
 };
 
 bool operator==(Token const&, Token const&);
-bool operator==(Consumer const&, Consumer const&);
+bool operator==(Consumer, Consumer);
 
 #endif

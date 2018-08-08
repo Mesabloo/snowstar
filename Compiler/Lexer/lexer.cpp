@@ -3,8 +3,9 @@
 #include <regex>
 
 #include "lexer.hpp"
-#include "../../Common/Utils/utils.hpp"
-#include "../../Common/info.hpp"
+#include <Utils/utils.hpp>
+#include <info.hpp>
+#include <termcolor.hpp>
 
 Lexer::Lexer(std::string const path): isString{false}, isLComment{false}, isMLComment{false}, buffer{""}, m_path{path} {}
 Lexer::~Lexer() {}
@@ -61,10 +62,7 @@ auto Lexer::checkSyntax(char const c) -> Token* {
                 if (buffer != "") {
                     Token* t = new Token(Token::Type::KEYWORD, "lbl");
                     m_gen_tokens.push_back(t);
-                    buffer = ("'" + buffer + "'");
-                    isString = true;
                     auto const t1 = checkToken(buffer);
-                    isString = false;
                     buffer = "";
                     return t1;
                 }
@@ -159,8 +157,8 @@ auto Lexer::checkToken(std::string const& buf) const -> Token* {
     if (std::regex_match(buf, std::regex("^((-)?[0-9]+)$")))
         return new Token(Token::Type::LITERAL_NUMBER_INT, buf);
     Token* tmp = m_gen_tokens[m_gen_tokens.size()-1];
-    if (tmp->getValue() == "call" || tmp->getValue() == "jmp" || tmp->getValue() == "jwe" || tmp->getValue() == "jwd" || tmp->getValue() == "jwg" || tmp->getValue() == "jwl")
-        return new Token(Token::Type::LITERAL_STRING, "'" + buf + "'");
+    if (tmp->getValue() == "lbl" || tmp->getValue() == "call" || tmp->getValue() == "jmp" || tmp->getValue() == "jwe" || tmp->getValue() == "jwd" || tmp->getValue() == "jwg" || tmp->getValue() == "jwl")
+        return new Token(Token::Type::LABEL, buf);
     if (std::regex_match(buf, std::regex("^@@.+$")))
         return new Token(Token::Type::PREPROCESSOR, buf);
     return new Token(Token::Type::INVALID, buf);
@@ -194,14 +192,29 @@ auto Lexer::optimize(std::vector<Token*> const& tokens) const -> std::vector<std
         if (current->getType() == Token::Type::SEPARATOR) {
             if (current->getValue() == "[") {
                 if (tokens[j+2]->getValue() == "]") {
+                    std::string seg{tokens[j+1]->getValue()};
+                    if (seg == "mem" || seg == "temp") {
+                        std::cout << termcolor::red << "Compilation has been aborted. Error code: 0x56332e31" << '\n'
+                            << "InvalidSegmentException: Invalid memory segment '" << tokens[j+1]->getValue() << "' provided without index for memory access." << termcolor::reset << std::endl;
+                        return {};
+                    }
                     Token* t = new Token(Token::Type::LITERAL_MEMORY, tokens[j+1]->getValue()+".0");
                     line.push_back(t);
                     j += 2;
                 } else {
-                    if (tokens[j+3]->getType() != Token::Type::LITERAL_NUMBER_INT || utils::str_startswith(tokens[j+3]->getValue(), "-")) {
-                        std::cout << "\033[38;5;196m" << "Compilation has been aborted. Error code: 0x10594972" << '\n'
-                            << "IllegalTypeException: Invalid integer '" << tokens[j+3]->getValue() << "' provided for memory access." << "\033[0m" << std::endl;
+                    if (tokens[j+3]->getType() != Token::Type::LITERAL_NUMBER_INT) {
+                        std::cout << termcolor::red << "Compilation has been aborted. Error code: 0x10594972" << '\n'
+                            << "NotAnIntegerException: Unknown integer '" << tokens[j+3]->getValue() << "' provided for memory access." << termcolor::reset << std::endl;
                         return {};
+                    }
+                    int index{std::stoi(tokens[j+3]->getValue())};
+                    std::string seg{tokens[j+1]->getValue()};
+                    if ((seg == "mem" && (index > 255 || index < 0)) || (seg == "temp" && (index > 31 || index < 0))) {
+                        if (index > 255) {
+                            std::cout << termcolor::red << "Compilation has been aborted. Error code: 0xa265bd23" << '\n'
+                                << "InvalidIndexException: Invalid integer '" << tokens[j+3]->getValue() << "' provided for memory access as memory index." << termcolor::reset << std::endl;
+                            return {};
+                        }
                     }
                     Token* t = new Token(Token::Type::LITERAL_MEMORY, tokens[j+1]->getValue()+"."+tokens[j+3]->getValue());
                     line.push_back(t);

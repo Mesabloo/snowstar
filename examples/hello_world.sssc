@@ -1,7 +1,7 @@
 main:
-    % store[mem, 1] 'Hello, World!\n'
-    % push[param] [mem, 1]
-    push[param] 'Hello, World!\n'
+    store[temp, 0] 'Hello, World!\n'
+    push[param] [temp, 0]
     sys 1
-    pop[nost] [param]
+    pop [param]
+    free [temp, 0]
     int 0

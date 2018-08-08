@@ -4,24 +4,24 @@ main:
     store[temp, 1] 0
 
     push[param] ', '
-    push[param] [mem, 2]
+    itos[param] [mem, 2]
     push[param] ', '
-    push[param] [mem, 1]
+    itos[param] [mem, 1]
     sys 1
-    pop[nost] [param]
-    pop[nost] [param]
-    pop[nost] [param]
-    pop[nost] [param]
+    pop [param]
+    pop [param]
+    pop [param]
+    pop [param]
 
     while_not_90:
 
         add[mem, 3] [mem, 1], [mem, 2]
 
         push[param] ', '
-        push[param] [mem, 3]
+        itos[param] [mem, 3]
         sys 1
-        pop[nost] [param]
-        pop[nost] [param]
+        pop [param]
+        pop [param]
 
         store[mem, 1] [mem, 2]
         store[mem, 2] [mem, 3]

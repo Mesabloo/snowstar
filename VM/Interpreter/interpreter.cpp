@@ -1,876 +1,743 @@
-#include <sstream>
-#include <regex>
-#include <limits>
-#include <iomanip>
+#include <fstream>
 #include <iostream>
-#include <thread>
-#include <cstring>
+#include <algorithm>
+#include <sstream>
+#include <iomanip>
 
-#include <math.h>
-
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-
+#include <termcolor.hpp>
+#include <Utils/utils.hpp>
+#include <info.hpp>
 #include "interpreter.hpp"
-#include "../../Common/Utils/utils.hpp"
-#include "../../Common/termcolor.hpp"
 
-#include "../../Common/info.hpp"
-#include "../../Common/values.hpp"
-
-Interpreter::Interpreter(std::string const path) {
-    m_stream_size = utils::file_getsize(path);
-}
+Interpreter::Interpreter() {}
 Interpreter::~Interpreter() {}
 
-void Interpreter::start(ByteLexer& b) {
-    if (vars::DEBUG) {
-        // start socket server here.
-        // and wait for the client to connect.
-        // while not client connected, wait.
-        // until client connects (here, the debugger).
-        int newsockfd, portno = 9999;
-        sock = socket(AF_INET, SOCK_STREAM, 0);
-        if (sock < 0) {
-            std::cerr << termcolor::red << "An error occured while trying to open a new socket." << '\n'
-                << "What happened: ";
-            perror("");
-            std::cerr << termcolor::reset << std::endl;
-            return;
-        }
-
-        sockaddr_in serv_addr;
-        bzero(reinterpret_cast<char*>(&serv_addr), sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_addr.s_addr = INADDR_ANY;
-        serv_addr.sin_port = htons(portno);
-
-        if (bind(sock, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0) {
-            std::cerr << termcolor::red << "An error occured while binding the address to the socket." << '\n'
-                << "What happened: ";
-            perror("");
-            std::cerr << termcolor::reset << std::endl;
-            return;
-        }
-
-        listen(sock, 1);
-
-        std::clog << termcolor::red << "Waiting for the debugger to connect..." << termcolor::reset << std::endl;
-
-        while ((newsockfd = accept(sock, 0, 0))) {
-            socket_id = static_cast<int>(newsockfd);
-
-            char buf[10];
-            read(socket_id, buf, 10);
-            char send[10] = {'h', 'e', 'a', 'r', 't', 'b', 'e', 'a', 't', '\0'};
-            write(socket_id, send, 10);
-            if (std::string{buf, 9} == "heartbeat") break;
-        }
-
-        std::clog << termcolor::green << "Debugger attached successfully !" << termcolor::reset << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }
-
-    execution_time = std::chrono::system_clock::now();
-    loadConsumersInMemory(b);
-    configVM();
-    if (labels.find("main") == labels.end()) {
-        std::cerr << termcolor::red << "Error 0x0000: No main entry point in the code given." << '\n'
-            << "Please add a main entry point to your program and start again." << std::endl;
-        return;
-    }
-    temp.push({});
-    for (line_number = labels["main"];line_number < m_consumers.size();++line_number) {
-        if (vars::DEBUG) {
-            if (exec_count == 0) {
-                char buf[4096];
-                std::stringstream ss;
-                ss << "stats mem=" << mem.max_size() << ";" << (mem.empty()?"empty":std::to_string(mem.size())) << "\n"
-                    << "temp=" << temp.top().max_size() << ";" << (temp.top().empty()?"empty":std::to_string(temp.top().size())) << "\n"
-                    << "param=" << (param.empty()?"empty":std::to_string(param.size())) << "\n"
-                    << *m_consumers[line_number];
-                std::string s = ss.str();
-                buf[0] = static_cast<unsigned char>(s.size());
-                for (size_t i{0};i < s.size();++i) {
-                    if (i > 4096) break;
-                    buf[i+1] = s[i];
-                }
-                char const null[1] = {'\0'};
-                for (auto length{s.size()+1};length < 4096;++length)
-                    strcat(buf, null);
-                write(socket_id, buf, 4096);
-                char buffer[256];
-                read(socket_id, buffer, 256);
-                uint8_t const size = static_cast<uint8_t>(buffer[0]);
-                int i{1};
-                std::string cmd;
-                while (buffer[i] != '\0' && i <= size) {
-                    cmd += buffer[i];
-                    i++;
-                }
-                std::vector<std::string> splitted = utils::str_split(cmd, ' ');
-                std::string& command = splitted[0];
-                if (command == "exec") {
-                    uint32_t count = static_cast<uint32_t>(std::stoull(splitted[1]));
-                    exec_count = count-1;
-                } else if (command == "exit") {
-                    char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
-                    write(socket_id, buf, 5);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-                    close(sock);
-                    close(socket_id);
-                    std::cerr << termcolor::yellow << "Process exited with code 0" << termcolor::reset << std::endl;
-                    getchar();
-                    exit(0);
-                } else {
-                    line_number--;
-                    continue;
-                }
-            } else
-                exec_count--;
-        }
-        checkDomainOfConsumer(m_consumers[line_number]);
-    }
-    
-    if (vars::DEBUG) {
-        char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
-        write(socket_id, buf, 5);
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        close(sock);
-        close(socket_id);
-        std::cerr << termcolor::yellow << "Process exited with code 0" << termcolor::reset << std::endl;
-        getchar();
-        exit(0);
-    }
-}
-
-void Interpreter::configVM() {
+void Interpreter::start(std::string const& path) {
     std::cout.sync_with_stdio(false);
+    temp.push({});
     std::random_device rd;
     generator = std::mt19937{rd()};
-    for (size_t i{0};i < m_consumers.size();++i) {
-        ByteConsumer* const c = m_consumers[i];
-        ByteToken const t = c->getInstruction();
-        if (t.getValueIfExisting() == info::SystemOpcodes::LBL) {
-            labels[c->getArgs()[0].getStringValueIfExisting()] = i;
-        }
+    begin = std::chrono::system_clock::now();
+    if (!this->make(path)) {
+        std::cerr << termcolor::red << "Failed parsing file header. It may not be a Snow* bytecode file." << termcolor::reset << std::endl;
+        return;
     }
+    line_number = label_table[0]->getLine()+1;
+    while (true) {
+        //std::cout << utils::int_to_hex<uint16_t>(code_table[line_number]->getInstruction()) << " / " << utils::int_to_hex<uint16_t>(*code_table[line_number]->getArgument()) << std::endl;
+        if (!domain(code_table[line_number])) break;
+        ++line_number;
+    }
+    return;
 }
 
-void Interpreter::loadConsumersInMemory(ByteLexer& b) {
-    // int i{0};
-    while (b.getSize() < m_stream_size) {
-        // std::clog << termcolor::blue << "Line #" << (i+1) << "\tRead=" << b.getSize() << "B\tTotal=" << m_stream_size << "B" <<  termcolor::reset << std::endl;
-        ByteConsumer* c = b.createConsumerFromLine(b.readLine());
-        // std::clog << *c << std::endl;
-        if (c == nullptr) {
-            getchar();
-            return;
+bool Interpreter::domain(AtomicToken* const& token) {
+    int8_t returned{-1};
+    //std::cout << std::hex << token->getInstruction() << std::endl;
+    switch (token->getInstruction() & 0xf0) {
+        case 0x00: { // System
+            returned = exec_system(token);
+            break;
         }
-        m_consumers.push_back(c);
-        // ++i;
-    }
-}
-
-void Interpreter::checkDomainOfConsumer(ByteConsumer* const& c) {
-    uint64_t value = static_cast<uint64_t>(c->getInstruction().getValueIfExisting());
-    // std::clog << termcolor::green << *c << termcolor::reset << std::endl << std::endl;
-    int8_t returned{1};
-    switch (value & 0xF0) {
-        case 0x40: // memsegs
+        case 0x10: { // Maths
+            returned = exec_maths(token);
             break;
-        case 0x30: // comparative
-            returned = executeComparativeConsumer(c);
+        }
+        case 0x20: { // Memory
+            returned = exec_memory(token);
             break;
-        case 0x20: // memory
-            returned = executeMemoryConsumer(c);
+        }
+        case 0x30: { // Comparative
+            returned = exec_comparative(token);
             break;
-        case 0x10: // maths
-            returned = executeMathsConsumer(c);
+        }
+        case 0x50: {
+            returned = exec_special(token);
             break;
-        case 0x00: // system
-            returned = executeSystemConsumer(c);
-            break;
-        default:
-            std::cerr << termcolor::red << "Error 0x5698: The opcode '0x" << std::hex << value << "' does not belong to any category provided by the language." << '\n'
-                << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
-            returned = -1;
+        }
     }
     if (returned <= 0) {
-        std::cout << termcolor::reset;
-        if (vars::DEBUG) {
-            char buf[5] = {'\x04', 'e', 'x', 'i', 't'};
-            write(socket_id, buf, 5);
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            close(sock);
-            close(socket_id);
-        }
-        getchar();
-        exit(returned);
+        std::cout.flush();
+        //getchar();
+        return false;
     }
+    return true;
 }
 
-int8_t Interpreter::executeSystemConsumer(ByteConsumer* const& c) {
-    uint64_t value = static_cast<uint64_t>(c->getInstruction().getValueIfExisting());
-    switch (value) {
-        case info::SystemOpcodes::INT: {
-            int arg0_returncode = c->getArgs()[0].getIntegerValueIfExisting();
-            std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
-            auto time_exec = std::chrono::duration<double, std::milli>(end-execution_time).count();
-            std::cout << termcolor::yellow << "Process exited with code " << arg0_returncode << " after " << (time_exec > 1000 ? std::to_string(time_exec/1000) + "s" : std::to_string(time_exec) + "ms") << termcolor::reset << std::endl;
-            return 0;
-        }
+int8_t Interpreter::exec_system(AtomicToken* const& token) {
+    switch (token->getInstruction()) {
         case info::SystemOpcodes::SYS: {
-            ByteToken const arg0 = c->getArgs()[0];
-            if (!arg0.isIntegerNumber()) {
-                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                return -32;
-            }
-            int code = arg0.getIntegerValueIfExisting();
-            if (code < 0) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
-                return -7;
-            }
-            switch (code) {
+            switch (std::get<int64_t>(loaded.top())) {
                 case 1: {
-                    std::stack<ValueContainer> temp_stack = param;
-                    std::stringstream ss;
-                    while (!temp_stack.empty()) {
-                        auto val = temp_stack.top();
-                        temp_stack.pop();
-                        if (val.isString) {
-                            ss << val.string_storage;
-                        } else if (val.isIntegerNumber) {
-                            ss << val.integer_storage;
-                        } else if (val.isFloatingNumber) {
-                            ss << std::setprecision(std::numeric_limits<double>::max_digits10 -1) << val.float_storage;
-                        } else {
-                            std::cerr << termcolor::red << "Error 0x4563: Invalid value " << val << " contained in @param." << '\n'
-                                << "If you don't know why it happens, or didn't modify the bytecode by hand, then contact the creator specifying your code and the error code.";
-                            return -96;
-                        }
+                    loaded.pop();
+                    std::stack<Value> copy{param};
+                    while (!copy.empty()) {
+                        std::cout << std::get<std::string>(copy.top());
+                        copy.pop();
                     }
-                    std::cout << termcolor::reset;
-                    if (ss.str() == "")
-                        std::cout << '\n';
-                    else
-                        std::cout << ss.str();
-                    std::cout << termcolor::reset;
                     std::cout.flush();
                     return 1;
                 }
                 case 2: {
-                    ByteToken const memseg = c->getStorage().getMemory();
-                    uint64_t const memory_value = memseg.getValueIfExisting(),
-                             _mem = info::m_bytes["mem"],
-                             _temp = info::m_bytes["temp"],
-                             _param = info::m_bytes["param"],
-                             _nost = info::m_bytes["nost"];
-                    std::string input;
-                    std::getline(std::cin, input);
-                    ValueContainer val;
-                    if (utils::str_is_number(input)) {
-                        val.string_storage = "";
-                        if (std::regex_match(input, std::regex(".*(\\.[0-9]*){1}"))) {
-                            val.float_storage = std::stod(input);
-                            val.isFloatingNumber = true;
-                        } else {
-                            val.integer_storage = std::stoi(input);
-                            val.isIntegerNumber = true;
+                    loaded.pop();
+                    std::string value;
+                    std::cin >> value;
+                    switch (*(token->getArgument()) & 0xff) {
+                        case info::MemsegOpcodes::MEM: {
+                            mem[((*(token->getArgument()) & 0xff00) >> 8)] = value;
+                            return 1;
                         }
-                    } else {
-                        val.isString = true;
-                        val.string_storage = input;
+                        case info::MemsegOpcodes::TEMP: {
+                            temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = value;
+                            return 1;
+                        }
+                        case info::MemsegOpcodes::PARAM: {
+                            param.push(value);
+                            return 1;
+                        }    
+                        case info::MemsegOpcodes::NOST: {
+                            return 1;
+                        }                
                     }
-                    int const memory_index = memseg.getIntegerValueIfExisting();
-                    if (memory_index < 0) {
-                        return 1;
-                    }
-                    if (memory_value == _nost) {
-                        return 1;
-                    } else if (memory_value == _mem) {
-                        mem[memory_index] = val;
-                    } else if (memory_value == _temp) {
-                        temp.top()[memory_index] = val;
-                    } else if (memory_value == _param) {
-                        param.push(val);
-                    } else {
-                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator witht the error code and the value given.";
-                        return -85;
-                    }
-                    return 1;
+                    return -1;
                 }
-                default:
-                    std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $sys." << '\n'
-                        << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
-                    return -7;
             }
+            return -1;
+        }
+        case info::SystemOpcodes::LABEL: {
             return 1;
         }
-        case info::SystemOpcodes::BACK: {
-            if (call_stack.empty()) {
-                std::cerr << "Error 0x3678: Empty call stack while using $back" << '\n'
-                    << "This is entirely your fault. You put one $back too much, or made one $call too much. Please review your code.";
-                return -45;
-            }
-            line_number = call_stack.top();
-            call_stack.pop();
-            temp.pop();
-            return 1;
-        }
-        case info::SystemOpcodes::LBL: {
-            return 1;
+        case info::SystemOpcodes::INT: {
+            auto end = std::chrono::system_clock::now();
+            auto time_taken = std::chrono::duration<double, std::milli>(end-begin).count();
+            std::cout << termcolor::yellow << "Process exited with code " << std::get<int64_t>(loaded.top()) << " after " << time_taken << "ms." << '\n' << termcolor::reset;
+            loaded.pop();
+            return 0;
         }
         case info::SystemOpcodes::JMP: {
-            ByteToken const arg0 = c->getArgs()[0];
-            if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
-                return -7;
-            }
-            std::string const lbl = arg0.getStringValueIfExisting();
-            if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
-                return -65;
-            }
-            line_number = labels[lbl];
+            line_number = label_table[*(token->getArgument())]->getLine();
             return 1;
         }
         case info::SystemOpcodes::CALL: {
-            ByteToken const arg0 = c->getArgs()[0];
-            if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
-                return -7;
-            }
-            std::string const lbl = arg0.getStringValueIfExisting();
-            if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
-                return -65;
-            }
             call_stack.push(line_number);
-            line_number = labels[lbl];
-            temp.push({});
+            line_number = label_table[*(token->getArgument())]->getLine();
             return 1;
         }
-        default:
-            std::cerr << termcolor::red << "Error 0x6312: The opcode '0x" << std::hex << value << "' does not belong to the `system` category provided by the language." << '\n'
-                << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
-            return -1;
+        case info::SystemOpcodes::BACK: {
+            line_number = call_stack.top();
+            call_stack.pop();
+            return 1;
+        }
     }
+    return -1;
 }
 
-int8_t Interpreter::executeMemoryConsumer(ByteConsumer* const& c) {
-    uint64_t value = static_cast<uint64_t>(c->getInstruction().getValueIfExisting());
-    switch (value) {
-        case info::MemoryOpcodes::STORE: {
-            ByteToken const memseg = c->getStorage().getMemory();
-            uint64_t const memory_value = memseg.getValueIfExisting(),
-                           _mem = info::m_bytes["mem"],
-                           _temp = info::m_bytes["temp"],
-                           _param = info::m_bytes["param"],
-                           _nost = info::m_bytes["nost"];
-            ValueContainer val;
-            ByteToken const arg0 = c->getArgs()[0];
-            if (arg0.isIntegerNumber()) {
-                val.isIntegerNumber = true;
-                val.integer_storage = arg0.getIntegerValueIfExisting();
-            } else if (arg0.isDoubleNumber()) {
-                val.isFloatingNumber = true;
-                val.float_storage = arg0.getDoubleValueIfExisting();
-            } else if (arg0.isString()) {
-                val.isString = true;
-                val.string_storage = arg0.getStringValueIfExisting();
-            } else if (arg0.isMemory()) {
-                uint64_t const memory_segment = arg0.getValueIfExisting();
-                int const index = arg0.getIntegerValueIfExisting();
-                if (index > 0) {
-                    if (memory_segment == _mem) {
-                        val = mem[index];
-                    } else if (memory_segment == _temp) {
-                        val = temp.top()[index];
-                    } else if (memory_segment == _param) {
-                        std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
-                            << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
-                        return -87;
-                    } else if (memory_value != _nost) {
-                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-                        return -85;
-                    }
-                }
-            } else {
-                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
-                    << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
-                return -63;
-            }
-            if (!memseg.isMemory()) {
-                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                return -32;
-            }
-            if (memseg.getIntegerValueIfExisting() < 0) {
-                return 1;
-            }
-            if (memory_value == _nost) {
-                return 1;
-            } else if (memory_value == _temp) {
-                temp.top()[memseg.getIntegerValueIfExisting()] = val;
-            } else if (memory_value == _param) {
-                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $store." << '\n'
-                    << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
-                return -87;
-            } else if (memory_value == _mem) {
-                mem[memseg.getIntegerValueIfExisting()] = val;
-            } else {
-                std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                    << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-                return -85;
-            }
-            return 1;
-        }
-        case info::MemoryOpcodes::PUSH: {
-            ByteToken const memseg = c->getStorage().getMemory();
-            uint64_t const memory_value = memseg.getValueIfExisting(),
-                           _mem = info::m_bytes["mem"],
-                           _temp = info::m_bytes["temp"],
-                           _param = info::m_bytes["param"],
-                           _nost = info::m_bytes["nost"];
-            if (memory_value == _mem || memory_value == _temp) {
-                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $push." << '\n'
-                    << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
-                return -87;
-            }
-            if (memory_value == _nost) {
-                return 1;
-            }
-            ValueContainer val;
-            ByteToken const arg0 = c->getArgs()[0];
-            if (arg0.isIntegerNumber()) {
-                val.isIntegerNumber = true;
-                val.integer_storage = arg0.getIntegerValueIfExisting();
-            } else if (arg0.isDoubleNumber()) {
-                val.isFloatingNumber = true;
-                val.float_storage = arg0.getDoubleValueIfExisting();
-            } else if (arg0.isString()) {
-                val.isString = true;
-                val.string_storage = arg0.getStringValueIfExisting();
-            } else if (arg0.isMemory()) {
-                uint64_t const memory_segment = arg0.getValueIfExisting();
-                int const index = arg0.getIntegerValueIfExisting();
-                if (index > 0) {
-                    if (memory_segment == _mem) {
-                        val = mem[index];
-                    } else if (memory_segment == _temp) {
-                        val = temp.top()[index];
-                    } else if (memory_segment == _param) {
-                        std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_segment << "' used with instruction $store." << '\n'
-                            << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
-                        return -87;
-                    } else if (memory_value != _nost) {
-                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-                        return -85;
-                    }
-                }
-            } else {
-                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
-                    << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
-                return -63;
-            }
-            if (memory_value == _param) {
-                param.push(val);
-            }
-            return 1;
-        }
-        case info::MemoryOpcodes::POP: {
-            ByteToken const memseg = c->getStorage().getMemory();
-            uint64_t const memory_value = memseg.getValueIfExisting(),
-                           _mem = info::m_bytes["mem"],
-                           _temp = info::m_bytes["temp"],
-                           _param = info::m_bytes["param"],
-                           _nost = info::m_bytes["nost"];
-            ByteToken const arg0 = c->getArgs()[0];
-            if (!arg0.isMemory()) {
-                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
-                    << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
-                return -63;
-            }
-            double const pop_seg = arg0.getValueIfExisting();
-            if (pop_seg == _mem || pop_seg == _temp) {
-                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $pop." << '\n'
-                    << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
-                return -87;
-            }
-            if (pop_seg == _nost) {
-                return 1;
-            }
-            if (static_cast<uint8_t>(memseg.getValueIfExisting()) == _nost) {
-                if (pop_seg == _param) {
-                    param.pop();
-                    return 1;
-                }
-            } else {
-                ValueContainer val;
-                if (!memseg.isIntegerNumber()) {
-                    std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << memseg.getStringValueIfExisting() << "', " << memseg.getIntegerValueIfExisting() << ", " << memseg.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                        << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                    return -32;
-                }
-                int const index = memseg.getIntegerValueIfExisting();
-                if (index < 0) {
-                    return 1;
-                }
-                double seg = memseg.getValueIfExisting();
-                if (pop_seg == _param) {
-                    val = param.top();
-                    param.pop();
-                }
-                if (seg == _mem) {
-                    mem[index] = val;
-                } else if (seg == _temp) {
-                    temp.top()[index] = val;
-                } else if (seg == _param) {
-                    param.push(val);
-                }
-            }
-            return 1;;
-        }
-        case info::MemoryOpcodes::FREE: {
-            ByteToken const arg0 = c->getArgs()[0];
-            if (!arg0.isMemory()) {
-                std::cerr << termcolor::red << "Error 0x5968: Invalid token ('" << arg0.getStringValueIfExisting() << "', " << arg0.getValueIfExisting() << ", " << arg0.getIntegerValueIfExisting() << "." << '\n'
-                    << "If you did not try to modify the bytecode file by hand, it is recommended to contact the creator giving him the error code as well as the token in fault.";
-                return -63;
-            }
-            uint64_t const memory_value = arg0.getValueIfExisting(),
-                         _mem = info::m_bytes["mem"],
-                         _temp = info::m_bytes["temp"],
-                         _param = info::m_bytes["param"],
-                         _nost = info::m_bytes["nost"];
-            if (memory_value == _nost) {
-                return 1;
-            } else if (memory_value == _param) {
-                std::cerr << termcolor::red << "Error 0x3258: Invalid segment '0x" << std::hex << memory_value << "' used with instruction $free." << '\n'
-                    << "It is recommended that you check your code and recompile it. If the issue is not solved, please contact the creator giving him the error code as well as the memory segment causing the error.";
-                return -87;
-            }
-            int const index = arg0.getIntegerValueIfExisting();
-            if (index < 0) {
-                std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-                    << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-                return -32;
-            }
-            if (memory_value == _mem) {
-                std::remove(mem.begin(), mem.end(), mem[index]);
-                return 1;
-            } else if (memory_value == _temp) {
-                std::remove(temp.top().begin(), temp.top().end(), temp.top()[index]);
-                return 1;
-            } else {
-                std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                    << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-                return -85;
-            }
-            return 1;
-        }
-        default:
-            std::cerr << termcolor::red << "Error 0x6313: The opcode '0x" << std::hex << value << "' does not belong to the `memory` category provided by the language." << '\n'
-                << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
-            return -1;
+int8_t Interpreter::exec_maths(AtomicToken* const& token) {
+    Value const& v1{loaded.top()};
+    loaded.pop();
+    Value v0;
+    if (!loaded.empty()) {
+        v0 = loaded.top();
+        loaded.pop();
     }
-}
-
-int8_t Interpreter::executeMathsConsumer(ByteConsumer* const& c) {
-    uint64_t value = static_cast<uint64_t>(c->getInstruction().getValueIfExisting());
-    uint64_t const memory_value = c->getStorage().getMemory().getValueIfExisting(),
-                           _mem = info::m_bytes["mem"],
-                           _temp = info::m_bytes["temp"],
-                           _param = info::m_bytes["param"],
-                           _nost = info::m_bytes["nost"];
-    ByteToken const arg0 = c->getArgs()[0],
-                    arg1 = c->getArgs()[1];
-    if (arg0.isDoubleNumber() || arg0.isString()) {
-        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-        return -32;
-    }
-    if (arg1.isDoubleNumber() || arg1.isString()) {
-        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg1.getStringValueIfExisting() << "', " << arg1.getIntegerValueIfExisting() << ", " << arg1.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-        return -32;
-    }
-    ValueContainer val0, val1;
-    if (arg0.isIntegerNumber()) {
-        val0.isIntegerNumber = true;
-        val0.integer_storage = arg0.getIntegerValueIfExisting();
-    } else if (arg0.isMemory()) {
-        uint64_t const seg = arg0.getValueIfExisting();
-        int const index = arg0.getIntegerValueIfExisting();
-        ValueContainer tmp;
-        if (seg == _mem) {
-            tmp = mem[index];
-        } else if (seg == _temp) {
-            tmp = temp.top()[index];
-        } else {
-            std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-                << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-            return -85;
-        }
-        if (!tmp.isIntegerNumber) {
-            std::cerr << termcolor::red << "Error 0x9834: Invalid integer number " << tmp << " used as a memory segment index." << '\n'
-                << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-            return -32;
-        }
-        val0 = tmp;
-    } else {
-        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-        return -32;
-    }
-    if (arg1.isIntegerNumber()) {
-        val1.isIntegerNumber = true;
-        val1.integer_storage = arg1.getIntegerValueIfExisting();
-    } else if (arg1.isMemory()) {
-        uint64_t const seg = arg1.getValueIfExisting();
-        int const index = arg1.getIntegerValueIfExisting();
-        ValueContainer tmp;
-        if (seg == _mem) {
-            tmp = mem[index];
-        } else if (seg == _temp) {
-            tmp = temp.top()[index];
-        } else {
-            std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-            return -85;
-        }
-        if (!tmp.isIntegerNumber) {
-            std::cerr << termcolor::red << "Error 0x9834: Invalid integer number " << tmp << " used as a memory segment index." << '\n'
-                << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-            return -32;
-        }
-        val1 = tmp;
-    } else {
-        std::cerr << termcolor::red << "Error 0x9834: Invalid integer number ('" << arg1.getStringValueIfExisting() << "', " << arg1.getIntegerValueIfExisting() << ", " << arg1.getDoubleValueIfExisting() << ") used as a memory segment index." << '\n'
-            << "If you did not modify the bytecode file by hand, please contact the creator giving him the error code as well as the bytecode.";
-        return -32;
-    }
-    ValueContainer result;
-    switch (value) {
+    //std::cout << (*(token->getArgument()) & 0xff) << std::endl;
+    //std::cout << "Inserting value at index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+    switch (token->getInstruction()) {
         case info::MathsOpcodes::ADD: {
-            result.isIntegerNumber = true;
-            result.integer_storage = val0.integer_storage + val1.integer_storage;
-            break;
-        }
-        case info::MathsOpcodes::SUB: {
-            result.isIntegerNumber = true;
-            result.integer_storage = val0.integer_storage - val1.integer_storage;
-            break;
-        }
-        case info::MathsOpcodes::MUL: {
-            result.isIntegerNumber = true;
-            result.integer_storage = val0.integer_storage * val1.integer_storage;
-            break;
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) + std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) + std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) + std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return -1;
         }
         case info::MathsOpcodes::DIV: {
-            if (val1.integer_storage == 0) {
-                std::cerr << termcolor::red << "Error 0x4695: Dividing by 0."
-                    << "Please make sure to not divide by 0 anymore !" << termcolor::reset << std::endl;
-                return -24;
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) / std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) / std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) / std::get<int64_t>(v1));
+                    return 1;
+                }
             }
-            result.isIntegerNumber = true;
-            result.integer_storage = static_cast<int64_t>(val0.integer_storage / val1.integer_storage);
-            break;
-        }
-        case info::MathsOpcodes::RAND: {
-            std::uniform_int_distribution<> distrib(val0.integer_storage, val1.integer_storage);
-            result.isIntegerNumber = true;
-            result.integer_storage = static_cast<int64_t>(distrib(generator));
-            break;
+            return -1;
         }
         case info::MathsOpcodes::MOD: {
-            result.isIntegerNumber = true;
-            result.integer_storage = val0.integer_storage % val1.integer_storage;
-            break;
-        }
-        default:
-            std::cerr << termcolor::red << "Error 0x6314: The opcode '0x" << std::hex << value << "' does not belong to the `integer maths` category provided by the language." << '\n'
-                << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) % std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) % std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) % std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
             return -1;
+        }
+        case info::MathsOpcodes::MUL: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) * std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) * std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) * std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::RAND: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = std::uniform_int_distribution<int64_t>(std::get<int64_t>(v0), std::get<int64_t>(v1))(generator);
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = std::uniform_int_distribution<int64_t>(std::get<int64_t>(v0), std::get<int64_t>(v1))(generator);
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::uniform_int_distribution<int64_t>(std::get<int64_t>(v0), std::get<int64_t>(v1))(generator));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::SUB: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) - std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) - std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) - std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::AND: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) & std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) & std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) & std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::OR: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) | std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) | std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) | std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::XOR: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) ^ std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<int64_t>(v0) ^ std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<int64_t>(v0) ^ std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::NOT: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (~std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (~std::get<int64_t>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(~std::get<int64_t>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::ADDF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) + std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) + std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<double>(v0) + std::get<double>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::DIVF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) / std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) / std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<double>(v0) / std::get<double>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::MULF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) * std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) * std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<double>(v0) * std::get<double>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::RANDF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = std::uniform_real_distribution<double>(std::get<double>(v0), std::get<double>(v1))(generator);
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = std::uniform_real_distribution<double>(std::get<double>(v0), std::get<double>(v1))(generator);
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::uniform_real_distribution<double>(std::get<double>(v0), std::get<double>(v1))(generator));
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MathsOpcodes::SUBF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) - std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = (std::get<double>(v0) - std::get<double>(v1));
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::get<double>(v0) - std::get<double>(v1));
+                    return 1;
+                }
+            }
+            return -1;
+        }
     }
-    int const index = c->getStorage().getMemory().getIntegerValueIfExisting();
-    if (index == -1) {
-        return 1;
-    }
-    if (memory_value == _mem) {
-        mem[index] = result;
-    } else if (memory_value == _temp) {
-        temp.top()[index] = result;
-    } else if (memory_value == _param) {
-        param.push(result);
-    } else if (memory_value == _nost) {
-        return 1;
-    } else {
-        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << memory_value << "'." << '\n'
-            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-        return -85;
-    }
-    return 1;
+    return -1;
 }
 
-int8_t Interpreter::executeComparativeConsumer(ByteConsumer* const& c) {
-    uint64_t value = static_cast<uint64_t>(c->getInstruction().getValueIfExisting());
-    switch (value) {
-        case info::ComparativeOpcodes::CMP: {
-            uint64_t const _mem = info::m_bytes["mem"],
-                           _temp = info::m_bytes["temp"];
-            ByteToken const arg0 = c->getArgs()[0],
-                            arg1 = c->getArgs()[1];
-            ValueContainer val0, val1;
-            if (arg0.isDoubleNumber()) {
-                val0.isFloatingNumber = true;
-                val0.float_storage = arg0.getDoubleValueIfExisting();
-            } else if (arg0.isIntegerNumber()) {
-                val0.isIntegerNumber = true;
-                val0.integer_storage = arg0.getIntegerValueIfExisting();
-            } else if (arg0.isString()) {
-                val0.isString = true;
-                val0.string_storage = arg0.getStringValueIfExisting();
-            } else if (arg0.isMemory()) {
-                uint64_t const seg = arg0.getValueIfExisting();
-                int const index = arg0.getIntegerValueIfExisting();
-                if (index > 0) {
-                    if (seg == _mem) {
-                        val0 = mem[index];
-                    } else if (seg == _temp) {
-                        val0 = temp.top()[index];
-                    } else {
-                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << seg << "'." << '\n'
-                            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-                        return -85;
-                    }
+int8_t Interpreter::exec_memory(AtomicToken* const& token) {
+    switch (token->getInstruction()) {
+        case info::MemoryOpcodes::FREE: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = std::variant<std::string, int64_t, double>{};
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = std::variant<std::string, int64_t, double>{};
+                    return 1;
                 }
             }
-            if (arg1.isDoubleNumber()) {
-                val1.isFloatingNumber = true;
-                val1.float_storage = arg1.getDoubleValueIfExisting();
-            } else if (arg1.isIntegerNumber()) {
-                val1.isIntegerNumber = true;
-                val1.integer_storage = arg1.getIntegerValueIfExisting();
-            } else if (arg1.isString()) {
-                val1.isString = true;
-                val1.string_storage = arg1.getStringValueIfExisting();
-            } else if (arg1.isMemory()) {
-                uint64_t const seg = arg1.getValueIfExisting();
-                int const index = arg1.getIntegerValueIfExisting();
-                if (index > 0) {
-                    if (seg == _mem) {
-                        val1 = mem[index];
-                    } else if (seg == _temp) {
-                        val1 = temp.top()[index];
-                    } else {
-                        std::cerr << termcolor::red << "Error 0x2369: Invalid memseg '0x" << std::hex << seg << "'." << '\n'
-                            << "Unless you tried to modify the bytecode file by hand, check your code. This may not be your fault. If it isn't, please contact the creator with the error code and the value given.";
-                        return -85;
-                    }
+            return -1;
+        }
+        case info::MemoryOpcodes::POP: {
+            Value const& v{param.top()};
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::PARAM: {
+                    param.pop();
+                    return 1;
                 }
             }
+            return -1;
+        }
+        case info::MemoryOpcodes::PUSH: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(loaded.top());
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MemoryOpcodes::STORE: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = loaded.top();
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = loaded.top();
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MemoryOpcodes::ITOS: {
+            //std::cout << "ITOS=" << std::to_string(std::get<int64_t>(loaded.top())) << std::endl;
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = std::to_string(std::get<int64_t>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = std::to_string(std::get<int64_t>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::to_string(std::get<int64_t>(loaded.top())));
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MemoryOpcodes::FTOS: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = std::to_string(std::get<double>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = std::to_string(std::get<double>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::to_string(std::get<double>(loaded.top())));
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MemoryOpcodes::ITOF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<double>(std::get<int64_t>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<double>(std::get<int64_t>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(static_cast<double>(std::get<int64_t>(loaded.top())));
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MemoryOpcodes::FTOI: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<int64_t>(std::get<double>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<int64_t>(std::get<double>(loaded.top()));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(static_cast<int64_t>(std::get<double>(loaded.top())));
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MemoryOpcodes::STOI: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<int64_t>(std::strtoll(std::get<std::string>(loaded.top()).c_str(), nullptr, 10));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = static_cast<int64_t>(std::strtoll(std::get<std::string>(loaded.top()).c_str(), nullptr, 10));
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(static_cast<int64_t>(std::strtoll(std::get<std::string>(loaded.top()).c_str(), nullptr, 10)));
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        case info::MemoryOpcodes::STOF: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Storing value at mem_index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    mem[((*(token->getArgument()) & 0xff00) >> 8)] = std::strtod(std::get<std::string>(loaded.top()).c_str(), nullptr);
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    temp.top()[((*(token->getArgument()) & 0xff00) >> 8)] = std::strtod(std::get<std::string>(loaded.top()).c_str(), nullptr);
+                    loaded.pop();
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    param.push(std::strtod(std::get<std::string>(loaded.top()).c_str(), nullptr));
+                    loaded.pop();
+                    return 1;
+                }
+            }
+            return -1;
+        }
+    }
+    return -1;
+}
 
-            if (val0 == val1) {
-                condition = 1;
-            } else if (val0 > val1) {
-                condition = 2;
-            } else if (val0 < val1) {
-                condition = -2;
-            } else {
-                condition = -1;
+int8_t Interpreter::exec_comparative(AtomicToken* const& token) {
+    switch (token->getInstruction()) {
+        case info::ComparativeOpcodes::CMP: {
+            Value const& v1{loaded.top()};
+            loaded.pop();
+            Value const& v0{loaded.top()};
+            loaded.pop();
+            if (v0 == v1) {
+                conditioner = 0;
+            } else if (v0 > v1) {
+                conditioner = 1;
+            } else if (v0 < v1) {
+                conditioner = -1;
+            }
+            //std::cout << "CMP=" << std::to_string(conditioner) << std::endl;
+            return 1;
+        }
+        case info::ComparativeOpcodes::JWD: {
+            if (conditioner != 0) {
+                line_number = label_table[*(token->getArgument())]->getLine();
             }
             return 1;
         }
         case info::ComparativeOpcodes::JWE: {
-            ByteToken const arg0 = c->getArgs()[0];
-            if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
-                return -7;
-            }
-            std::string const lbl = arg0.getStringValueIfExisting();
-            if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
-                return -65;
-            }
-            if (condition == 1) {
-                line_number = labels[lbl];
-            }
-            return 1;
-        }
-        case info::ComparativeOpcodes::JWD: {
-            ByteToken const arg0 = c->getArgs()[0];
-            if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
-                return -7;
-            }
-            std::string const lbl = arg0.getStringValueIfExisting();
-            if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
-                return -65;
-            }
-            if (condition != 1 && condition != 0) {
-                line_number = labels[lbl];
+            if (conditioner == 0) {
+                line_number = label_table[*(token->getArgument())]->getLine();
             }
             return 1;
         }
         case info::ComparativeOpcodes::JWG: {
-            ByteToken const arg0 = c->getArgs()[0];
-            if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
-                return -7;
-            }
-            std::string const lbl = arg0.getStringValueIfExisting();
-            if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
-                return -65;
-            }
-            if (condition == 2) {
-                line_number = labels[lbl];
+            if (conditioner == 1) {
+                line_number = label_table[*(token->getArgument())]->getLine();
             }
             return 1;
         }
         case info::ComparativeOpcodes::JWL: {
-            ByteToken const arg0 = c->getArgs()[0];
-            if (!arg0.isString()) {
-                std::cerr << termcolor::red << "Error 0x0563: Invalid argument ('" << arg0.getStringValueIfExisting() << "', " << arg0.getIntegerValueIfExisting() << ", " << arg0.getDoubleValueIfExisting() << ") specified for $jmp." << '\n'
-                    << "If you tried to modify the bytecode file, please regenerate one with the compiler given for this job.";
-                return -7;
-            }
-            std::string const lbl = arg0.getStringValueIfExisting();
-            if (labels.find(lbl) == labels.end()) {
-                std::cerr << termcolor::red << "Error 0x6532: Unknown label '" << lbl << "'." << '\n'
-                    << "If you tried to modify the bytecode file, please modify it the good way, or use the compiler to generate a correct bytecode file. If you did not try to modify it, please contact the creator with the error code.";
-                return -65;
-            }
-            if (condition == -2) {
-                line_number = labels[lbl];
+            //std::cout << "JWL=" << std::to_string(conditioner) << std::endl;
+            if (conditioner == -1) {
+                line_number = label_table[*(token->getArgument())]->getLine();
             }
             return 1;
         }
-        default:
-            std::cerr << termcolor::red << "Error 0x6315: The opcode '0x" << std::hex << value << "' does not belong to the `comparative` category provided by the language." << '\n'
-                << "Please contact the creator giving him the opcode as well as the error encountered if you didn't modify the file with the extension `.ssbc` by hand. If you did, then you might have done something wrong.";
-            return -1;
     }
+    return -1;
+}
+
+int8_t Interpreter::exec_special(AtomicToken* const& token) {
+    switch (token->getInstruction()) {
+        case info::SpecialOpcodes::LOAD_CONST: {
+            //std::cout << "Loading constant at index=" << *(token->getArgument()) << std::endl;
+            loaded.push(const_table[*(token->getArgument())]->getValue());
+            //std::clog << std::get<std::string>(const_table[*(token->getArgument())]->getValue()) << std::endl;
+            return 1;
+        }
+        case info::SpecialOpcodes::LOAD_MEM: {
+            //std::cout << std::hex << *(token->getArgument()) << std::endl;
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    //std::cout << "Loading memory at index=" << ((*(token->getArgument()) & 0xff00) >> 8) << std::endl;
+                    loaded.push(mem[((*(token->getArgument()) & 0xff00) >> 8)]);
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    loaded.push(temp.top()[((*(token->getArgument()) & 0xff00) >> 8)]);
+                    return 1;
+                }
+                case info::MemsegOpcodes::PARAM: {
+                    loaded.push(param.top());
+                    return 1;
+                }
+            }
+            return -1;
+        }
+    }
+    return -1;
+}
+
+bool Interpreter::make(std::string const& path) {
+    std::ifstream is{path, std::ios_base::binary};
+    std::string header{""};
+    for (uint8_t i{0};i < 8;++i) {
+        unsigned char x;
+        utils::stream_read<unsigned char>(is, x);
+        header += x;
+    }
+    if (header != "snowstar") return false;
+    //std::clog << "Read snowstar" << std::endl;
+    //std::cout << std::endl;
+
+    unsigned char x;
+    uint16_t table_size;
+    // Parsing labels table:
+    utils::stream_read<unsigned char>(is, x); // LABEL_TABLE
+    utils::stream_read<uint16_t>(is, table_size);
+    //std::clog << "Reading label_table, size=" << table_size << std::endl;
+    for (uint16_t i{0};i < table_size;++i) {
+        uint16_t label_id, label_no;
+        utils::stream_read<uint16_t>(is, label_id);
+        utils::stream_read<uint16_t>(is, label_no);
+        label_table[label_id] = new LabelToken(label_id, label_no);
+    }
+    //std::cout << std::endl;
+
+    // Parsing consts table:
+    utils::stream_read<unsigned char>(is, x); // CONST_TABLE
+    utils::stream_read<uint16_t>(is, table_size);
+    //std::clog << "Reading const_table, size=" << table_size << std::endl;
+    for (uint16_t i{0};i < table_size;++i) {
+        uint8_t type;
+        uint16_t id, size;
+        Value value;
+        utils::stream_read<uint16_t>(is, id);
+        utils::stream_read<uint8_t>(is, type);
+        utils::stream_read<uint16_t>(is, size);
+        //std::clog << "Const_size=" << size << std::endl;
+        std::string val{""};
+        for (int j{0};j < size;++j) {
+            uint8_t y;
+            utils::stream_read<uint8_t>(is, y);
+            val += y;
+        }
+        if (type == '\x03') { // is string
+            for (auto& c : val)
+                c -= 0x20;
+            value.emplace<std::string>(val); 
+        }
+        if (type == '\x04') { // is int
+            for (auto& c : val)
+                c -= 0x10;
+            value.emplace<int64_t>(std::strtoll(val.c_str(), nullptr, 16));
+        }
+        if (type == '\x05') { // is float
+            for (auto& c : val)
+                c -= 0x20;
+            value.emplace<double>(std::stod(val.c_str()));
+        }
+        const_table[id] = new ConstToken(id, value);
+    }
+    //std::cout << std::endl;
+
+    // Parsing code table:
+    utils::stream_read<unsigned char>(is, x); // CODE_TABLE
+    utils::stream_read<uint16_t>(is, table_size);
+    //std::clog << "Reading code_table, size=" << table_size << std::endl;
+    for (uint16_t i{0};i < table_size;++i) {
+        uint8_t hasArg, opcode;
+        std::optional<int16_t> arg;
+        utils::stream_read<uint8_t>(is, hasArg);
+        utils::stream_read<uint8_t>(is, opcode);
+        if (hasArg == '\x01')
+            utils::stream_read<int16_t>(is, *arg);
+        code_table[i] = new AtomicToken(opcode, arg);
+        //std::clog << std::hex << opcode << " " << *arg << std::endl;
+    }
+
+    return true;
 }

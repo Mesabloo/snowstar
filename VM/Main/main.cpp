@@ -1,18 +1,13 @@
-#include <iostream>
-#include <thread>
+#include <string>
 
-#include "../../Common/values.hpp"
-#include "../Lexer/byte_lexer.hpp"
-#include "../../Common/Utils/utils.hpp"
-#include "../Interpreter/interpreter.hpp"
-#include "../../Common/termcolor.hpp"
+#include <Interpreter/interpreter.hpp>
+#include <termcolor.hpp>
+#include <values.hpp>
+#include <benchmark.hpp>
 
-int main(int argc, const char **argv) {
+int main(int argc, char const** argv) {
     if (argc < 2) {
-        std::cerr << termcolor::red << "Program usage: " << argv[0] << " {file.ssbc} [options]" << '\n'
-            << '\t' << "{file.ssbc}: the path to the file to compile" << '\n'
-            << '\t' << "[options]:" << '\n'
-            << '\t' << '\t' << "--debug: starts the debugger" << std::endl;
+        std::cerr << termcolor::red << "Program usage: " << argv[0] << " {file.sssc}" << '\n' << '\t' << "{file.sssc}: the path to the file to compile" << std::endl;
         getchar();
         return 0;
     }
@@ -24,18 +19,14 @@ int main(int argc, const char **argv) {
     }
 
     if (argc > 2) {
-        for (int i(2);i < argc;++i) {
-            std::string arg = argv[i];
-            if (arg == "--debug")
-                vars::DEBUG = true;
-        //    if (arg == "--exit-on-end")
-        //        vars::EXIT_ON_END = true;
+        for (int i{2};i < argc;++i) {
+            // args checking goes there
         }
     }
 
-    ByteLexer bl(argv[1]);
-    Interpreter i(argv[1]);
-    i.start(bl);
+    Interpreter i;
+    BENCHMARK_MRSTATS("VM test", i.start(argv[1]), 10000, ms);
+    //i.start(argv[1]);
 
     getchar();
 }
