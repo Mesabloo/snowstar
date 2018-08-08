@@ -1,10 +1,10 @@
 # Snow*, a programming language based on the Assembly language's way of functioning.
----
-> What is Snow* ?
+
+## What is Snow* ?
 
 Snow* is a programming language based on the Assembly language syntax, and also its way of functioning.
 
-> How does it work ?
+## How does it work ?
 
 Snow*'s environment contains 3 segments: `mem` which is the basic memory holder, limited to 256 values; `temp` which is a special segment, holding until 32 values, but whose content changes on each `call`; `param` which is a [stack](https://en.wikipedia.org/wiki/Stack_(abstract_data_type)) containing values used in `sys`tem calls, for example, or which can be used in your own `call`s. <br>
 Easy ways to manage them are `store`, `push`, `free` and `pop`. 
@@ -29,12 +29,12 @@ main: % Main entry point, absolutely needed
     % Don't forget this line, else your program will never stop
 ```
 
-> Is there a way to learn the language ?
+## Is there a way to learn the language ?
 
 Yes, there is one. A website is hosted on github [here](https://mesabloo.github.io/snowstar-lang). You will find every information you need (docs, tutorials, examples) there. If you have any question/request, feel free to ask them to me. <br>
 You will find me known as `Меѕаblоо#5674` on [Discord](https://www.discordapp.com) (please copy/paste, do not try to rewrite it).
 
-> Just a free sample.
+## Just a free sample.
 
 ```
 main: % Still needed
@@ -82,7 +82,7 @@ main: % Still needed
 
     free [temp, 1]
     free [mem, 1]
-    % Just delete the data because we don't need them anymore
+    % Just delete the data because we don't need it anymore
  
     int 0
     % Also still needed
@@ -121,7 +121,7 @@ lower:
 ```
 The indentation is not necessary. You can get rid of it. It just makes it a bit more clear what "block" is what.
 
-> No more questions ?
+## No more questions ?
 
 If you want to ask me some questions, you can ask them directly to me on [Discord](https://www.discordapp.com). I will asnwer them with no problem. <br>
 If you want some features added, feel free to suggest them to me, or to someone who already talked to me before. <br><br>
