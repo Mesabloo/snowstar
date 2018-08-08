@@ -12,7 +12,7 @@
 Converter::Converter() {}
 Converter::~Converter() {}
 
-bool Converter::start(std::vector<Consumer*> consumers) const {
+bool Converter::start(std::vector<std::shared_ptr<Consumer>> consumers) const {
     std::string const header{"snowstar"};
     std::vector<std::string> labels_table,
                              consts_table,
@@ -23,7 +23,7 @@ bool Converter::start(std::vector<Consumer*> consumers) const {
              instrs_no{0};
     int line{0};
     for (size_t i{0};i < consumers.size();++i) {
-        Consumer*& c{consumers[i]};
+        std::shared_ptr<Consumer>& c{consumers[i]};
         if (c->getInstruction().getType() == Token::Type::EOL) continue;
         for (auto const& arg : c->getArgs()) {
             if (utils::str_startswith(Token::getTypeSignification(arg.getType()), "Literal."))

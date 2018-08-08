@@ -10,7 +10,7 @@
 Lexer::Lexer(std::string const path): isString{false}, isLComment{false}, isMLComment{false}, buffer{""}, m_path{path} {}
 Lexer::~Lexer() {}
 
-auto Lexer::tokenize() -> std::vector<Token*> {
+auto Lexer::tokenize() -> std::vector<std::shared_ptr<Token>> {
     std::ifstream is;
     is.open(m_path, std::ifstream::ios_base::in);
     char c;
@@ -24,11 +24,11 @@ auto Lexer::tokenize() -> std::vector<Token*> {
         if (token != nullptr)
             m_gen_tokens.push_back(token);
     }
-    m_gen_tokens.push_back(new Token(Token::Type::EOL, ""));
+    m_gen_tokens.push_back(std::make_shared<Token>(Token::Type::EOL, ""));
     return m_gen_tokens;
 }
 
-auto Lexer::checkSyntax(char const c) -> Token* {
+auto Lexer::checkSyntax(char const c) -> std::shared_ptr<Token> {
     switch (c) {
         case ' ': [[fallthrough]];
         case '\t': {
@@ -51,7 +51,7 @@ auto Lexer::checkSyntax(char const c) -> Token* {
                 buffer = "";
                 isString = false;
                 isLComment = false;
-                return new Token(Token::Type::EOL, "");
+                return std::make_shared<Token>(Token::Type::EOL, "");
             } else {
                 buffer += c;
             }
@@ -60,7 +60,7 @@ auto Lexer::checkSyntax(char const c) -> Token* {
         case ':': {
             if (!isString && !isMLComment && !isLComment) {
                 if (buffer != "") {
-                    Token* t = new Token(Token::Type::KEYWORD, "lbl");
+                    std::shared_ptr<Token> t = std::make_shared<Token>(Token::Type::KEYWORD, "lbl");
                     m_gen_tokens.push_back(t);
                     auto const t1 = checkToken(buffer);
                     buffer = "";
@@ -81,7 +81,7 @@ auto Lexer::checkSyntax(char const c) -> Token* {
                     m_gen_tokens.push_back(token);
                 }
                 buffer = "";
-                return new Token(Token::Type::SEPARATOR, std::string({c}));
+                return std::make_shared<Token>(Token::Type::SEPARATOR, std::string({c}));
             } else
                 buffer += c;
             break;
@@ -143,42 +143,42 @@ auto Lexer::checkSyntax(char const c) -> Token* {
     return nullptr;
 }
 
-auto Lexer::checkToken(std::string const& buf) const -> Token* {
+auto Lexer::checkToken(std::string const& buf) const -> std::shared_ptr<Token> {
     if (isString && std::regex_match(buf, std::regex("^(['])((?:[^\\\']|\\.)*)\\1$")))
-        return new Token(Token::Type::LITERAL_STRING, buf);
+        return std::make_shared<Token>(Token::Type::LITERAL_STRING, buf);
     if (isLComment)
-        return new Token(Token::Type::INLINE_COMMENT, buf);
+        return std::make_shared<Token>(Token::Type::INLINE_COMMENT, buf);
     if (isMLComment)
-        return new Token(Token::Type::MULTILINE_COMMENT, buf);
+        return std::make_shared<Token>(Token::Type::MULTILINE_COMMENT, buf);
     if (std::find_if(info::m_keywords.begin(), info::m_keywords.end(), [=] (Token const& t) {return t == Token(Token::Type::KEYWORD, buf);}) != info::m_keywords.end())
-        return new Token(Token::Type::KEYWORD, buf);
+        return std::make_shared<Token>(Token::Type::KEYWORD, buf);
     if (std::regex_match(buf, std::regex("^((-)?[0-9])+(\\.{1}[0-9]*){1}$")))
-        return new Token(Token::Type::LITERAL_NUMBER_FLOAT, buf);
+        return std::make_shared<Token>(Token::Type::LITERAL_NUMBER_FLOAT, buf);
     if (std::regex_match(buf, std::regex("^((-)?[0-9]+)$")))
-        return new Token(Token::Type::LITERAL_NUMBER_INT, buf);
-    Token* tmp = m_gen_tokens[m_gen_tokens.size()-1];
+        return std::make_shared<Token>(Token::Type::LITERAL_NUMBER_INT, buf);
+    std::shared_ptr<Token> tmp = m_gen_tokens[m_gen_tokens.size()-1];
     if (tmp->getValue() == "lbl" || tmp->getValue() == "call" || tmp->getValue() == "jmp" || tmp->getValue() == "jwe" || tmp->getValue() == "jwd" || tmp->getValue() == "jwg" || tmp->getValue() == "jwl")
-        return new Token(Token::Type::LABEL, buf);
+        return std::make_shared<Token>(Token::Type::LABEL, buf);
     if (std::regex_match(buf, std::regex("^@@.+$")))
-        return new Token(Token::Type::PREPROCESSOR, buf);
-    return new Token(Token::Type::INVALID, buf);
+        return std::make_shared<Token>(Token::Type::PREPROCESSOR, buf);
+    return std::make_shared<Token>(Token::Type::INVALID, buf);
 }
 
-auto Lexer::preprocess(std::vector<Token*> const& tokens) const -> std::vector<Token*> {
-    std::vector<Token*> copy{tokens};
-    std::vector<Token*> directives;
+auto Lexer::preprocess(std::vector<std::shared_ptr<Token>> const& tokens) const -> std::vector<std::shared_ptr<Token>> {
+    std::vector<std::shared_ptr<Token>> copy{tokens};
+    std::vector<std::shared_ptr<Token>> directives;
     for (auto const t : copy) {
         if (t->getType() != Token::Type::PREPROCESSOR) continue;
     }
     return tokens;
 }
 
-auto Lexer::optimize(std::vector<Token*> const& tokens) const -> std::vector<std::vector<Token*>> {
-    std::vector<std::vector<Token*>> file;
-    std::vector<Token*> line;
+auto Lexer::optimize(std::vector<std::shared_ptr<Token>> const& tokens) const -> std::vector<std::vector<std::shared_ptr<Token>>> {
+    std::vector<std::vector<std::shared_ptr<Token>>> file;
+    std::vector<std::shared_ptr<Token>> line;
     unsigned long long line_number{1};
     for (long unsigned int j{0};j < tokens.size();++j) {
-        Token* current{tokens[j]};
+        std::shared_ptr<Token> current{tokens[j]};
         if (current->getType() == Token::Type::EOL) {
             line.push_back(current);
             file.push_back(line);
@@ -198,7 +198,7 @@ auto Lexer::optimize(std::vector<Token*> const& tokens) const -> std::vector<std
                             << "InvalidSegmentException: Invalid memory segment '" << tokens[j+1]->getValue() << "' provided without index for memory access." << termcolor::reset << std::endl;
                         return {};
                     }
-                    Token* t = new Token(Token::Type::LITERAL_MEMORY, tokens[j+1]->getValue()+".0");
+                    std::shared_ptr<Token> t = std::make_shared<Token>(Token::Type::LITERAL_MEMORY, tokens[j+1]->getValue()+".0");
                     line.push_back(t);
                     j += 2;
                 } else {
@@ -216,7 +216,7 @@ auto Lexer::optimize(std::vector<Token*> const& tokens) const -> std::vector<std
                             return {};
                         }
                     }
-                    Token* t = new Token(Token::Type::LITERAL_MEMORY, tokens[j+1]->getValue()+"."+tokens[j+3]->getValue());
+                    std::shared_ptr<Token> t = std::make_shared<Token>(Token::Type::LITERAL_MEMORY, tokens[j+1]->getValue()+"."+tokens[j+3]->getValue());
                     line.push_back(t);
                     j += 4;
                 }

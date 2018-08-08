@@ -8,7 +8,7 @@ class Converter {
         Converter();
         ~Converter();
 
-        bool start(std::vector<Consumer*>) const;
+        bool start(std::vector<std::shared_ptr<Consumer>>) const;
 };
 
 #endif

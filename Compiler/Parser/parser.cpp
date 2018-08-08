@@ -7,9 +7,9 @@
 #include <Utils/utils.hpp>
 #include <termcolor.hpp>
 
-Parser::Parser(std::vector<std::vector<Token*>> const& lines) {
-    std::vector<std::vector<Token*>> no_comment;
-    std::vector<Token*> line;
+Parser::Parser(std::vector<std::vector<std::shared_ptr<Token>>> const& lines) {
+    std::vector<std::vector<std::shared_ptr<Token>>> no_comment;
+    std::vector<std::shared_ptr<Token>> line;
     for (auto const& l : lines) {
         for (auto const& t : l) {
             if (t->getType() != Token::Type::INLINE_COMMENT && t->getType() != Token::Type::MULTILINE_COMMENT)
@@ -18,7 +18,7 @@ Parser::Parser(std::vector<std::vector<Token*>> const& lines) {
                 if (t->getType() == Token::Type::MULTILINE_COMMENT) {
                     for (size_t i{0};i < utils::str_split(t->getValue(), '\n').size()-1;++i) {
                         no_comment.push_back(line);
-                        line = {new Token(Token::Type::EOL, "")};
+                        line = {std::make_shared<Token>(Token::Type::EOL, "")};
                     }
                 }
             }
@@ -39,40 +39,40 @@ Parser::Parser(std::vector<std::vector<Token*>> const& lines) {
 }
 Parser::~Parser() {}
 
-auto Parser::assertSyntax() const -> std::vector<Exception*> {
-    std::vector<Exception*> excepts;
+auto Parser::assertSyntax() const -> std::vector<std::unique_ptr<Exception>> {
+    std::vector<std::unique_ptr<Exception>> excepts;
     for (unsigned long i{0};i < m_lines.size();++i) {
         if (m_lines[i].empty()) continue;
         for (auto const& t : m_lines[i]) {
             if (t->getType() == Token::Type::INVALID) {
-                excepts.push_back(new Exception("UnknownTokenException", 0x5A639C54, "The token '" + t->getValue() + "' at line " + std::to_string(i+1) + " doesn't exist."));
+                excepts.push_back(std::make_unique<Exception>("UnknownTokenException", 0x5A639C54, "The token '" + t->getValue() + "' at line " + std::to_string(i+1) + " doesn't exist."));
                 continue;
             }
         }
         auto const& line = m_lines[i];
-        Token* instr = line[0];
+        auto const& instr = line[0];
         if (instr->getType() == Token::Type::EOL) continue;
         if (instr->getType() != Token::Type::KEYWORD && instr->getValue() != "mem" && instr->getValue() != "temp" && instr->getValue() != "param" && instr->getValue() != "nost") {
-            excepts.push_back(new Exception("InvalidTokenException", 0x36DE95C4, "The line " + std::to_string(i+1) + " is not starting with an instruction."));
+            excepts.push_back(std::make_unique<Exception>("InvalidTokenException", 0x36DE95C4, "The line " + std::to_string(i+1) + " is not starting with an instruction."));
         }
     }
     return excepts;
 }
 
-auto Parser::assertSemantics() -> std::vector<Exception*> {
+auto Parser::assertSemantics() -> std::vector<std::unique_ptr<Exception>> {
     std::array<Token::Type, 256> mem_emul;
     std::stack<std::array<Token::Type, 32>> temp_emul;
     temp_emul.push({});
     std::stack<Token::Type> param_emul;
 
-    std::vector<Exception*> excepts;
+    std::vector<std::unique_ptr<Exception>> excepts;
     for (unsigned long i{0};i < m_lines.size();++i) {
         if (m_lines[i].empty()) continue;
         auto const& line = m_lines[i];
-        Token* instr = line[0];
+        auto const& instr = line[0];
         if (instr->getType() == Token::Type::EOL) continue;
         std::vector<Consumer>::iterator c{info::m_syntax.begin()};
-        Consumer* cons{nullptr};
+        std::shared_ptr<Consumer> cons{nullptr};
         std::vector<std::vector<Consumer>::iterator> holder;
         bool found{false};
         while (c != info::m_syntax.end()) {
@@ -84,11 +84,11 @@ auto Parser::assertSemantics() -> std::vector<Exception*> {
                 }
             );
             if (c == info::m_syntax.end() && !found)
-                excepts.push_back(new Exception("InstructionNotFoundException", 0x23D9645B, "Unknown instruction '" + instr->getValue() + "' at line " + std::to_string(i+1)));
+                excepts.push_back(std::make_unique<Exception>("InstructionNotFoundException", 0x23D9645B, "Unknown instruction '" + instr->getValue() + "' at line " + std::to_string(i+1)));
             else {
                 if (c == info::m_syntax.end()) continue;
                 uint8_t argc{0}, to_deduce{0};
-                Token* tmp{instr};
+                std::shared_ptr<Token> tmp{std::make_shared<Token>(&instr)};
                 while (tmp->getType() != Token::Type::EOL) {
                     argc++;
                     tmp = line[argc];
@@ -113,23 +113,23 @@ auto Parser::assertSemantics() -> std::vector<Exception*> {
 
                 Consumer::Store st;
                 if (offset == 2) {
-                    Token* t = line[1];
+                    auto t = line[1];
                     if (t->getType() != Token::Type::LITERAL_MEMORY) {
                         std::stringstream ss;
                         ss << "Unexpected token '" << t << "' at line " << i+1;
-                        excepts.push_back(new Exception("InvalidTokenException", 0xA67123D1, "Unexpected token '" + t->getValue() + "' at line " + std::to_string(i+1)));
+                        excepts.push_back(std::make_unique<Exception>("InvalidTokenException", 0xA67123D1, "Unexpected token '" + t->getValue() + "' at line " + std::to_string(i+1)));
                         continue;
                     }
                     std::string const memseg = utils::str_split(t->getValue(), '.')[0],
                                       index = utils::str_split(t->getValue(), '.')[1];
                     if (std::find(info::m_keywords.begin(), info::m_keywords.end(), Token(Token::Type::KEYWORD, memseg)) == info::m_keywords.end()) {
-                        excepts.push_back(new Exception("InvalidTokenException", 0x36BE6A5D, "Unknown memory segment '" + memseg + "' at line " + std::to_string(i+1)));
+                        excepts.push_back(std::make_unique<Exception>("InvalidTokenException", 0x36BE6A5D, "Unknown memory segment '" + memseg + "' at line " + std::to_string(i+1)));
                         continue;
                     }
                     st = Consumer::Store(Token(Token::Type::KEYWORD, memseg), Token(Token::Type::LITERAL_NUMBER_INT, index));
                 }
 
-                cons = new Consumer(*instr, st, args);
+                cons = std::make_shared<Consumer>(*instr, st, args);
 
                 if (*cons == *c) {
                     found = true;
@@ -140,12 +140,12 @@ auto Parser::assertSemantics() -> std::vector<Exception*> {
                                 c_seg{c_store.getMemseg().getValue()};
                     if (c_seg == "memory") {
                         if (cons_seg != "mem" && cons_seg != "temp") {
-                            excepts.push_back(new Exception("InvalidMemorySegmentException", 0x25AD6F3E, "Illegal use of memory segment '" + cons_seg + "' for instruction " + c->getInstruction().getValue() + " at line " + std::to_string(i+1)));
+                            excepts.push_back(std::make_unique<Exception>("InvalidMemorySegmentException", 0x25AD6F3E, "Illegal use of memory segment '" + cons_seg + "' for instruction " + c->getInstruction().getValue() + " at line " + std::to_string(i+1)));
                             continue;
                         }
                     } else if (c_seg == "stack") {
                         if (cons_seg != "param") {
-                            excepts.push_back(new Exception("InvalidMemorySegmentException", 0x25AD6F3E, "Illegal use of memory segment '" + cons_seg + "' for instruction " + c->getInstruction().getValue() + " at line " + std::to_string(i+1)));
+                            excepts.push_back(std::make_unique<Exception>("InvalidMemorySegmentException", 0x25AD6F3E, "Illegal use of memory segment '" + cons_seg + "' for instruction " + c->getInstruction().getValue() + " at line " + std::to_string(i+1)));
                             continue;
                         }
                     }
@@ -157,7 +157,7 @@ auto Parser::assertSemantics() -> std::vector<Exception*> {
         }
         if (!found) {
             for (auto const& h : holder) {
-                excepts.push_back(new Exception("InvalidUsageException", 0x369BF1F2, "Invalid usage of instruction '" + instr->getValue() + "': " + h->toString() + " at line " + std::to_string(i+1)));
+                excepts.push_back(std::make_unique<Exception>("InvalidUsageException", 0x369BF1F2, "Invalid usage of instruction '" + instr->getValue() + "': " + h->toString() + " at line " + std::to_string(i+1)));
             }
             continue;
         }
@@ -179,7 +179,7 @@ auto Parser::assertSemantics() -> std::vector<Exception*> {
                     std::cout << termcolor::green << "param." << std::to_string(index) << " <=> " << Token::getTypeSignification(arg.getType()) << termcolor::reset << std::endl;
                 }
             } catch (std::bad_alloc const& ba) {
-                excepts.push_back(new Exception("UndefinedMemoryIndexException", 0x56AB24D3, "Index " + std::to_string(index) + " provided for memory access inside " + seg + " is empty and so cannot be used at line " + std::to_string(i+1) + "."));
+                excepts.push_back(std::make_unique<Exception>("UndefinedMemoryIndexException", 0x56AB24D3, "Index " + std::to_string(index) + " provided for memory access inside " + seg + " is empty and so cannot be used at line " + std::to_string(i+1) + "."));
                 continue;
             }
         }
@@ -256,7 +256,7 @@ auto Parser::assertSemantics() -> std::vector<Exception*> {
                 info::m_syntax.end(),
                 [=] (Consumer cx) {return cx.getInstruction() == checker.getInstruction();});
             if (tmp == info::m_syntax.end() && !found) {
-                excepts.push_back(new Exception("InvalidUsageException", 0x369BF1F2, "Invalid usage of instruction '" + instr->getValue() + "' at line " + std::to_string(i+1)));
+                excepts.push_back(std::make_unique<Exception>("InvalidUsageException", 0x369BF1F2, "Invalid usage of instruction '" + instr->getValue() + "' at line " + std::to_string(i+1)));
                 continue;
             } else {
                 if (*tmp == checker) {
@@ -266,13 +266,13 @@ auto Parser::assertSemantics() -> std::vector<Exception*> {
             }
         }
         if (!found) {
-            excepts.push_back(new Exception("InvalidUsageException", 0x369BF1F2, "Invalid usage of instruction '" + instr->getValue() + "' at line " + std::to_string(i+1)));
+            excepts.push_back(std::make_unique<Exception>("InvalidUsageException", 0x369BF1F2, "Invalid usage of instruction '" + instr->getValue() + "' at line " + std::to_string(i+1)));
             continue;
         }
     }
     return excepts;
 }
 
-auto Parser::getConsumers() const -> std::vector<Consumer*> { return m_cons; }
+auto Parser::getConsumers() const -> std::vector<std::shared_ptr<Consumer>> { return m_cons; }
 
-auto Parser::getLines() const -> std::vector<std::vector<Token*>> { return m_lines; }
+auto Parser::getLines() const -> std::vector<std::vector<std::shared_ptr<Token>>> { return m_lines; }

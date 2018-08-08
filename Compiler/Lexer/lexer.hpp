@@ -11,19 +11,19 @@ class Lexer {
         Lexer(std::string const);
         ~Lexer();
 
-        auto tokenize() -> std::vector<Token*>;
-        auto preprocess(std::vector<Token*> const&) const -> std::vector<Token*>;
-        auto optimize(std::vector<Token*> const&) const -> std::vector<std::vector<Token*>>;
+        auto tokenize() -> std::vector<std::shared_ptr<Token>>;
+        auto preprocess(std::vector<std::shared_ptr<Token>> const&) const -> std::vector<std::shared_ptr<Token>>;
+        auto optimize(std::vector<std::shared_ptr<Token>> const&) const -> std::vector<std::vector<std::shared_ptr<Token>>>;
 
     private:
         bool isString, isLComment, isMLComment;
         std::string buffer;
-        Token* checkToken(std::string const&) const;
-        Token* checkSyntax(char const);
+        std::shared_ptr<Token> checkToken(std::string const&) const;
+        std::shared_ptr<Token> checkSyntax(char const);
 
     protected:
         std::string m_path;
-        std::vector<Token*> m_gen_tokens;
+        std::vector<std::shared_ptr<Token>> m_gen_tokens;
 };
 
 #endif
