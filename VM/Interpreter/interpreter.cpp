@@ -31,7 +31,7 @@ void Interpreter::start(std::string const& path) {
     return;
 }
 
-bool Interpreter::domain(AtomicToken* const& token) {
+bool Interpreter::domain(std::unique_ptr<AtomicToken> const& token) {
     int8_t returned{-1};
     //std::cout << std::hex << token->getInstruction() << std::endl;
     switch (token->getInstruction() & 0xf0) {
@@ -64,7 +64,7 @@ bool Interpreter::domain(AtomicToken* const& token) {
     return true;
 }
 
-int8_t Interpreter::exec_system(AtomicToken* const& token) {
+int8_t Interpreter::exec_system(std::unique_ptr<AtomicToken> const& token) {
     switch (token->getInstruction()) {
         case info::SystemOpcodes::SYS: {
             switch (std::get<int64_t>(loaded.top())) {
@@ -132,7 +132,7 @@ int8_t Interpreter::exec_system(AtomicToken* const& token) {
     return -1;
 }
 
-int8_t Interpreter::exec_maths(AtomicToken* const& token) {
+int8_t Interpreter::exec_maths(std::unique_ptr<AtomicToken> const& token) {
     Value const& v1{loaded.top()};
     loaded.pop();
     Value v0;
@@ -402,7 +402,7 @@ int8_t Interpreter::exec_maths(AtomicToken* const& token) {
     return -1;
 }
 
-int8_t Interpreter::exec_memory(AtomicToken* const& token) {
+int8_t Interpreter::exec_memory(std::unique_ptr<AtomicToken> const& token) {
     switch (token->getInstruction()) {
         case info::MemoryOpcodes::FREE: {
             switch (*(token->getArgument()) & 0xff) {
@@ -584,7 +584,7 @@ int8_t Interpreter::exec_memory(AtomicToken* const& token) {
     return -1;
 }
 
-int8_t Interpreter::exec_comparative(AtomicToken* const& token) {
+int8_t Interpreter::exec_comparative(std::unique_ptr<AtomicToken> const& token) {
     switch (token->getInstruction()) {
         case info::ComparativeOpcodes::CMP: {
             Value const& v1{loaded.top()};
@@ -630,7 +630,7 @@ int8_t Interpreter::exec_comparative(AtomicToken* const& token) {
     return -1;
 }
 
-int8_t Interpreter::exec_special(AtomicToken* const& token) {
+int8_t Interpreter::exec_special(std::unique_ptr<AtomicToken> const& token) {
     switch (token->getInstruction()) {
         case info::SpecialOpcodes::LOAD_CONST: {
             //std::cout << "Loading constant at index=" << *(token->getArgument()) << std::endl;
@@ -683,7 +683,7 @@ bool Interpreter::make(std::string const& path) {
         uint16_t label_id, label_no;
         utils::stream_read<uint16_t>(is, label_id);
         utils::stream_read<uint16_t>(is, label_no);
-        label_table[label_id] = new LabelToken(label_id, label_no);
+        label_table[label_id] = std::make_unique<LabelToken>(label_id, label_no);
     }
     //std::cout << std::endl;
 
@@ -720,7 +720,7 @@ bool Interpreter::make(std::string const& path) {
                 c -= 0x20;
             value.emplace<double>(std::stod(val.c_str()));
         }
-        const_table[id] = new ConstToken(id, value);
+        const_table[id] = std::make_unique<ConstToken>(id, value);
     }
     //std::cout << std::endl;
 
@@ -735,7 +735,7 @@ bool Interpreter::make(std::string const& path) {
         utils::stream_read<uint8_t>(is, opcode);
         if (hasArg == '\x01')
             utils::stream_read<int16_t>(is, *arg);
-        code_table[i] = new AtomicToken(opcode, arg);
+        code_table[i] = std::make_unique<AtomicToken>(opcode, arg);
         //std::clog << std::hex << opcode << " " << *arg << std::endl;
     }
 
