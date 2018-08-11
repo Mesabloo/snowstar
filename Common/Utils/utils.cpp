@@ -16,7 +16,7 @@ namespace utils {
         return vect;
     }
 
-    bool str_endswith(std::string const& str, std::string const& suffix, unsigned suffixLen) {
+    bool str_endswith(std::string const& str, std::string const& suffix, unsigned const suffixLen) {
         return str.size() >= suffixLen && 0 == str.compare(str.size()-suffixLen, suffixLen, suffix.c_str(), suffixLen);
     }
 
@@ -24,7 +24,7 @@ namespace utils {
         return str_endswith(str, suffix, std::string::traits_type::length(suffix.c_str()));
     }
 
-    bool str_startswith(std::string const& str, std::string const& prefix, unsigned prefixLen) {
+    bool str_startswith(std::string const& str, std::string const& prefix, unsigned const prefixLen) {
         return str.size() >= prefixLen && 0 == str.compare(0, prefixLen, prefix.c_str(), prefixLen);
     }
 

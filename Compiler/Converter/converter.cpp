@@ -12,7 +12,7 @@
 Converter::Converter() {}
 Converter::~Converter() {}
 
-bool Converter::start(std::vector<std::shared_ptr<Consumer>> consumers) const {
+bool Converter::start(std::vector<Consumer> consumers) const {
     std::string const header{"snowstar"};
     std::vector<std::string> labels_table,
                              consts_table,
@@ -23,27 +23,27 @@ bool Converter::start(std::vector<std::shared_ptr<Consumer>> consumers) const {
              instrs_no{0};
     int line{0};
     for (size_t i{0};i < consumers.size();++i) {
-        std::shared_ptr<Consumer>& c{consumers[i]};
-        if (c->getInstruction().getType() == Token::Type::EOL) continue;
-        for (auto const& arg : c->getArgs()) {
+        Consumer& c{consumers[i]};
+        if (c.getInstruction().getType() == Token::Type::EOL) continue;
+        for (auto const& arg : c.getArgs()) {
             if (utils::str_startswith(Token::getTypeSignification(arg.getType()), "Literal."))
                 line++;
         }
-        if (c->getInstruction().getValue() == "lbl") {
+        if (c.getInstruction().getValue() == "lbl") {
             std::string id_no{""};
             std::string instruction{"LABEL "};
-            if (c->getArgs()[0].getValue() == "main") {
+            if (c.getArgs()[0].getValue() == "main") {
                 id_no += static_cast<unsigned char>(0 & 0x00ff);
                 id_no += static_cast<unsigned char>(0 & 0xff00);
                 instruction += static_cast<unsigned char>(0 & 0x00ff);
                 instruction += static_cast<unsigned char>(0 & 0xff00);
-                label_corres[c->getArgs()[0].getValue()] = 0;
+                label_corres[c.getArgs()[0].getValue()] = 0;
             } else {
                 id_no += static_cast<unsigned char>(labels_id & 0x00ff);
                 id_no += static_cast<unsigned char>(labels_id & 0xff00);
                 instruction += static_cast<unsigned char>(labels_id & 0x00ff);
                 instruction += static_cast<unsigned char>(labels_id & 0xff00);
-                label_corres[c->getArgs()[0].getValue()] = labels_id;
+                label_corres[c.getArgs()[0].getValue()] = labels_id;
             }
             id_no += static_cast<unsigned char>((i+line) & 0x00ff);
             id_no += static_cast<unsigned char>((i+line) & 0xff00);
@@ -51,15 +51,15 @@ bool Converter::start(std::vector<std::shared_ptr<Consumer>> consumers) const {
             code_table.resize(i+line+1);
             code_table[i+line] = instruction;
             std::cout << "Label at line " << (i+line) << std::endl;
-            if (c->getArgs()[0].getValue() != "main")
+            if (c.getArgs()[0].getValue() != "main")
                 labels_id++;
             continue;
         }
         //line++;
     }
     for (auto& c : consumers) {
-        if (c->getInstruction().getType() == Token::Type::EOL) continue;
-        for (auto& t : c->getArgs()) {
+        if (c.getInstruction().getType() == Token::Type::EOL) continue;
+        for (auto& t : c.getArgs()) {
             if (utils::str_startswith(Token::getTypeSignification(t.getType()), "Literal.")) {
                 uint16_t size{8};
                 std::string value{""};
@@ -148,15 +148,15 @@ bool Converter::start(std::vector<std::shared_ptr<Consumer>> consumers) const {
                 instrs_no++;
             }
         }
-        std::string instr{c->getInstruction().getValue()},
-                    memseg{c->getStorage().getMemseg().getValue()},
-                    index{c->getStorage().getIndex().getValue()};;
+        std::string instr{c.getInstruction().getValue()},
+                    memseg{c.getStorage().getMemseg().getValue()},
+                    index{c.getStorage().getIndex().getValue()};;
         std::transform(instr.begin(), instr.end(), instr.begin(), utils::to_upper);
         if (instr != "LBL") {
             instr += ' ';
             //std::cout << instrs_no << " // " << instr << std::endl;
             if (instr == "JMP " || instr == "CALL " || instr == "JWE " || instr == "JWD " || instr == "JWL " || instr == "JWG ") {
-                uint16_t instr_number = label_corres[c->getArgs()[0].getValue()];
+                uint16_t instr_number = label_corres[c.getArgs()[0].getValue()];
                 std::string instruction{""};
                 instruction += static_cast<unsigned char>(instr_number & 0x00ff);
                 instruction += static_cast<unsigned char>(instr_number & 0xff00);

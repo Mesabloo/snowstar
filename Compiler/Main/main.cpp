@@ -31,7 +31,7 @@ int main(int argc, char const** argv) {
     tokens = l.preprocess(tokens);
     std::cout << termcolor::grey << "Before optimizing: " << std::endl;
     for (auto const& t : tokens) {
-        std::cout << "Token<"<< Token::getTypeSignification(t->getType()) << ">(" << t->getValue() << ")" << std::endl;
+        std::cout << "Token<"<< Token::getTypeSignification(t.getType()) << ">(" << t.getValue() << ")" << std::endl;
     }
     std::cout << std::endl << std::endl << termcolor::reset << "After optimizing: " << std::endl;
     auto const new_tokens = l.optimize(tokens);
@@ -41,7 +41,7 @@ int main(int argc, char const** argv) {
     }
     for (auto const& line : new_tokens) {
         for (auto const& t : line) {
-            std::cout << "Token<"<< Token::getTypeSignification(t->getType()) << ">(" << t->getValue() << ")" << '\t';
+            std::cout << "Token<"<< Token::getTypeSignification(t.getType()) << ">(" << t.getValue() << ")" << '\t';
         }
         std::cout << std::endl;
     }
@@ -57,7 +57,7 @@ int main(int argc, char const** argv) {
     }
     for (auto const& line : opt_tokens) {
         for (auto const& t : line) {
-            std::cout << "Token<"<< Token::getTypeSignification(t->getType()) << ">(" << t->getValue() << ")" << '\t';
+            std::cout << "Token<"<< Token::getTypeSignification(t.getType()) << ">(" << t.getValue() << ")" << '\t';
         }
         std::cout << std::endl;
     }
@@ -66,7 +66,7 @@ int main(int argc, char const** argv) {
 
     auto const& e = p.assertSyntax();
     for (auto const& ex : e) {
-        std::cout << ex->getMessage();
+        std::cout << ex.getMessage();
     }
     if (!e.empty()) {
         getchar();
@@ -76,7 +76,7 @@ int main(int argc, char const** argv) {
     }
     auto const& e1 = p.assertSemantics();
     for (auto const& ex : e1) {
-        std::cout << ex->getMessage();
+        std::cout << ex.getMessage();
     }
     if (!e1.empty()) {
         getchar();

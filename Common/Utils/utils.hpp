@@ -15,15 +15,15 @@ namespace utils {
 
     std::vector<std::string> str_split(std::string const&, char const);
     bool str_endswith(std::string const&, std::string const&);
-    bool str_endswith(std::string const&, std::string const&, unsigned);
+    bool str_endswith(std::string const&, std::string const&, unsigned const);
     bool str_startswith(std::string const&, std::string const&);
-    bool str_startswith(std::string const&, std::string const&, unsigned);
+    bool str_startswith(std::string const&, std::string const&, unsigned const);
     std::streamsize file_getsize(std::string const&);
     bool str_is_number(std::string const&);
     std::string str_join(std::string const&, std::string const&, char const);
 
     template <typename T = int, typename = std::enable_if<std::is_integral<T>::value>>
-    std::string int_to_hex(T val) {
+    std::string int_to_hex(T const val) {
         std::stringstream ss;
         ss << std::setw(sizeof(T)) << std::setfill('0') << std::hex << val;
         return std::string{ss.str()};
@@ -60,8 +60,6 @@ namespace utils {
         value = 0;
         for (unsigned size = 0; size < sizeof(Word); ++size) {
             value |= ins.get() << (8 * size);
-            //std::cout << std::hex << std::setfill('0') << std::setw(2) << (value & 0xFF) << " ";
-            //std::cout.flush();
         }
         return ins;
     }

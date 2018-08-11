@@ -3,8 +3,7 @@
 
 #include <string>
 
-typedef struct Vars vars;
-struct Vars {
+struct vars {
     static std::string PATH;
     static bool DEBUG;
 };
