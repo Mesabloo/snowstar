@@ -7,7 +7,10 @@
 
 int main(int argc, char const** argv) {
     if (argc < 2) {
-        std::cerr << termcolor::red << "Program usage: " << argv[0] << " {file.sssc}" << '\n' << '\t' << "{file.sssc}: the path to the file to compile" << std::endl;
+        std::cerr << termcolor::red << "Program usage: " << argv[0] << " {file.cwsc} [options]" << '\n'
+            << '\t' << "{file.cwsc}: the path to the file to execute" << '\n'
+            << '\t' << "[options]: One of the following" << '\n'
+            << '\t' << '\t' << "--benchmark <executions>: make a benchmark on a certain number of executions" << termcolor::reset << std::endl;
         getchar();
         return 0;
     }
@@ -18,15 +21,24 @@ int main(int argc, char const** argv) {
         vars::PATH = arg;
     }
 
+    bool bench{false};
+    long bench_number{100};
     if (argc > 2) {
         for (int i{2};i < argc;++i) {
             // args checking goes there
+            std::string arg{argv[i]};
+            if (arg == "--benchmark") {
+                bench = true;
+                bench_number = std::strtol(argv[++i], nullptr, 10);
+            }
         }
     }
 
     Interpreter i;
-    //BENCHMARK_MRSTATS("VM test", i.start(argv[1]), 10000, ms);
-    i.start(argv[1]);
+    if (bench) {
+        BENCHMARK_MRSTATS("VM test", i.start(argv[1]), bench_number, ms);
+    } else
+        i.start(argv[1]);
 
     getchar();
 }

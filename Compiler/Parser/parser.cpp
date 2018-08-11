@@ -162,7 +162,7 @@ auto Parser::assertSemantics() -> std::vector<std::unique_ptr<Exception>> {
             continue;
         }
 
-        Consumer checker{*cons};
+    /*    Consumer checker{*cons};
         for (auto& arg : checker.getArgs()) {
             if (arg.getType() != Token::Type::LITERAL_MEMORY) continue;
             std::string const seg{utils::str_split(arg.getValue(), '.')[0]};
@@ -246,6 +246,14 @@ auto Parser::assertSemantics() -> std::vector<std::unique_ptr<Exception>> {
                 } else if (seg == "param") {
                     param_emul.push(Token::Type::LITERAL_NUMBER_FLOAT);
                 }
+            } else if (instr_name == "ret") {
+                if (seg == "mem") {
+                    mem_emul[index] = Token::Type::LITERAL_MEMORY;
+                } else if (seg == "temp") {
+                    temp_emul.top()[index] = Token::Type::LITERAL_MEMORY;
+                } else if (seg == "param") {
+                    param_emul.push(Token::Type::LITERAL_MEMORY);
+                }
             }
         }
         auto tmp = info::m_syntax.begin();
@@ -268,7 +276,7 @@ auto Parser::assertSemantics() -> std::vector<std::unique_ptr<Exception>> {
         if (!found) {
             excepts.push_back(std::make_unique<Exception>("InvalidUsageException", 0x369BF1F2, "Invalid usage of instruction '" + instr->getValue() + "' at line " + std::to_string(i+1)));
             continue;
-        }
+        } */
     }
     return excepts;
 }

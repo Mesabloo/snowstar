@@ -119,14 +119,31 @@ int8_t Interpreter::exec_system(std::unique_ptr<AtomicToken> const& token) {
             return 1;
         }
         case info::SystemOpcodes::CALL: {
-            call_stack.push(line_number);
+            call_stack.top().second = line_number;
             line_number = label_table[*(token->getArgument())]->getLine();
+            temp.push({});
             return 1;
         }
         case info::SystemOpcodes::BACK: {
-            line_number = call_stack.top();
+            line_number = call_stack.top().second;
+            temp.pop();
+            call_stack.top().first = loaded.top();
+            loaded.pop();
             call_stack.pop();
             return 1;
+        }
+        case info::SystemOpcodes::RET: {
+            switch (*(token->getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    call_stack.emplace(mem[((*(token->getArgument()) & 0xff00) >> 8)], 0);
+                    return 1;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    call_stack.emplace(temp.top()[((*(token->getArgument()) & 0xff00) >> 8)], 0);
+                    return 1;
+                }
+            }
+            return -1;
         }
     }
     return -1;

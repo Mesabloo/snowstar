@@ -44,7 +44,7 @@ class Interpreter {
         
         std::stack<Value> loaded;
 
-        std::stack<uint16_t> call_stack;
+        std::stack<std::pair<Value&, uint16_t>> call_stack;
         int8_t conditioner;
         std::mt19937 generator;
 };

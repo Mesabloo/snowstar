@@ -1,9 +1,31 @@
-main:
-    %stof[temp, 1] '0.2356987'
-    store[temp, 1] 3.0
-    push[param] '\n'
-    ftos[param] [temp, 1]
-    sys 1
+fib:
+    store[temp, 1] [param]
     pop [param]
+    cmp [temp, 1], 2
+    jwl return
+
+    sub[param] [temp, 1], 2
+    ret [temp, 2]
+    call fib
+    % pop [param]
+
+    sub[param] [temp, 1], 1
+    ret [temp, 3]
+    call fib
+    % pop [param]
+
+    add[temp, 1] [temp, 2], [temp, 3]
+
+    return:
+        back [temp, 1]
+
+
+main:
+    push[param] 34
+    ret [temp, 1]
+    call fib
+
+    itos[param] [temp, 1]
+    sys 1
     pop [param]
     int 0

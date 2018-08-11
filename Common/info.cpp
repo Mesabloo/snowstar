@@ -41,7 +41,8 @@ std::vector<Token> info::m_keywords = {
     Token(Token::Type::KEYWORD, "itof"), // IntegerTOFloat instruction
     Token(Token::Type::KEYWORD, "ftoi"), // FloatTOInteger instruction
     Token(Token::Type::KEYWORD, "stoi"), // StringTOInteger instruction
-    Token(Token::Type::KEYWORD, "stof") // StringTOFloat instruction
+    Token(Token::Type::KEYWORD, "stof"), // StringTOFloat instruction
+    Token(Token::Type::KEYWORD, "ret") // RETurn instruction
 };
 
 std::vector<Consumer> info::m_syntax = {
@@ -66,7 +67,10 @@ std::vector<Consumer> info::m_syntax = {
     Consumer(Token(Token::Type::KEYWORD, "lbl"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
     Consumer(Token(Token::Type::KEYWORD, "jmp"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
     Consumer(Token(Token::Type::KEYWORD, "call"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
-    Consumer(Token(Token::Type::KEYWORD, "back"), Consumer::Store(), {}),
+    Consumer(Token(Token::Type::KEYWORD, "back"), Consumer::Store(), {Token(Token::Type::LITERAL_MEMORY, "return_value")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "back"), Consumer::Store(), {Token(Token::Type::LITERAL_STRING, "return_value")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "back"), Consumer::Store(), {Token(Token::Type::LITERAL_NUMBER_FLOAT, "return_value")}), // Literal
+    Consumer(Token(Token::Type::KEYWORD, "back"), Consumer::Store(), {Token(Token::Type::LITERAL_NUMBER_INT, "return_value")}), // Literal
     Consumer(Token(Token::Type::KEYWORD, "jwe"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
     Consumer(Token(Token::Type::KEYWORD, "jwd"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
     Consumer(Token(Token::Type::KEYWORD, "jwg"), Consumer::Store(), {Token(Token::Type::LABEL, "label_name")}),
@@ -147,6 +151,7 @@ std::vector<Consumer> info::m_syntax = {
     Consumer(Token(Token::Type::KEYWORD, "stoi"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_cast")}), // Literal.Memory
     Consumer(Token(Token::Type::KEYWORD, "stof"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_STRING, "to_cast")}), // Literal
     Consumer(Token(Token::Type::KEYWORD, "stof"), Consumer::Store(Token(Token::Type::KEYWORD, "memseg"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {Token(Token::Type::LITERAL_MEMORY, "to_cast")}), // Literal.Memory
+    Consumer(Token(Token::Type::KEYWORD, "ret"), Consumer::Store(Token(Token::Type::KEYWORD, "memory"), Token(Token::Type::LITERAL_NUMBER_INT, "index")), {})
 };
 
 std::map<std::string, uint8_t const> info::m_bytes = {
@@ -157,6 +162,7 @@ std::map<std::string, uint8_t const> info::m_bytes = {
     {"LABEL", 0x00 + 0x3},
     {"JMP", 0x00 + 0x4},
     {"CALL", 0x00 + 0x5},
+    {"RET", 0x00 + 0x6},
 
     // math category: 0x10 + index
     {"ADD", 0x10 + 0x0},
