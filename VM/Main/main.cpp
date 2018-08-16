@@ -4,13 +4,17 @@
 #include <termcolor.hpp>
 #include <values.hpp>
 #include <benchmark.hpp>
+#include <Utils/utils.hpp>
 
 int main(int argc, char const** argv) {
     if (argc < 2) {
-        std::cerr << termcolor::red << "Program usage: " << argv[0] << " {file.cwsc} [options]" << '\n'
-            << '\t' << "{file.cwsc}: the path to the file to execute" << '\n'
+        std::cerr << termcolor::red << "Program usage: " << argv[0] << " {file.iwsc} [options]" << '\n'
+            << '\t' << "{file.iwsc}: the path to the file to execute" << '\n'
             << '\t' << "[options]: One of the following" << '\n'
-            << '\t' << '\t' << "--benchmark <executions>: make a benchmark on a certain number of executions" << termcolor::reset << std::endl;
+            << '\t' << '\t' << "--benchmark=<number>: make a benchmark on the specified number of executions." << '\n'
+            << '\t' << '\t' << '\t' << "Alias: --b=<number>" << '\n'
+            << '\t' << '\t' << "--link-lib=<path>: link a .dll/.so to Snow* when running the program to add extra features." << '\n'
+            << '\t' << '\t' << '\t' << "Alias: --lib=<path> --l=<path>" << termcolor::reset << std::endl;
         getchar();
         return 0;
     }
@@ -27,9 +31,13 @@ int main(int argc, char const** argv) {
         for (int i{2};i < argc;++i) {
             // args checking goes there
             std::string arg{argv[i]};
-            if (arg == "--benchmark") {
+            std::vector<std::string> args{utils::str_split(arg, '=')};
+            if (args[0] == "--benchmark" || args[0] == "--b") {
                 bench = true;
-                bench_number = std::strtol(argv[++i], nullptr, 10);
+                bench_number = std::strtol(args[1].c_str(), nullptr, 10);
+            }
+            if (args[0] == "--link-lib" || args[0] == "--lib" || args[0] == "--l") {
+                // load dynamic library here.
             }
         }
     }

@@ -5,11 +5,15 @@
 #include <Converter/converter.hpp>
 #include <values.hpp>
 #include <termcolor.hpp>
+#include <Utils/utils.hpp>
 
 int main(int argc, char const** argv) {
     if (argc < 2) {
-        std::cerr << termcolor::red << "Program usage: " << argv[0] << " {file.sssc}" << '\n'
-            << '\t' << "{file.sssc}: the path to the file to compile" << termcolor::reset << std::endl;
+        std::cerr << termcolor::red << "Program usage: " << argv[0] << " {file.sssc} [options]" << '\n'
+            << '\t' << "{file.sssc}: the path to the file to compile" << '\n'
+            << '\t' << "[options]: One of the following" << '\n'
+            << '\t' << '\t' << "--link-lib=<path>: link a .dll/.so to Snow* when compiling the program to add extra features." << '\n'
+            << '\t' << '\t' << '\t' << "Alias: --lib=<path> --l=<path>" << termcolor::reset << std::endl;
         getchar();
         return 0;
     }
@@ -22,7 +26,11 @@ int main(int argc, char const** argv) {
 
     if (argc > 2) {
         for (int i{2};i < argc;++i) {
-            // args checking goes there
+            std::string arg{argv[i]};
+            std::vector<std::string> args{utils::str_split(arg, '=')};
+            if (args[0] == "--link-lib" || args[0] == "--lib" || args[0] == "--l") {
+                // load dynamic library here.
+            }
         }
     }
 

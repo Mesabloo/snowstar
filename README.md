@@ -129,7 +129,7 @@ If you want some features added, feel free to suggest them to me, or to someone 
 ## Languages used:
 - C++ = VM/Compiler (`.cpp`)
 - Snow* = examples/tests (`.sssc`)
-- ColdWater = Snow* bytecode (`.cwsc`)
+- IcyWater = Snow* bytecode (`.iwsc`)
 <br><br>
 
 ## Credits to:
