@@ -6,6 +6,7 @@
 struct vars {
     static std::string PATH;
     static bool DEBUG;
+    static bool BYTECODE;
 };
 
 #endif

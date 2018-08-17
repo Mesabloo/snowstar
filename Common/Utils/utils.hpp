@@ -8,6 +8,8 @@
 #include <cstring>
 #include <type_traits>
 
+#include <values.hpp>
+
 namespace utils {
     auto to_upper = [] (char ch) {
         return std::use_facet<std::ctype<char>>(std::locale()).toupper(ch);
@@ -41,7 +43,8 @@ namespace utils {
     std::ostream& stream_write(std::ostream& outs, Word value) {
         for (unsigned size = sizeof(Word); size; --size, value >>= 8) {
             outs.put(static_cast<unsigned char>(value & 0xFF));
-            std::cout << std::hex << std::setfill('0') << std::setw(2) << (value & 0xFF) << " ";
+            if (vars::BYTECODE)
+                std::cout << std::hex << std::setfill('0') << std::setw(2) << (value & 0xFF) << " ";
         }
         return outs;
     }
@@ -51,7 +54,8 @@ namespace utils {
         memcpy(c, &value, sizeof(value));
         for (size_t i{0};i < sizeof(double);++i)
             stream_write<unsigned char>(outs, c[i]);
-        std::cout << std::endl;
+        if (vars::BYTECODE)
+            std::cout << std::endl;
         return outs;
     }
 

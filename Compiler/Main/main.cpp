@@ -13,7 +13,9 @@ int main(int argc, char const** argv) {
             << '\t' << "{file.sssc}: the path to the file to compile" << '\n'
             << '\t' << "[options]: One of the following" << '\n'
             << '\t' << '\t' << "--link-lib=<path>: link a .dll/.so to Snow* when compiling the program to add extra features." << '\n'
-            << '\t' << '\t' << '\t' << "Alias: --lib=<path> --l=<path>" << termcolor::reset << std::endl;
+            << '\t' << '\t' << '\t' << "Alias: --lib=<path> --l=<path>" << '\n'
+            << '\t' << '\t' << "--show-bytecode: shows the bytecode when compiling the program" << '\n'
+            << '\t' << '\t' << '\t' << "Alias: --bytecode --show-bc --bc" << termcolor::reset << std::endl;
         getchar();
         return 0;
     }
@@ -30,6 +32,9 @@ int main(int argc, char const** argv) {
             std::vector<std::string> args{utils::str_split(arg, '=')};
             if (args[0] == "--link-lib" || args[0] == "--lib" || args[0] == "--l") {
                 // load dynamic library here.
+            }
+            if (args[0] == "--show-bytecode" || args[0] == "--show-bc" || args[0] == "--bytecode" || args[0] == "--bc") {
+                vars::BYTECODE = true;
             }
         }
     }

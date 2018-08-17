@@ -50,7 +50,8 @@ bool Converter::start(std::vector<Consumer> consumers) const {
             labels_table.push_back(id_no);
             code_table.resize(i+line+1);
             code_table[i+line] = instruction;
-            std::cout << "Label at line " << (i+line) << std::endl;
+            if (vars::BYTECODE)
+                std::cout << "Label at line " << (i+line) << std::endl;
             if (c.getArgs()[0].getValue() != "main")
                 labels_id++;
             continue;
@@ -170,37 +171,41 @@ bool Converter::start(std::vector<Consumer> consumers) const {
             try {
                 std::string lbl = code_table.at(instrs_no);
                 if (!utils::str_startswith(lbl, "LABEL")) throw std::out_of_range{""};
-                std::cout << "There's a label at line " << instrs_no << std::endl;
+                if (vars::BYTECODE)
+                    std::cout << "There's a label at line " << instrs_no << std::endl;
             } catch (const std::out_of_range& oor) {
                 if (instrs_no+1 > code_table.size())
                     code_table.resize(code_table.size()+1);
                 code_table[instrs_no] = instr;
-                std::cout << "We inserted " << instr << " at line " << instrs_no << std::endl;
+                if (vars::BYTECODE)
+                    std::cout << "We inserted " << instr << " at line " << instrs_no << std::endl;
             }
             //instrs_no++;
         }
         instrs_no++;
     }
 
-    std::cout << termcolor::magenta << "Pseudo bytecode:" << std::endl;
+    if (vars::BYTECODE) {
+        std::cout << termcolor::magenta << "Pseudo bytecode:" << std::endl;
 
-    std::clog << header << std::endl;
-    uint16_t label_no0{labels_id};
-    std::cout << "LABEL_TABLE " << label_no0 << std::endl;
-    for (auto const& l : labels_table)
-        std::cout << l << std::endl;
-    uint16_t const_no0{consts_id};
-    std::cout << "CONST_TABLE " << const_no0 << std::endl;
-    for (auto const& c : consts_table)
-        std::cout << c << std::endl;
-    uint16_t instr_no0{instrs_no};
-    std::cout << "CODE_TABLE " << instr_no0 << std::endl;
-    for (auto const& s : code_table)
-        std::cout << s << std::endl;
-
+        std::clog << header << std::endl;
+        uint16_t label_no0{labels_id};
+        std::cout << "LABEL_TABLE " << label_no0 << std::endl;
+        for (auto const& l : labels_table)
+            std::cout << l << std::endl;
+        uint16_t const_no0{consts_id};
+        std::cout << "CONST_TABLE " << const_no0 << std::endl;
+        for (auto const& c : consts_table)
+            std::cout << c << std::endl;
+        uint16_t instr_no0{instrs_no};
+        std::cout << "CODE_TABLE " << instr_no0 << std::endl;
+        for (auto const& s : code_table)
+            std::cout << s << std::endl;
+    }
 
     std::ofstream out{vars::PATH + "/out.iwsc", std::ios_base::binary};
-    std::cout << std::endl << termcolor::reset << termcolor::red << "Bytecode:" << std::endl;
+    if (vars::BYTECODE)
+        std::cout << std::endl << termcolor::reset << termcolor::red << "Bytecode:" << std::endl;
 
     for (auto hchar : header) {
         //std::cout << hchar;
@@ -243,7 +248,8 @@ bool Converter::start(std::vector<Consumer> consumers) const {
         }
     }
 
-    std::cout << termcolor::reset << std::endl;
+    if (vars::BYTECODE)
+        std::cout << termcolor::reset << std::endl;
     out.flush();
     out.close();
 

@@ -2,3 +2,4 @@
 
 std::string vars::PATH = "/";
 bool vars::DEBUG = false;
+bool vars::BYTECODE = false;
