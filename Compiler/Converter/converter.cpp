@@ -85,19 +85,30 @@ bool Converter::start(std::vector<Consumer> consumers) const {
                         value += static_cast<unsigned char>(size & 0xff00);
                         for (int i{0};i < size;++i)
                             value += hexa[i] + 0x20;
-                        t = Token(Token::Type::CONST_TABLE, std::to_string(consts_id));
-                        std::string id_no{""};
-                        id_no += static_cast<unsigned char>(consts_id & 0x00ff);
-                        id_no += static_cast<unsigned char>(consts_id & 0xff00);
-                        id_no += value;
-                        consts_table.push_back(id_no);
-                        std::string instruction{"LOAD_CONST "};
-                        instruction += static_cast<unsigned char>(consts_id & 0x00ff);
-                        instruction += static_cast<unsigned char>(consts_id & 0xff00);
-                        if (instrs_no+1 > code_table.size())
-                            code_table.resize(code_table.size()+1);
-                        code_table[instrs_no] = instruction;
-                        consts_id++;
+                        if (std::find_if(consts_table.begin(), consts_table.end(), [&] (std::string const& s) -> bool { return utils::str_endswith(s, value); }) == consts_table.end()) {
+                            t = Token(Token::Type::CONST_TABLE, std::to_string(consts_id));
+                            std::string id_no{""};
+                            id_no += static_cast<unsigned char>(consts_id & 0x00ff);
+                            id_no += static_cast<unsigned char>(consts_id & 0xff00);
+                            id_no += value;
+                            consts_table.push_back(id_no);
+                            std::string instruction{"LOAD_CONST "};
+                            instruction += static_cast<unsigned char>(consts_id & 0x00ff);
+                            instruction += static_cast<unsigned char>(consts_id & 0xff00);
+                            if (instrs_no+1 > code_table.size())
+                                code_table.resize(code_table.size()+1);
+                            code_table[instrs_no] = instruction;
+                            consts_id++;
+                        } else {
+                            auto pos = std::find_if(consts_table.begin(), consts_table.end(), [&] (std::string const& s) -> bool { return utils::str_endswith(s, value); });
+                            std::string id{pos->substr(0, 2)};
+                            t = Token(Token::Type::CONST_TABLE, id);
+                            std::string instruction{"LOAD_CONST "};
+                            instruction += id;
+                            if (instrs_no+1 > code_table.size())
+                                code_table.resize(code_table.size()+1);
+                            code_table[instrs_no] = instruction;
+                        }
                         break;
                     }
                     case Token::Type::LITERAL_NUMBER_INT: {
@@ -107,19 +118,30 @@ bool Converter::start(std::vector<Consumer> consumers) const {
                         std::string hex = utils::int_to_hex<int64_t>(std::stoll(t.getValue()));
                         for (auto const c : hex)
                             value += c + 0x10;
-                        t = Token(Token::Type::CONST_TABLE, std::to_string(consts_id));
-                        std::string id_no{""};
-                        id_no += static_cast<unsigned char>(consts_id & 0x00ff);
-                        id_no += static_cast<unsigned char>(consts_id & 0xff00);
-                        id_no += value;
-                        consts_table.push_back(id_no);
-                        std::string instruction{"LOAD_CONST "};
-                        instruction += static_cast<unsigned char>(consts_id & 0x00ff);
-                        instruction += static_cast<unsigned char>(consts_id & 0xff00);
-                        if (instrs_no+1 > code_table.size())
-                            code_table.resize(code_table.size()+1);
-                        code_table[instrs_no] = instruction;
-                        consts_id++;
+                        if (std::find_if(consts_table.begin(), consts_table.end(), [&] (std::string const& str) -> bool { return utils::str_endswith(str, value); }) == consts_table.end()) {
+                            t = Token(Token::Type::CONST_TABLE, std::to_string(consts_id));
+                            std::string id_no{""};
+                            id_no += static_cast<unsigned char>(consts_id & 0x00ff);
+                            id_no += static_cast<unsigned char>(consts_id & 0xff00);
+                            id_no += value;
+                            consts_table.push_back(id_no);
+                            std::string instruction{"LOAD_CONST "};
+                            instruction += static_cast<unsigned char>(consts_id & 0x00ff);
+                            instruction += static_cast<unsigned char>(consts_id & 0xff00);
+                            if (instrs_no+1 > code_table.size())
+                                code_table.resize(code_table.size()+1);
+                            code_table[instrs_no] = instruction;
+                            consts_id++;
+                        } else {
+                            auto pos = std::find_if(consts_table.begin(), consts_table.end(), [&] (std::string const& str) -> bool { return utils::str_endswith(str, value); });
+                            std::string id{pos->substr(0, 2)};
+                            t = Token(Token::Type::CONST_TABLE, id);
+                            std::string instruction{"LOAD_CONST "};
+                            instruction += id;
+                            if (instrs_no+1 > code_table.size())
+                                code_table.resize(code_table.size()+1);
+                            code_table[instrs_no] = instruction;
+                        }
                         break;
                     }
                     case Token::Type::LITERAL_STRING: {
@@ -130,19 +152,30 @@ bool Converter::start(std::vector<Consumer> consumers) const {
                         value += static_cast<unsigned char>(size & 0xff00);
                         for (auto const charac : val)
                             value += static_cast<unsigned char>(charac + 0x20);
-                        t = Token(Token::Type::CONST_TABLE, std::to_string(consts_id));
-                        std::string id_no{""};
-                        id_no += static_cast<unsigned char>(consts_id & 0x00ff);
-                        id_no += static_cast<unsigned char>(consts_id & 0xff00);
-                        id_no += value;
-                        consts_table.push_back(id_no);
-                        std::string instruction{"LOAD_CONST "};
-                        instruction += static_cast<unsigned char>(consts_id & 0x00ff);
-                        instruction += static_cast<unsigned char>(consts_id & 0xff00);
-                        if (instrs_no+1 > code_table.size())
-                            code_table.resize(code_table.size()+1);
-                        code_table[instrs_no] = instruction;
-                        consts_id++;
+                        if (std::find_if(consts_table.begin(), consts_table.end(), [&] (std::string const& s) -> bool { return utils::str_endswith(s, value); }) == consts_table.end()) {
+                            t = Token(Token::Type::CONST_TABLE, std::to_string(consts_id));
+                            std::string id_no{""};
+                            id_no += static_cast<unsigned char>(consts_id & 0x00ff);
+                            id_no += static_cast<unsigned char>(consts_id & 0xff00);
+                            id_no += value;
+                            consts_table.push_back(id_no);
+                            std::string instruction{"LOAD_CONST "};
+                            instruction += static_cast<unsigned char>(consts_id & 0x00ff);
+                            instruction += static_cast<unsigned char>(consts_id & 0xff00);
+                            if (instrs_no+1 > code_table.size())
+                                code_table.resize(code_table.size()+1);
+                            code_table[instrs_no] = instruction;
+                            consts_id++;
+                        } else {
+                            auto pos = std::find_if(consts_table.begin(), consts_table.end(), [&] (std::string const& s) -> bool { return utils::str_endswith(s, value); });
+                            std::string id{pos->substr(0, 2)};
+                            t = Token(Token::Type::CONST_TABLE, id);
+                            std::string instruction{"LOAD_CONST "};
+                            instruction += id;
+                            if (instrs_no+1 > code_table.size())
+                                code_table.resize(code_table.size()+1);
+                            code_table[instrs_no] = instruction;
+                        }
                         break;
                     }
                 }

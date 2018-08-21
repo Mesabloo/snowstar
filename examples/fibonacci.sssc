@@ -1,33 +1,31 @@
-main:
-    store[mem, 1] 0
-    store[mem, 2] 1
-    store[temp, 1] 0
+fib:
+    store[temp, 1] [param]
+    pop [param]
+    cmp [temp, 1], 2
+    jwl return
 
-    push[param] ', '
-    itos[param] [mem, 2]
-    push[param] ', '
-    itos[param] [mem, 1]
+    sub[param] [temp, 1], 2
+    ret [temp, 2]
+    call fib
+    % pop [param]
+
+    sub[param] [temp, 1], 1
+    ret [temp, 3]
+    call fib
+    % pop [param]
+
+    add[temp, 1] [temp, 2], [temp, 3]
+
+    return:
+        back [temp, 1]
+
+
+main:
+    push[param] 34
+    ret [temp, 1]
+    call fib
+
+    itos[param] [temp, 1]
     sys 1
     pop [param]
-    pop [param]
-    pop [param]
-    pop [param]
-
-    while_not_90:
-
-        add[mem, 3] [mem, 1], [mem, 2]
-
-        push[param] ', '
-        itos[param] [mem, 3]
-        sys 1
-        pop [param]
-        pop [param]
-
-        store[mem, 1] [mem, 2]
-        store[mem, 2] [mem, 3]
-
-        add[temp, 1] [temp, 1], 1
-        cmp [temp, 1], 90
-        jwl while_not_90
-
     int 0

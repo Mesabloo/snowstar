@@ -5,13 +5,13 @@
 #include <optional>
 #include <variant>
 
-#include "value.hpp"
+#include "value.hpp" 
 
 class AtomicToken {
     public:
         AtomicToken();
         AtomicToken(uint8_t const, std::optional<int16_t> const&);
-        ~AtomicToken();
+        ~AtomicToken() = default;
 
         uint8_t getInstruction() const;
         std::optional<int16_t> getArgument() const;
@@ -25,7 +25,7 @@ class LabelToken {
     public:
         LabelToken();
         LabelToken(uint16_t const, uint16_t const);
-        ~LabelToken();
+        ~LabelToken() = default;
 
         uint16_t getID() const;
         uint16_t getLine() const;
@@ -38,7 +38,7 @@ class ConstToken {
     public:
         ConstToken();
         ConstToken(uint16_t const, Value const&);
-        ~ConstToken();
+        ~ConstToken() = default;
 
         uint16_t getID() const;
         Value& getValue();

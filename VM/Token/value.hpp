@@ -3,7 +3,7 @@
 
 #include <variant>
 #include <string>
-#include <stdint.h>
+#include <cstdint>
 
 using Value = std::variant<std::string, int64_t, double>;
 

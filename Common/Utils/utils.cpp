@@ -17,19 +17,19 @@ namespace utils {
     }
 
     bool str_endswith(std::string const& str, std::string const& suffix, unsigned const suffixLen) {
-        return str.size() >= suffixLen && 0 == str.compare(str.size()-suffixLen, suffixLen, suffix.c_str(), suffixLen);
+        return str.size() >= suffixLen && (str.substr(str.size()-suffixLen, suffixLen) == suffix);
     }
 
     bool str_endswith(std::string const& str, std::string const& suffix) {
-        return str_endswith(str, suffix, std::string::traits_type::length(suffix.c_str()));
+        return str_endswith(str, suffix, suffix.size());
     }
 
     bool str_startswith(std::string const& str, std::string const& prefix, unsigned const prefixLen) {
-        return str.size() >= prefixLen && 0 == str.compare(0, prefixLen, prefix.c_str(), prefixLen);
+        return str.size() >= prefixLen && (str.substr(0, prefixLen) == prefix);
     }
 
     bool str_startswith(std::string const& str, std::string const& prefix) {
-        return str_startswith(str, prefix, std::string::traits_type::length(prefix.c_str()));
+        return str_startswith(str, prefix, prefix.size());
     }
 
     std::streamsize file_getsize(std::string const& path) {
