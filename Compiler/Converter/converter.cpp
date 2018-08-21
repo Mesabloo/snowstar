@@ -13,6 +13,7 @@ Converter::Converter() {}
 Converter::~Converter() {}
 
 bool Converter::start(std::vector<Consumer> consumers) const {
+    std::cout << std::endl;
     std::string const header{"snowstar"};
     std::vector<std::string> labels_table,
                              consts_table,
@@ -72,7 +73,7 @@ bool Converter::start(std::vector<Consumer> consumers) const {
                         value += static_cast<unsigned char>(mem & 0xff);
                         value += static_cast<unsigned char>(static_cast<uint8_t>(std::stoi(index)));
                         t = Token(Token::Type::MEM_TABLE, value);
-                        if (instrs_no+1 > code_table.size())
+                        if (static_cast<uint16_t>(instrs_no+1) > code_table.size())
                             code_table.resize(code_table.size()+1);
                         code_table[instrs_no] = "LOAD_MEM " + value;
                         break;
@@ -95,7 +96,7 @@ bool Converter::start(std::vector<Consumer> consumers) const {
                             std::string instruction{"LOAD_CONST "};
                             instruction += static_cast<unsigned char>(consts_id & 0x00ff);
                             instruction += static_cast<unsigned char>(consts_id & 0xff00);
-                            if (instrs_no+1 > code_table.size())
+                            if (static_cast<uint16_t>(instrs_no+1) > code_table.size())
                                 code_table.resize(code_table.size()+1);
                             code_table[instrs_no] = instruction;
                             consts_id++;
@@ -105,7 +106,7 @@ bool Converter::start(std::vector<Consumer> consumers) const {
                             t = Token(Token::Type::CONST_TABLE, id);
                             std::string instruction{"LOAD_CONST "};
                             instruction += id;
-                            if (instrs_no+1 > code_table.size())
+                            if (static_cast<uint16_t>(instrs_no+1) > code_table.size())
                                 code_table.resize(code_table.size()+1);
                             code_table[instrs_no] = instruction;
                         }
@@ -128,7 +129,7 @@ bool Converter::start(std::vector<Consumer> consumers) const {
                             std::string instruction{"LOAD_CONST "};
                             instruction += static_cast<unsigned char>(consts_id & 0x00ff);
                             instruction += static_cast<unsigned char>(consts_id & 0xff00);
-                            if (instrs_no+1 > code_table.size())
+                            if (static_cast<uint16_t>(instrs_no+1) > code_table.size())
                                 code_table.resize(code_table.size()+1);
                             code_table[instrs_no] = instruction;
                             consts_id++;
@@ -138,7 +139,7 @@ bool Converter::start(std::vector<Consumer> consumers) const {
                             t = Token(Token::Type::CONST_TABLE, id);
                             std::string instruction{"LOAD_CONST "};
                             instruction += id;
-                            if (instrs_no+1 > code_table.size())
+                            if (static_cast<uint16_t>(instrs_no+1) > code_table.size())
                                 code_table.resize(code_table.size()+1);
                             code_table[instrs_no] = instruction;
                         }
@@ -162,7 +163,7 @@ bool Converter::start(std::vector<Consumer> consumers) const {
                             std::string instruction{"LOAD_CONST "};
                             instruction += static_cast<unsigned char>(consts_id & 0x00ff);
                             instruction += static_cast<unsigned char>(consts_id & 0xff00);
-                            if (instrs_no+1 > code_table.size())
+                            if (static_cast<uint16_t>(instrs_no+1) > code_table.size())
                                 code_table.resize(code_table.size()+1);
                             code_table[instrs_no] = instruction;
                             consts_id++;
@@ -172,12 +173,13 @@ bool Converter::start(std::vector<Consumer> consumers) const {
                             t = Token(Token::Type::CONST_TABLE, id);
                             std::string instruction{"LOAD_CONST "};
                             instruction += id;
-                            if (instrs_no+1 > code_table.size())
+                            if (static_cast<uint16_t>(instrs_no+1) > code_table.size())
                                 code_table.resize(code_table.size()+1);
                             code_table[instrs_no] = instruction;
                         }
                         break;
                     }
+                    default: {break;}
                 }
                 instrs_no++;
             }
@@ -207,7 +209,7 @@ bool Converter::start(std::vector<Consumer> consumers) const {
                 if (vars::BYTECODE)
                     std::cout << "There's a label at line " << instrs_no << std::endl;
             } catch (const std::out_of_range& oor) {
-                if (instrs_no+1 > code_table.size())
+                if (static_cast<uint16_t>(instrs_no+1) > code_table.size())
                     code_table.resize(code_table.size()+1);
                 code_table[instrs_no] = instr;
                 if (vars::BYTECODE)
@@ -219,7 +221,7 @@ bool Converter::start(std::vector<Consumer> consumers) const {
     }
 
     if (vars::BYTECODE) {
-        std::cout << termcolor::magenta << "Pseudo bytecode:" << std::endl;
+        std::cout << termcolor::magenta << "\nPseudo bytecode:" << std::endl;
 
         std::clog << header << std::endl;
         uint16_t label_no0{labels_id};
