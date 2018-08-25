@@ -4,3 +4,5 @@ main:
     pop [param]
     pop [param]
     int 0
+
+    sys 1

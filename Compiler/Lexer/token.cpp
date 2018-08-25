@@ -39,6 +39,10 @@ Consumer::Store::~Store() {}
 Token Consumer::Store::getMemseg() const { return m_memseg; }
 Token Consumer::Store::getIndex() const { return m_index; }
 
+bool operator==(Consumer::Store const& a, Consumer::Store const& b) {
+    return a.getMemseg() == b.getMemseg() && a.getIndex() == b.getIndex();
+}
+
 Consumer::Consumer(Token const& instr, Consumer::Store const& store, std::vector<Token> const& args): m_instruction{instr}, m_storage{store}, m_args{args} {}
 
 Token Consumer::getInstruction() const { return m_instruction; }

@@ -10,6 +10,7 @@
 #include <chrono>
 #include <random>
 #include <memory>
+#include <unordered_map>
 
 #include <Token/token.hpp>
 #include <Token/value.hpp>
@@ -39,8 +40,8 @@ class Interpreter {
         std::array<AtomicToken, std::numeric_limits<uint16_t>::max()> code_table;
 
         std::stack<Value> param;
-        std::array<Value, 256> mem;
-        std::stack<std::array<Value, 32>> temp;
+        std::unordered_map<uint32_t, Value> mem;
+        std::stack<std::unordered_map<uint32_t, Value>> temp;
         
         std::stack<Value*> loaded;
 

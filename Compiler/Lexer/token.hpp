@@ -58,6 +58,8 @@ class Consumer {
                 Token getMemseg() const;
                 Token getIndex() const;
 
+                friend bool operator==(Store const&, Store const&);
+
             protected:
                 Token m_memseg, m_index; 
         };
