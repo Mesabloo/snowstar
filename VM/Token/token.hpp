@@ -11,14 +11,16 @@ class AtomicToken {
     public:
         AtomicToken();
         AtomicToken(uint8_t const, std::optional<int16_t> const&);
+        AtomicToken(uint8_t const, std::optional<int16_t> const&, std::optional<int16_t> const&);
         ~AtomicToken() = default;
 
         uint8_t getInstruction() const;
         std::optional<int16_t> getArgument() const;
+        std::optional<int16_t> getArgument2() const;
 
     protected:
         uint8_t m_instr;
-        std::optional<int16_t> m_arg;
+        std::optional<int16_t> m_arg, m_arg2;
 };
 
 class LabelToken {

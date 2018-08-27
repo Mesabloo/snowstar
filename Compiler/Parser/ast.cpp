@@ -3,9 +3,12 @@
 #include <algorithm>
 #include <functional>
 #include <sstream>
+#include <unordered_map>
+#include <stack>
 
 #include <info.hpp>
 #include <Utils/utils.hpp>
+#include <termcolor.hpp>
 
 AST::Expression::Expression(): m_expr{}, m_storage{} {}
 AST::Expression::Expression(Token const& t): m_expr{t}, m_storage{} {}
@@ -37,7 +40,7 @@ std::string AST::Node::toString(unsigned int level, bool const isLast) {
     else
         ss << "├─";
     ss << " " << m_info.instruction.m_expr.getValue() 
-        << "(target='" << m_info.target.m_storage.getMemseg().getValue() << "." << m_info.target.m_storage.getIndex().getValue() << "',"
+        << "(target='" << m_info.target.m_storage.getMemseg().getValue() << "." << m_info.target.m_storage.getIndex().getValue() << "', "
         << "args=[";
     for (unsigned i{0}; i < m_info.arguments.size();++i) {
         auto const& e = m_info.arguments[i];
@@ -145,7 +148,127 @@ std::pair<std::unique_ptr<AST>, std::vector<Exception>> AST::build(std::vector<s
 }
 
 std::vector<Exception> AST::checkForErrors() const {
-    return {};
+    std::vector<Exception> excepts;
+    auto it = std::find_if(m_cons.begin(), m_cons.end(), [] (Consumer c) { return c.getInstruction().getValue() == "lbl" && (c.getArgs().size() > 0?c.getArgs()[0].getValue() == "main":false); });
+    if (it == m_cons.end()) it = m_cons.begin();
+    std::map<std::string, Token::Type> mem_emul;
+    std::stack<std::map<std::string, Token::Type>> temp_emul;
+    temp_emul.push({});
+    std::stack<std::pair<decltype(it), Consumer::Store>> call_stack_emul;
+    std::stack<Token::Type> param_emul;
+    for (int line{0};it != m_cons.end();++it, ++line) {
+        Consumer c = *it;
+        std::string instr = c.getInstruction().getValue(),
+                    memseg = c.getStorage().getMemseg().getValue(),
+                    memindex = c.getStorage().getIndex().getValue();
+        for (auto& arg : c.getArgs()) {
+            if (arg.getType() != Token::Type::LITERAL_MEMORY) continue;
+            std::string seg{utils::str_split(arg.getValue(), '.')[0]},
+                        index{utils::str_split(arg.getValue(), '.')[1]};
+            std::cout << termcolor::green << "→ Replacing " << Token::getTypeSignification(arg.getType()) << "@" << arg.getValue() << " with ";
+            if (seg == "mem") {
+                if (mem_emul.find(index) == mem_emul.end())
+                    return {Exception("UninitializedIndexException", 0x365AD24F, "Tried to use an uninitialized index inside the memory segment at line " + std::to_string(line+1) + ".")};
+                arg = Token(mem_emul[index], arg.getValue());
+            } else if (seg == "temp") {
+                if (temp_emul.top().find(index) == temp_emul.top().end())
+                    return {Exception("UninitializedIndexException", 0x365AD24F, "Tried to use an uninitialized index inside the temporary segment at line " + std::to_string(line+1) + ".")};
+                arg = Token(temp_emul.top()[index], arg.getValue());
+            } else if (seg == "param") {
+                if (param_emul.empty())
+                    return {Exception("UninitializedIndexException", 0x365AD24F, "Tried to use an uninitialized index inside the temporary segment at line " + std::to_string(line+1) + ".")};
+                arg = Token(param_emul.top(), arg.getValue());
+            }
+            std::cout << Token::getTypeSignification(arg.getType()) << "@" << arg.getValue() << " on instruction '" << c.getInstruction().getValue() << "'." << termcolor::reset << std::endl;
+        }
+
+        /*std::clog << c.getInstruction().getValue() << "[" << c.getStorage().getMemseg().getValue() << "." << c.getStorage().getIndex().getValue() << "] ";
+        for (auto& arg : c.getArgs()) {
+            std::clog << Token::getTypeSignification(arg.getType()) << ", ";
+        }
+        std::clog << std::endl;*/
+
+        if (std::find_if(info::m_syntax.begin(), info::m_syntax.end(), [&c] (Consumer& c1) { return c == c1 && c.getInstruction().getValue() == c1.getInstruction().getValue(); }) == info::m_syntax.end()) {
+            return {Exception("InvalidUsageException", 0x2586ABD6, "Invalid use of instruction '" + c.getInstruction().getValue() + "' at line " + std::to_string(line+1) + ".")};
+        }
+
+        if (instr == "call") {
+            call_stack_emul.push({it, c.getStorage()});
+            auto tmp = std::find_if(m_cons.begin(), m_cons.end(), [&c] (Consumer c1) { return c1.getInstruction().getValue() == "lbl" && (c1.getArgs().size() > 0?c1.getArgs()[0].getValue() == (c.getArgs().size() > 0?c.getArgs()[0].getValue():""):false); });
+            if (tmp == m_cons.end()) {
+                return {Exception{"UnknownLabelException", 0x2AC9F3D1, "Trying to jump to an inexistant label using $call at line " + std::to_string(line+1) + "."}};
+            }
+            temp_emul.push({});
+            it = tmp;
+        } else if (instr == "jmp"/* || instr == "jwe" || instr == "jwd" || instr == "jwl" || instr == "jwg"*/) {
+            auto tmp = std::find_if(m_cons.begin(), m_cons.end(), [&c] (Consumer c1) { return c1.getInstruction().getValue() == "lbl" && (c1.getArgs().size() > 0?c1.getArgs()[0].getValue() == (c.getArgs().size() > 0?c.getArgs()[0].getValue():""):false); });
+            if (tmp == m_cons.end()) {
+                return {Exception{"UnknownLabelException", 0x2AC9F3D1, "Trying to jump to an inexistant label using $call at line " + std::to_string(line+1) + "."}};
+            }
+            it = tmp;
+        } else if (instr == "back") {
+            if (call_stack_emul.empty())
+                return {Exception("InvalidBackCallException", 0x22DFEDD4, "Trying to return from an inexistant call at line " + std::to_string(line+1) + ".")};
+            auto tmp = call_stack_emul.top();
+            call_stack_emul.pop();
+            std::string seg{tmp.second.getMemseg().getValue()},
+                        index{tmp.second.getIndex().getValue()};
+            temp_emul.pop();
+            if (seg == "mem")
+                mem_emul[index] = c.getArgs()[0].getType();
+            else if (seg == "temp")
+                temp_emul.top()[index] = c.getArgs()[0].getType();
+            it = tmp.first;
+        } else if (instr == "int") break;
+
+        if (instr == "store" || instr == "push") {
+            if (memseg == "mem") {
+                mem_emul[memindex] = c.getArgs()[0].getType();
+            } else if (memseg == "temp") {
+                temp_emul.top()[memindex] = c.getArgs()[0].getType();
+            } else if (memseg == "param") {
+                param_emul.push(c.getArgs()[0].getType());
+            }
+        } else if (instr == "free" || instr == "pop") {
+            if (memseg == "mem") {
+                mem_emul.erase(memindex);
+            } else if (memseg == "temp") {
+                temp_emul.top().erase(memindex);
+            } else if (memseg == "param") {
+                param_emul.pop();
+            }
+        }
+        
+        if (instr == "add" || instr == "sub" || instr == "div" || instr == "mul" || instr == "mod" || instr == "rand"
+            || instr == "stoi" || instr == "ftoi"
+            || instr == "and" || instr == "or" || instr == "xor" || instr == "not") {
+            if (memseg == "mem") {
+                mem_emul[memindex] = Token::Type::LITERAL_NUMBER_INT;
+            } else if (memseg == "temp") {
+                temp_emul.top()[memindex] = Token::Type::LITERAL_NUMBER_INT;
+            } else if (memseg == "param") {
+                param_emul.push(Token::Type::LITERAL_NUMBER_INT);
+            }
+        } else if (instr == "addf" || instr == "subf" || instr == "mulf" || instr == "divf"
+            || instr == "stof" || instr == "itof") {
+            if (memseg == "mem") {
+                mem_emul[memindex] = Token::Type::LITERAL_NUMBER_FLOAT;
+            } else if (memseg == "temp") {
+                temp_emul.top()[memindex] = Token::Type::LITERAL_NUMBER_FLOAT;
+            } else if (memseg == "param") {
+                param_emul.push(Token::Type::LITERAL_NUMBER_FLOAT);
+            }
+        } else if (instr == "itos" || instr == "ftos") {
+            if (memseg == "mem") {
+                mem_emul[memindex] = Token::Type::LITERAL_STRING;
+            } else if (memseg == "temp") {
+                temp_emul.top()[memindex] = Token::Type::LITERAL_STRING;
+            } else if (memseg == "param") {
+                param_emul.push(Token::Type::LITERAL_STRING);
+            }
+        }
+    }
+    return excepts;
 }
 
 void AST::setNode(AST::Node const& n) { m_main_node = n; }

@@ -1,8 +1,12 @@
 main:
-    itos[param] 0
-    itos[param] 0
-    pop [param]
-    pop [param]
+    store[temp, 1] 0.1
+    ftoi[temp, 2] [temp, 1]
+    free [temp, 2]
+    free [temp, 1]
+    call[temp, 1] test
+    ftoi[temp, 1] [temp, 1]
+    free [temp, 1]
     int 0
 
-    sys 1
+test:
+    back 0.0

@@ -5,13 +5,11 @@ fib:
     jwl return
 
     sub[param] [temp, 1], 2
-    ret [temp, 2]
-    call fib
+    call[temp, 2] fib
     % pop [param]
 
     sub[param] [temp, 1], 1
-    ret [temp, 3]
-    call fib
+    call[temp, 3] fib
     % pop [param]
 
     add[temp, 1] [temp, 2], [temp, 3]
@@ -22,10 +20,9 @@ fib:
 
 main:
     push[param] 34
-    ret [temp, 1]
-    call fib
+    %call[temp, 1] fib
 
-    itos[param] [temp, 1]
+    itos[param] 0%[temp, 1]
     sys 1
     pop [param]
     int 0

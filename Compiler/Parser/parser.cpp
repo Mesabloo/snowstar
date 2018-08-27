@@ -69,8 +69,9 @@ auto Parser::assertSemantics() -> std::vector<Exception> {
     } else {
         excepts = tree.first->checkForErrors();
         m_cons = tree.first->getConsumers();
-        std::cout << termcolor::blue << '\n' << "AST:" << '\n'
-            << *tree.first << termcolor::reset << std::flush;
+        if (vars::AST)
+            std::cout << termcolor::blue << '\n' << "AST:" << '\n'
+                << *tree.first << termcolor::reset << std::flush;
     }
     return excepts;
 }

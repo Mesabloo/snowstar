@@ -1,10 +1,12 @@
 #include "token.hpp"
 
 AtomicToken::AtomicToken(): m_instr{0}, m_arg{std::nullopt} {}
-AtomicToken::AtomicToken(uint8_t const instr, std::optional<int16_t> const& arg) : m_instr{instr}, m_arg{arg} {}
+AtomicToken::AtomicToken(uint8_t const instr, std::optional<int16_t> const& arg) : m_instr{instr}, m_arg{arg}, m_arg2{std::nullopt} {}
+AtomicToken::AtomicToken(uint8_t const instr, std::optional<int16_t> const& arg, std::optional<int16_t> const& arg2) : m_instr{instr}, m_arg{arg}, m_arg2{arg2} {}
 
 uint8_t AtomicToken::getInstruction() const { return m_instr; }
 std::optional<int16_t> AtomicToken::getArgument() const { return m_arg; }
+std::optional<int16_t> AtomicToken::getArgument2() const { return m_arg2; }
 
 
 LabelToken::LabelToken(): m_id{0}, m_line{0} {}

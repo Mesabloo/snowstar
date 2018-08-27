@@ -119,8 +119,17 @@ int8_t Interpreter::exec_system(AtomicToken const& token) {
             return 1;
         }
         case info::SystemOpcodes::CALL: {
-            call_stack.top().second = line_number;
-            line_number = label_table[*(token.getArgument())].getLine();
+            switch (*(token.getArgument()) & 0xff) {
+                case info::MemsegOpcodes::MEM: {
+                    call_stack.emplace(mem[((*(token.getArgument()) & 0xff00) >> 8)], line_number);
+                    break;
+                }
+                case info::MemsegOpcodes::TEMP: {
+                    call_stack.emplace(temp.top()[((*(token.getArgument()) & 0xff00) >> 8)], line_number);
+                    break;
+                }
+            }
+            line_number = label_table[*(token.getArgument2())].getLine();
             temp.push({});
             return 1;
         }
@@ -131,19 +140,6 @@ int8_t Interpreter::exec_system(AtomicToken const& token) {
             loaded.pop();
             call_stack.pop();
             return 1;
-        }
-        case info::SystemOpcodes::RET: {
-            switch (*(token.getArgument()) & 0xff) {
-                case info::MemsegOpcodes::MEM: {
-                    call_stack.emplace(mem[((*(token.getArgument()) & 0xff00) >> 8)], 0);
-                    return 1;
-                }
-                case info::MemsegOpcodes::TEMP: {
-                    call_stack.emplace(temp.top()[((*(token.getArgument()) & 0xff00) >> 8)], 0);
-                    return 1;
-                }
-            }
-            return -1;
         }
     }
     return -1;
@@ -435,7 +431,6 @@ int8_t Interpreter::exec_memory(AtomicToken const& token) {
             return -1;
         }
         case info::MemoryOpcodes::POP: {
-            Value const& v{param.top()};
             switch (*(token.getArgument()) & 0xff) {
                 case info::MemsegOpcodes::PARAM: {
                     param.pop();
@@ -750,8 +745,14 @@ bool Interpreter::make(std::string const& path) {
         std::optional<int16_t> arg;
         utils::stream_read<uint8_t>(is, hasArg);
         utils::stream_read<uint8_t>(is, opcode);
-        if (hasArg == '\x01')
+        if (hasArg == '\x01' || hasArg == '\x02')
             utils::stream_read<int16_t>(is, *arg);
+        if (hasArg == '\x02') {
+            std::optional<int16_t> arg2;
+            utils::stream_read<int16_t>(is, *arg2);
+            code_table[i] = AtomicToken(opcode, arg, arg2);
+            continue;
+        }
         code_table[i] = AtomicToken(opcode, arg);
         //std::clog << std::hex << opcode << " " << *arg << std::endl;
     }

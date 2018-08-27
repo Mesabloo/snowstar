@@ -191,17 +191,19 @@ bool Converter::start(std::vector<Consumer> consumers) const {
         if (instr != "LBL") {
             instr += ' ';
             //std::cout << instrs_no << " // " << instr << std::endl;
-            if (instr == "JMP " || instr == "CALL " || instr == "JWE " || instr == "JWD " || instr == "JWL " || instr == "JWG ") {
+            if (index != "-1") {
+                uint8_t mem{info::m_bytes[memseg]};
+                instr += static_cast<unsigned char>(mem);
+                instr += static_cast<unsigned char>(static_cast<uint8_t>(std::stoi(index)));
+            }
+            if (utils::str_startswith(instr, "CALL "))
+                instr += ' ';
+            if (instr == "JMP " || utils::str_startswith(instr, "CALL ") || instr == "JWE " || instr == "JWD " || instr == "JWL " || instr == "JWG ") {
                 uint16_t instr_number = label_corres[c.getArgs()[0].getValue()];
                 std::string instruction{""};
                 instruction += static_cast<unsigned char>(instr_number & 0x00ff);
                 instruction += static_cast<unsigned char>(instr_number & 0xff00);
                 instr += instruction;
-            }
-            if (index != "-1") {
-                uint8_t mem{info::m_bytes[memseg]};
-                instr += static_cast<unsigned char>(mem);
-                instr += static_cast<unsigned char>(static_cast<uint8_t>(std::stoi(index)));
             }
             try {
                 std::string lbl = code_table.at(instrs_no);
@@ -274,11 +276,18 @@ bool Converter::start(std::vector<Consumer> consumers) const {
             //std::cout << '\x01' << info::m_bytes[splitted[0]];
             utils::stream_write<unsigned char>(out, '\x00');
             utils::stream_write<unsigned char>(out, info::m_bytes[splitted[0]]);
-        } else {
+        } else if (splitted.size() == 2) {
             //std::cout << '\x02' << info::m_bytes[splitted[0]] << splitted[1];
             utils::stream_write<unsigned char>(out, '\x01');
             utils::stream_write<unsigned char>(out, info::m_bytes[splitted[0]]);
             for (auto hchar : splitted[1])
+                utils::stream_write<unsigned char>(out, hchar);
+        } else if (splitted.size() == 3) {
+            utils::stream_write<unsigned char>(out, '\x02');
+            utils::stream_write<unsigned char>(out, info::m_bytes[splitted[0]]);
+            for (auto hchar : splitted[1])
+                utils::stream_write<unsigned char>(out, hchar);
+            for (auto hchar : splitted[2])
                 utils::stream_write<unsigned char>(out, hchar);
         }
     }

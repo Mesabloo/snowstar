@@ -157,7 +157,13 @@ auto Lexer::checkToken(std::string const& buf) const -> std::unique_ptr<Token> {
     if (std::regex_match(buf, std::regex("^((-)?[0-9]+)$")))
         return std::make_unique<Token>(Token::Type::LITERAL_NUMBER_INT, buf);
     Token tmp = m_gen_tokens[m_gen_tokens.size()-1];
-    if (tmp.getValue() == "lbl" || tmp.getValue() == "call" || tmp.getValue() == "jmp" || tmp.getValue() == "jwe" || tmp.getValue() == "jwd" || tmp.getValue() == "jwg" || tmp.getValue() == "jwl")
+    if (tmp.getValue() == "lbl" || tmp.getValue() == "jmp" || tmp.getValue() == "jwe" || tmp.getValue() == "jwd" || tmp.getValue() == "jwg" || tmp.getValue() == "jwl")
+        return std::make_unique<Token>(Token::Type::LABEL, buf);
+    tmp = m_gen_tokens[m_gen_tokens.size()-6];
+    if (tmp.getValue() == "call")
+        return std::make_unique<Token>(Token::Type::LABEL, buf);
+    tmp = m_gen_tokens[m_gen_tokens.size()-4];
+    if (tmp.getValue() == "call")
         return std::make_unique<Token>(Token::Type::LABEL, buf);
     if (std::regex_match(buf, std::regex("^@@.+$")))
         return std::make_unique<Token>(Token::Type::PREPROCESSOR, buf);

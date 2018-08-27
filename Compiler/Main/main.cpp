@@ -15,7 +15,10 @@ int main(int argc, char const** argv) {
             << '\t' << '\t' << "--link-lib=<path>: link a .dll/.so to Snow* when compiling the program to add extra features." << '\n'
             << '\t' << '\t' << '\t' << "Alias: --lib=<path> --l=<path>" << '\n'
             << '\t' << '\t' << "--show-bytecode: shows the bytecode when compiling the program" << '\n'
-            << '\t' << '\t' << '\t' << "Alias: --bytecode --show-bc --bc" << termcolor::reset << std::endl;
+            << '\t' << '\t' << '\t' << "Alias: --bytecode --show-bc --bc" << '\n' 
+            << '\t' << '\t' << "--show-ast: shows the AST when compiling the program" << '\n'
+            << '\t' << '\t' << '\t' << "Alias: --ast"
+            << termcolor::reset << std::endl;
         getchar();
         return 0;
     }
@@ -35,6 +38,9 @@ int main(int argc, char const** argv) {
             }
             if (args[0] == "--show-bytecode" || args[0] == "--show-bc" || args[0] == "--bytecode" || args[0] == "--bc") {
                 vars::BYTECODE = true;
+            }
+            if (args[0] == "--show-ast" || args[0] == "--ast") {
+                vars::AST = true;
             }
         }
     }
@@ -78,7 +84,7 @@ int main(int argc, char const** argv) {
 
     auto const& e = p.assertSyntax();
     for (auto const& ex : e) {
-        std::cout << ex.getMessage();
+        std::cout << termcolor::red << ex.getMessage() << termcolor::reset;
     }
     if (!e.empty()) {
         getchar();
@@ -88,7 +94,7 @@ int main(int argc, char const** argv) {
     }
     auto const& e1 = p.assertSemantics();
     for (auto const& ex : e1) {
-        std::cout << ex.getMessage();
+        std::cout << termcolor::red << ex.getMessage() << termcolor::reset;
     }
     if (!e1.empty()) {
         getchar();
