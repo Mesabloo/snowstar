@@ -32,14 +32,8 @@
 *.app
 
 # Special entry
-vm
-compiler
-debugger
-static_syntax.txt
 .vscode/*.*
 .vscode
-build/*/*.*
 build/*.*
 build/*
 build
-test.*

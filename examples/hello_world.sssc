@@ -1,7 +1,0 @@
-main:
-    store[temp, 0] 'Hello, World!\n'
-    push[param] [temp, 0]
-    sys 1
-    pop [param]
-    free [temp, 0]
-    int 0
