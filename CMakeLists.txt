@@ -3,4 +3,4 @@ cmake_policy(SET CMP0015 NEW)
 
 project(SnowStar)
 
-# add_subdirectory(/)
+add_subdirectory(MathsInterpreter/)
