@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 cmake_policy(SET CMP0015 NEW)
 
-project(SnowStar)
+project(RootProject)
 
-add_subdirectory(MathsInterpreter/)
+add_subdirectory(antlr/cpp_runtime/)
+add_subdirectory(src/)
