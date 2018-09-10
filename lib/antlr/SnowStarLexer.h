@@ -13,9 +13,9 @@ class  SnowStarLexer : public antlr4::Lexer {
 public:
   enum {
     T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, Type = 5, Integer = 6, Real = 7, 
-    Boolean = 8, Character = 9, String = 10, Identifier = 11, WhiteSpace = 12, 
-    Comment = 13, MultiLine_Comment = 14, NewLine = 15, LPAR = 16, RPAR = 17, 
-    LBCK = 18, RBCK = 19
+    Boolean = 8, Character = 9, String = 10, Null = 11, Identifier = 12, 
+    WhiteSpace = 13, Comment = 14, MultiLine_Comment = 15, NewLine = 16, 
+    LPAR = 17, RPAR = 18, LBCK = 19, RBCK = 20
   };
 
   SnowStarLexer(antlr4::CharStream *input);

@@ -1,6 +1,4 @@
-decl x : integer64 = 2
+decl x, y : integer64 = 2
 decl y : real32 = 2
 decl z : boolean = true
 decl w : real32 = x
-% decl x : string = "test"
-decl v : boolean = w

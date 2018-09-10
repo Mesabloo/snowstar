@@ -1,13 +1,14 @@
 project(MyProject)
 include_directories(
     ${RootProject_SOURCE_DIR}/antlr/cpp_runtime/runtime/src
-    ${RootProject_SOURCE_DIR}/src/.antlr
+    ${RootProject_SOURCE_DIR}/lib/antlr
+    ${RootProject_SOURCE_DIR}/include
+    £{RootProject_SOURCE_DIR}/ext
 )
-
-# create your executable here
 
 file(
     GLOB_RECURSE SOURCE_FILES
+    ${RootProject_SOURCE_DIR}/lib/antlr/*.cpp
     ${MyProject_SOURCE_DIR}/*.cpp
 )
 

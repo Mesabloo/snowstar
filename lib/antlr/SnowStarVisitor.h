@@ -29,7 +29,7 @@ public:
 
     virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext *context) = 0;
 
-    virtual antlrcpp::Any visitPrint(SnowStarParser::PrintContext *context) = 0;
+    virtual antlrcpp::Any visitCast(SnowStarParser::CastContext *context) = 0;
 
 
 };

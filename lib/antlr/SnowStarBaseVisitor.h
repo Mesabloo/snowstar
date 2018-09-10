@@ -35,7 +35,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitPrint(SnowStarParser::PrintContext *ctx) override {
+  virtual antlrcpp::Any visitCast(SnowStarParser::CastContext *ctx) override {
     return visitChildren(ctx);
   }
 

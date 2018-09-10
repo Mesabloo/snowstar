@@ -13,14 +13,14 @@ class  SnowStarParser : public antlr4::Parser {
 public:
   enum {
     T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, Type = 5, Integer = 6, Real = 7, 
-    Boolean = 8, Character = 9, String = 10, Identifier = 11, WhiteSpace = 12, 
-    Comment = 13, MultiLine_Comment = 14, NewLine = 15, LPAR = 16, RPAR = 17, 
-    LBCK = 18, RBCK = 19
+    Boolean = 8, Character = 9, String = 10, Null = 11, Identifier = 12, 
+    WhiteSpace = 13, Comment = 14, MultiLine_Comment = 15, NewLine = 16, 
+    LPAR = 17, RPAR = 18, LBCK = 19, RBCK = 20
   };
 
   enum {
     RuleProgram = 0, RuleStatement = 1, RuleValue = 2, RuleDeclare = 3, 
-    RuleDefine = 4, RulePrint = 5
+    RuleDefine = 4, RuleCast = 5
   };
 
   SnowStarParser(antlr4::TokenStream *input);
@@ -38,7 +38,7 @@ public:
   class ValueContext;
   class DeclareContext;
   class DefineContext;
-  class PrintContext; 
+  class CastContext; 
 
   class  ProgramContext : public antlr4::ParserRuleContext {
   public:
@@ -60,7 +60,6 @@ public:
     DeclareContext *declare();
     antlr4::tree::TerminalNode *NewLine();
     DefineContext *define();
-    PrintContext *print();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
@@ -77,6 +76,7 @@ public:
     antlr4::tree::TerminalNode *Boolean();
     antlr4::tree::TerminalNode *Character();
     antlr4::tree::TerminalNode *String();
+    antlr4::tree::TerminalNode *Null();
     antlr4::tree::TerminalNode *Identifier();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -89,7 +89,8 @@ public:
   public:
     DeclareContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *Identifier();
+    std::vector<antlr4::tree::TerminalNode *> Identifier();
+    antlr4::tree::TerminalNode* Identifier(size_t i);
     antlr4::tree::TerminalNode *Type();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -103,9 +104,8 @@ public:
     DefineContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     DeclareContext *declare();
-    ValueContext *value();
-    antlr4::tree::TerminalNode *LPAR();
-    antlr4::tree::TerminalNode *RPAR();
+    std::vector<ValueContext *> value();
+    ValueContext* value(size_t i);
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
@@ -113,19 +113,20 @@ public:
 
   DefineContext* define();
 
-  class  PrintContext : public antlr4::ParserRuleContext {
+  class  CastContext : public antlr4::ParserRuleContext {
   public:
-    PrintContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    CastContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *LPAR();
-    ValueContext *value();
+    antlr4::tree::TerminalNode *Type();
     antlr4::tree::TerminalNode *RPAR();
+    ValueContext *value();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
   };
 
-  PrintContext* print();
+  CastContext* cast();
 
 
 private:
