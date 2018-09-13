@@ -59,7 +59,7 @@ People from many Discord servers helping me when I need help. Links to them will
 - All the people who starred this repository so far. It's really pleasant.
 
 ## Software used with their licenses
-- __ANTLR4__, released under BSD-3 clause license, Copyright (c) 2012-2017 The ANTLR Project. All rights reserved
-- __termcolor__, released under BSD license, Copyright (c) 2013 Ihor Kalnytskyi
-- __LLVM__, released under Open Source license, Copyright (c) 2003-2018 University of Illinois at Urbana-Champaign.
+- [__ANTLR4__](https://github.com/antlr/antlr4), released under BSD-3 clause license, Copyright (c) 2012-2017 The ANTLR Project. All rights reserved
+- [__termcolor__](https://github.com/ikalnytskyi/termcolor), released under BSD license, Copyright (c) 2013 Ihor Kalnytskyi
+- [__LLVM__](https://github.com/llvm-mirror/llvm), released under Open Source license, Copyright (c) 2003-2018 University of Illinois at Urbana-Champaign.
 All rights reserved.

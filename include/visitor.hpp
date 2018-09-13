@@ -7,6 +7,8 @@
 #include <SnowStarBaseVisitor.h>
 #include <SnowStarLexer.h>
 
+#include <termcolor/termcolor.hpp>
+
 struct EvalValue {
     enum ValueType {
         Real32,
@@ -56,56 +58,44 @@ struct EvalValue {
 
 struct Error {
     static Error fromMessage(std::string const& msg) {
-        return Error(msg, 0);
-    }
-
-    static Error fromCode(int8_t const code) {
-        return Error("", code);
+        return Error(msg);
     }
 
     std::string print() const {
         std::stringstream ss;
-        ss << "An unexpected error occured.\n";
-        if (m_code != 0)
-            ss << "Code: " << m_code << '\n';
         if (m_msg != "")
-            ss << "Message: " << m_msg;
-        ss << std::flush;
+            ss << termcolor::colorize << termcolor::red << "Error: " << m_msg;
+        ss << termcolor::reset << std::flush;
         return std::string{ss.str()};
     }
 
 protected:
     std::string m_msg;
-    int8_t m_code;
 
-    Error(std::string const& msg, int8_t const code) : m_msg{msg}, m_code{code} {}
+    Error(std::string const& msg) : m_msg{msg} {}
 };
 
 struct Warning {
     static Warning fromMessage(std::string const& msg) {
-        return Warning(msg, 0);
+        return Warning(msg);
     }
 
     std::string print() const {
         std::stringstream ss;
-        ss << "Warning.\n";
-        if (m_code != 0)
-            ss << "Code: " << m_code << '\n';
         if (m_msg != "")
-            ss << "Message: " << m_msg;
-        ss << std::flush;
+            ss << termcolor::colorize << termcolor::yellow << "Warning: " << m_msg;
+        ss << termcolor::reset << std::flush;
         return std::string{ss.str()};
     }
 
 protected:
-    Warning(std::string const& msg, int const code) : m_msg{msg}, m_code{code} {}
+    Warning(std::string const& msg) : m_msg{msg} {}
 
     std::string m_msg;
-    int m_code;
 };
 
 class Visitor : public SnowStarBaseVisitor {
-    std::vector<Error> errors;
+    std::pair<std::vector<Error>, std::vector<Warning>> errors;
     std::vector<std::pair<std::string, antlr4::Token*>> declared;
 
 public:
@@ -113,6 +103,7 @@ public:
     virtual antlrcpp::Any visitStatement(SnowStarParser::StatementContext*);
     virtual antlrcpp::Any visitDeclare(SnowStarParser::DeclareContext*);
     virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext*);
+    virtual antlrcpp::Any visitValue(SnowStarParser::ValueContext*);
 };
 
 #endif

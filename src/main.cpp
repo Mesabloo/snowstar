@@ -33,12 +33,17 @@ int main(int, char** argv) {
         return 1;
     }
 
+    //std::clog << tree->toStringTree(&parser) << std::endl;
+
     Visitor v;
-    std::vector<Error> result = v.visit(tree);
-    for (auto const& e : result) {
-        std::cout << e.print() << std::endl;
+    std::pair<std::vector<Error>, std::vector<Warning>> const& result = v.visit(tree);
+    for (auto const& e : result.first) {
+        std::cerr << e.print() << std::endl;
     }
-    if (!result.empty()) return 1;
+    if (!result.first.empty()) return 1;
+    for (auto const& w : result.second) {
+        std::cerr << w.print() << std::endl;
+    }
 
     return 0;
 }

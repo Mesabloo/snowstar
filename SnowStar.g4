@@ -6,18 +6,18 @@ statement : declare NewLine?
     | define NewLine? ;
 //    | print NewLine? ;
 
-Type : 'integer8'
-    | 'integer16' 
-    | 'integer32'
-    | 'integer64' 
+Type : 'int8'
+    | 'int16' 
+    | 'int32'
+    | 'int64' 
     | 'real32'
     | 'real64'
-    | 'boolean'
-    | 'character'
-    | 'string'
+    | 'bool'
+    | 'char'
+    | 'str'
     | 'void' ;
 
-Integer : [0-9]+ ;
+Integer : [0-9]+ | '0x' [0-9A-Fa-f]* | '0b' [01]* ;
 Real : [0-9]+ '.' [0-9]* ;
 Boolean : 'true'
     | 'false' ;
@@ -33,11 +33,10 @@ value : Integer
     | Character
     | String 
     | Null
-    | Identifier ;
+    | Identifier
+    | cast ;
 
 declare : 'decl' Identifier (',' Identifier)* ':' Type ;
-// declare : 'decl' Identifier ':' Type ;
-// define : declare '=' val = (defineObject | defineLiteral)+ ;
 define : declare '=' value (',' value)* ;
 // fragment defineObject : LPAR value (',' value)* RPAR ;
 // define : declare '=' LPAR? value RPAR? ;

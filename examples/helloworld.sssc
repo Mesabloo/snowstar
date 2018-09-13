@@ -1,4 +1,7 @@
-decl x, y : integer64 = 2
-decl y : real32 = 2
-decl z : boolean = true
+% test
+decl a : bool = false
+decl x : int64 = 2
+decl y,c : real32 = 2
+decl z : bool = true
 decl w : real32 = x
+decl b : str = x

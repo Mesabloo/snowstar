@@ -78,6 +78,7 @@ public:
     antlr4::tree::TerminalNode *String();
     antlr4::tree::TerminalNode *Null();
     antlr4::tree::TerminalNode *Identifier();
+    CastContext *cast();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
