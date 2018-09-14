@@ -58,7 +58,7 @@ antlrcpp::Any Visitor::visitDefine(SnowStarParser::DefineContext* context) {
 
         if (value->Identifier() != nullptr) {
             auto it = std::find_if(declared.begin(), declared.end(), [&] (std::pair<std::string, antlr4::Token*> const& p) { return p.first == value->getText(); });
-            if (it == declared.end()) return std::vector<Error>{Error::fromMessage("Undeclared variable " + value->getText())}; // make error here
+            if (it == declared.end()) return std::vector<Error>{Error::fromMessage("Undeclared variable " + value->getText() + " at ["+std::to_string(value->Identifier()->getSymbol()->getLine())+";"+std::to_string(value->Identifier()->getSymbol()->getCharPositionInLine()+1)+"].")};
             if (!(utils::str_startswith(res.second->getText(), "int") && utils::str_startswith(it->second->getText(), "int"))
                 ^ !(utils::str_startswith(res.second->getText(), "real") && (utils::str_startswith(it->second->getText(), "int") ^ utils::str_startswith(it->second->getText(), "real")))
                 ^ (res.second->getText() != it->second->getText())
@@ -97,6 +97,9 @@ antlrcpp::Any Visitor::visitDefine(SnowStarParser::DefineContext* context) {
         if (value->Null() != nullptr) {
             continue;
         }
+        if (value->cast() != nullptr) {
+            visitCast(value->cast());
+        }
     }
     return antlrcpp::Any();
 }
@@ -109,5 +112,57 @@ antlrcpp::Any Visitor::visitValue(SnowStarParser::ValueContext* context) {
     if (context->Character() != nullptr) return context->Character();
     if (context->String() != nullptr) return context->String();
     if (context->Null() != nullptr) return context->Null();
+    if (context->cast() != nullptr) return visitCast(context->cast());
     return nullptr;
+}
+
+antlrcpp::Any Visitor::visitCast(SnowStarParser::CastContext* context) {
+    auto type = context->Type();
+    auto value = context->value();
+
+    if (value->Identifier() != nullptr) {
+        auto it = std::find_if(declared.begin(), declared.end(), [&] (std::pair<std::string, antlr4::Token*> const& p) { return p.first == value->getText(); });
+        if (it == declared.end()) {
+            errors.first.push_back(Error::fromMessage("Undeclared variable " + value->getText() + " at ["+std::to_string(value->Identifier()->getSymbol()->getLine())+";"+std::to_string(value->Identifier()->getSymbol()->getCharPositionInLine()+1)+"]."));
+            return antlrcpp::Any();
+        }
+    }
+    if (value->Integer() != nullptr) {
+        if (type->getText() == "void") {
+            errors.first.push_back(Error::fromMessage("Invalid cast from integer to void at ["+std::to_string(value->Integer()->getSymbol()->getLine())+";"+std::to_string(value->Integer()->getSymbol()->getCharPositionInLine()+1)+"]."));
+            return antlrcpp::Any();
+        }
+    }
+    if (value->Real() != nullptr) {
+        if (type->getText() == "void") {
+            errors.first.push_back(Error::fromMessage("Invalid cast from real to void at ["+std::to_string(value->Integer()->getSymbol()->getLine())+";"+std::to_string(value->Integer()->getSymbol()->getCharPositionInLine()+1)+"]."));
+            return antlrcpp::Any();
+        }
+    }
+    if (value->Boolean() != nullptr) {
+        if (type->getText() == "void" || type->getText() == "char") {
+            errors.first.push_back(Error::fromMessage("Invalid cast from bool to "+type->getText()+" at ["+std::to_string(value->Integer()->getSymbol()->getLine())+";"+std::to_string(value->Integer()->getSymbol()->getCharPositionInLine()+1)+"]."));
+            return antlrcpp::Any();
+        }
+    }
+    if (value->Character() != nullptr) {
+        if (type->getText() == "void" || type->getText() == "bool") {
+            errors.first.push_back(Error::fromMessage("Invalid cast from char to "+type->getText()+" at ["+std::to_string(value->Integer()->getSymbol()->getLine())+";"+std::to_string(value->Integer()->getSymbol()->getCharPositionInLine()+1)+"]."));
+            return antlrcpp::Any();
+        }
+    }
+    if (value->String() != nullptr) {
+        if (type->getText() == "void") {
+            errors.first.push_back(Error::fromMessage("Invalid cast from str to void at ["+std::to_string(value->Integer()->getSymbol()->getLine())+";"+std::to_string(value->Integer()->getSymbol()->getCharPositionInLine()+1)+"]."));
+            return antlrcpp::Any();
+        }
+    }
+    if (value->Null() != nullptr) {
+        errors.first.push_back(Error::fromMessage("Invalid cast from a null value (nil) at ["+std::to_string(value->Integer()->getSymbol()->getLine())+";"+std::to_string(value->Integer()->getSymbol()->getCharPositionInLine()+1)+"]."));
+        return antlrcpp::Any();
+    }
+    if (value->cast() != nullptr) {
+        auto val = visitCast(value->cast());
+        if (val.is<antlrcpp::Any>()) return val;
+    }
 }

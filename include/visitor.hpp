@@ -104,6 +104,7 @@ public:
     virtual antlrcpp::Any visitDeclare(SnowStarParser::DeclareContext*);
     virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext*);
     virtual antlrcpp::Any visitValue(SnowStarParser::ValueContext*);
+    virtual antlrcpp::Any visitCast(SnowStarParser::CastContext*);
 };
 
 #endif

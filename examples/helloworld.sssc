@@ -4,4 +4,4 @@ decl x : int64 = 2
 decl y,c : real32 = 2
 decl z : bool = true
 decl w : real32 = x
-decl b : str = x
+decl b : str = (str)x

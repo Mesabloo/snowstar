@@ -41,7 +41,7 @@ define : declare '=' value (',' value)* ;
 // fragment defineObject : LPAR value (',' value)* RPAR ;
 // define : declare '=' LPAR? value RPAR? ;
 // print : 'print' LPAR value RPAR ;
-cast : LPAR Type RPAR value ;
+cast : LPAR Type RPAR LPAR? value RPAR? ;
 //Function : '{' NewLine* statement* NewLine* '}' ;
 //    | Function ;
 
