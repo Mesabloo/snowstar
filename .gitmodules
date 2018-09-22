@@ -1,6 +1,3 @@
 [submodule "antlr"]
 	path = antlr
 	url = https://github.com/Kafe-lang/ANTLR4-CPP-runtime.git
-[submodule "llvm"]
-	path = llvm
-	url = https://github.com/llvm-mirror/llvm.git
