@@ -1,7 +1,11 @@
-% test
-decl a : bool = false
-decl x : int64 = 2
-decl y,c : real32 = 2
-decl z : bool = true
-decl w : real32 = x
-decl b : str = (str)x
+def a -> bool = false;
+def x -> int64 = 2;
+def y,c -> real32 = 2;
+def z -> bool = true;
+
+
+defn x;
+
+
+
+def w -> real32 = x;

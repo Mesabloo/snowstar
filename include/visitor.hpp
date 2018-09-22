@@ -4,10 +4,14 @@
 #include <sstream>
 #include <iostream>
 
-#include <SnowStarBaseVisitor.h>
+#include <SnowStarParserBaseVisitor.h>
 #include <SnowStarLexer.h>
 
 #include <termcolor/termcolor.hpp>
+
+#include <llvm/IR/Module.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/IRBuilder.h>
 
 struct EvalValue {
     enum ValueType {
@@ -94,17 +98,17 @@ protected:
     std::string m_msg;
 };
 
-class Visitor : public SnowStarBaseVisitor {
+class Visitor : public SnowStarParserBaseVisitor {
     std::pair<std::vector<Error>, std::vector<Warning>> errors;
     std::vector<std::pair<std::string, antlr4::Token*>> declared;
 
+    llvm::Module& module;
+    llvm::IRBuilder<> current_builder;
+
 public:
-    virtual antlrcpp::Any visitProgram(SnowStarParser::ProgramContext*);
-    virtual antlrcpp::Any visitStatement(SnowStarParser::StatementContext*);
-    virtual antlrcpp::Any visitDeclare(SnowStarParser::DeclareContext*);
-    virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext*);
-    virtual antlrcpp::Any visitValue(SnowStarParser::ValueContext*);
-    virtual antlrcpp::Any visitCast(SnowStarParser::CastContext*);
+    Visitor(llvm::Module&);
+
+    virtual antlrcpp::Any visitStatement(SnowStarParser::StatementContext*) override;
 };
 
 #endif

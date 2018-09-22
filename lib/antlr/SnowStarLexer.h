@@ -1,5 +1,5 @@
 
-// Generated from SnowStar.g4 by ANTLR 4.7.1
+// Generated from SnowStarLexer.g4 by ANTLR 4.7.1
 
 #pragma once
 
@@ -12,10 +12,13 @@
 class  SnowStarLexer : public antlr4::Lexer {
 public:
   enum {
-    T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, Type = 5, Integer = 6, Real = 7, 
-    Boolean = 8, Character = 9, String = 10, Null = 11, Identifier = 12, 
-    WhiteSpace = 13, Comment = 14, MultiLine_Comment = 15, NewLine = 16, 
-    LPAR = 17, RPAR = 18, LBCK = 19, RBCK = 20
+    BOOLEAN = 1, CHAR = 2, DEF = 3, INTEGER8 = 4, INTEGER16 = 5, INTEGER32 = 6, 
+    INTEGER64 = 7, REAL32 = 8, REAL64 = 9, STRING = 10, VOID = 11, DECIMAL_LITERAL = 12, 
+    HEX_LITERAL = 13, BIN_LITERAL = 14, FLOAT_LITERAL = 15, BOOL_LITERAL = 16, 
+    CHAR_LITERAL = 17, STRING_LITERAL = 18, NIL_LITERAL = 19, LPAREN = 20, 
+    RPAREN = 21, LBRACE = 22, RBRACE = 23, LBRACK = 24, RBRACK = 25, SEMI = 26, 
+    COMMA = 27, DOT = 28, ASSIGN = 29, TYPEOF = 30, LOWER = 31, GREATER = 32, 
+    WS = 33, COMMENT = 34, LINE_COMMENT = 35, IDENTIFIER = 36
   };
 
   SnowStarLexer(antlr4::CharStream *input);

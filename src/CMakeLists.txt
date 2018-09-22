@@ -1,24 +1,37 @@
-project(MyProject)
+cmake_minimum_required(VERSION 3.4.3)
+project(Compiler)
+
+find_package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
 include_directories(
-    ${RootProject_SOURCE_DIR}/antlr/cpp_runtime/runtime/src
-    ${RootProject_SOURCE_DIR}/lib/antlr
-    ${RootProject_SOURCE_DIR}/ext
-    ${RootProject_SOURCE_DIR}/include
+    ${SnowStar_SOURCE_DIR}/antlr/cpp_runtime/runtime/src
+    ${SnowStar_SOURCE_DIR}/lib/antlr
+    ${SnowStar_SOURCE_DIR}/ext
+    ${SnowStar_SOURCE_DIR}/include
+    ${LLVM_INCLUDE_DIRS}
 )
+
+add_definitions(${LLVM_DEFINITIONS})
 
 file(
     GLOB_RECURSE SOURCE_FILES
-    ${RootProject_SOURCE_DIR}/lib/antlr/*.cpp
-    ${MyProject_SOURCE_DIR}/*.cpp
+    ${SnowStar_SOURCE_DIR}/lib/antlr/*.cpp
+    ${Compiler_SOURCE_DIR}/*.cpp
 )
 
 add_executable(
-    MyProject ${SOURCE_FILES}
+    Compiler ${SOURCE_FILES}
 )
 
-target_link_libraries(MyProject antlr4_shared)
+llvm_map_components_to_libnames(llvm_libs support core irreader)
+
+target_link_libraries(Compiler antlr4_shared)
+target_link_libraries(Compiler ${llvm_libs})
 if(CMAKE_DL_LIBS)
-    target_link_libraries(MyProject ${CMAKE_DL_LIBS})
+    target_link_libraries(Compiler ${CMAKE_DL_LIBS})
 endif(CMAKE_DL_LIBS)
 
 if (MSVC)
@@ -31,6 +44,6 @@ if (CMAKE_COMPILER_IS_GNUCC)
 endif()
 
 add_custom_command(
-    TARGET MyProject POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${RootProject_SOURCE_DIR}/dist/" $<TARGET_FILE_DIR:MyProject>
+    TARGET Compiler POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${SnowStar_SOURCE_DIR}/dist/" $<TARGET_FILE_DIR:Compiler>
 )

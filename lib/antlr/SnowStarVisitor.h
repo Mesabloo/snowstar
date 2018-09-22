@@ -31,6 +31,8 @@ public:
 
     virtual antlrcpp::Any visitCast(SnowStarParser::CastContext *context) = 0;
 
+    virtual antlrcpp::Any visitMaths_expr(SnowStarParser::Maths_exprContext *context) = 0;
+
 
 };
 
