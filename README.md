@@ -27,36 +27,26 @@ And now, I changed it again, and I'm ready to go for it.
 
 Samples can be found [here](https://mesabloo.github.io/snowstar-lang/about.html#sample-snowstar2) but I will post here a simple `Hello, World!` program made in Snow* 4th gen:
 
-<style>
-    lred { color: #bd9178; }
-    lgreen { color: lightgreen; }
-    green { color: green; }
-    lblue { color: #9cd6e9; }
-    lviolet { color: #a586c0; }
-    lyellow { color: #d9d9a8; }
-</style>
-
 <pre>
-<green>#**
+.:
     Declaration of the main method. The parameters of it are unrequired, you may write it without.
 
-    <lgreen>@param</lgreen> `argc` is of type int8 ;
-    <lgreen>@param</lgreen> `argv` is of type list&lt;string&gt; ;
-    <lgreen>@return</lgreen> int32
-*#</green>
+    @param `argc` is of type int8 ;
+    @param `argv` is of type list&lt;string&gt; ;
+    @return int32
+:.
 
-<lviolet>def</lviolet> <lyellow>main</lyellow>(argc: <lblue>int8</lblue>,
-         argv: <lblue>list</lblue>&lt;<lblue>string</lblue>&gt;) -> <lblue>int32</lblue> {
-    print(<lred>"Hello, World!"</lred>)
-    <green># We print "Hello, World!" in the console.</green>
-    <lviolet>return</lviolet> 0
-    <green># We return from the function, with an int32 value.</green>
+int32 main(int8 argc, list&lt;string&gt; argv) {
+    print("Hello, World!")
+    § We print "Hello, World!" in the console.
+    return 0
+    § We return from the function, with an int32 value.
 }
 
-<green>#*
+.:
     This sample is not yet compilable.
     Don't try to compile it, you'll get many errors.
-*#</green>
+:.
 </pre>
 
 ## <u>Special thanks to</u>

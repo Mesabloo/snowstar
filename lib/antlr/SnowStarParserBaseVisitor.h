@@ -15,39 +15,7 @@
 class  SnowStarParserBaseVisitor : public SnowStarParserVisitor {
 public:
 
-  virtual antlrcpp::Any visitVariableDeclarators(SnowStarParser::VariableDeclaratorsContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitVariableDeclarator(SnowStarParser::VariableDeclaratorContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitVariableDeclaratorId(SnowStarParser::VariableDeclaratorIdContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitVariableInitializer(SnowStarParser::VariableInitializerContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitLiteral(SnowStarParser::LiteralContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitIntegerLiteral(SnowStarParser::IntegerLiteralContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitBlock(SnowStarParser::BlockContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitBlockStatement(SnowStarParser::BlockStatementContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitLocalVariableDeclaration(SnowStarParser::LocalVariableDeclarationContext *ctx) override {
+  virtual antlrcpp::Any visitCompilationUnit(SnowStarParser::CompilationUnitContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -59,27 +27,15 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitPrimary(SnowStarParser::PrimaryContext *ctx) override {
+  virtual antlrcpp::Any visitDeclare(SnowStarParser::DeclareContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitCreator(SnowStarParser::CreatorContext *ctx) override {
+  virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitCreatedName(SnowStarParser::CreatedNameContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitTypeGeneric(SnowStarParser::TypeGenericContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitTypeList(SnowStarParser::TypeListContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitTypeType(SnowStarParser::TypeTypeContext *ctx) override {
+  virtual antlrcpp::Any visitLiteral(SnowStarParser::LiteralContext *ctx) override {
     return visitChildren(ctx);
   }
 

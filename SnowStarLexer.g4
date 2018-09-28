@@ -4,14 +4,12 @@ lexer grammar SnowStarLexer;
 
 BOOLEAN:    'bool';
 CHAR:       'char';
-DEF:        'def';
 INTEGER8:   'int8';
 INTEGER16:  'int16';
 INTEGER32:  'int32';
 INTEGER64:  'int64';
 REAL32:     'real32';
 REAL64:     'real64';
-STRING:     'string';
 VOID:       'void';
 
 // Literals
@@ -20,12 +18,12 @@ DECIMAL_LITERAL:   Digits+;
 HEX_LITERAL:       '0' [xX] HexDigits+;
 BIN_LITERAL:       '0' [bB] BinDigits+;
 
-FLOAT_LITERAL:     (Digits+ '.' Digits* | '.' Digits*);
+FLOAT_LITERAL:     (Digits+ '.' Digits* | '.' Digits* | Digits+ '.');
 
 BOOL_LITERAL:      'true'
             |      'false';
 
-CHAR_LITERAL:      '`' (~[`\\\r\n] | EscapeSequence) '`';
+CHAR_LITERAL:      '\'' (~['\\\r\n] | EscapeSequence) '\'';
 
 STRING_LITERAL:    '"' (~["\\\r\n] | EscapeSequence)* '"';
 
@@ -46,15 +44,12 @@ DOT:    '.';
 // Operators
 
 ASSIGN:    '=';
-TYPEOF:    '->';
-LOWER:     '<';
-GREATER:   '>';
 
 // Whitespaces and comments
 
 WS:             [ \t\r\n\u000C]+ -> channel(HIDDEN);
-COMMENT:        '#*' .*? '*#'    -> channel(HIDDEN);
-LINE_COMMENT:   '#' ~[\r\n]*     -> channel(HIDDEN);
+COMMENT:        '.:' .*? ':.'    -> channel(HIDDEN);
+LINE_COMMENT:   '§' ~[\r\n]*     -> channel(HIDDEN);
 
 // Identifiers
 
@@ -62,7 +57,7 @@ IDENTIFIER: Letter LetterOrDigit*;
 
 // Fragments
 
-fragment EscapeSequence: '\\' [btnfr"`\\];
+fragment EscapeSequence: '\\' [btnfr"'\\];
 fragment HexDigits:      HexDigit HexDigit*?;
 fragment HexDigit:       [0-9a-fA-F];
 fragment BinDigits:      [01] [01]*?;
