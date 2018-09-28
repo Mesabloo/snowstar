@@ -61,7 +61,7 @@ antlrcpp::Any Visitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
         #endif
         errors.errs.push_back(RedeclaredVariableError().from(current_stmt_context, ctx->IDENTIFIER()->getSymbol(), ctx->IDENTIFIER()->getText()));
     }
-    declared.push_back(std::make_pair(ctx->IDENTIFIER()->getText(), ctx->IDENTIFIER()->getSymbol()));
+    declared.push_back(std::make_pair(ctx->IDENTIFIER()->getText(), ctx->primitiveType()));
 
     // LLVM generation
 
@@ -93,8 +93,34 @@ antlrcpp::Any Visitor::visitDefine(SnowStarParser::DefineContext* ctx) {
         }
         return "void";
     };
-    if (ctx->expression()->IDENTIFIER()) {
-
+    if (auto id = ctx->expression()->IDENTIFIER()) {
+        auto it = std::find_if(declared.begin(), declared.end(), [&] (Var const& v) { return id->getText() == v.first; });
+        if (it == declared.end()) {
+            // throw error
+            errors.errs.push_back(UndeclaredVariableError().from(current_stmt_context, id->getSymbol(), id->getSymbol()->getText()));
+            return antlrcpp::Any();
+        }
+        if (type->BOOLEAN() && it->second->getText() != "bool") {
+            // inconsistent types bool and not bool
+            errors.errs.push_back(WrongTypedValueError().from(current_stmt_context, ctx->expression()->getStart(), "bool;"+it->second->getText()));
+        }
+        if (type->CHAR() && it->second->getText() != "char") {
+            // inconsistent types char and not char
+            errors.errs.push_back(WrongTypedValueError().from(current_stmt_context, ctx->expression(), "char;"+it->second->getText()));
+        }
+        if ((type->INTEGER8() || type->INTEGER16() || type->INTEGER32() || type->INTEGER64()) && !utils::str_startswith(it->second->getText(), "int")) {
+            // inconsistent types
+            errors.errs.push_back(WrongTypedValueError().from(current_stmt_context, ctx->expression(), [&type]() -> std::string { return type->INTEGER8()?"int8":type->INTEGER16()?"int16":type->INTEGER32()?"int32":"int64"; }()+";"+it->second->getText()));
+        }
+        if ((type->REAL32() || type->REAL64())) {
+            if (utils::str_startswith(it->second->getText(), "int")) {
+                // implicit 
+                errors.warns.push_back(ImplicitCastWarning().from(current_stmt_context, ctx->expression(), it->second->getText()+";"+[&type]() -> std::string { return type->REAL32()?"real32":"real64"; }()));
+            } else if (!utils::str_startswith(it->second->getText(), "real")) {
+                // inconsistent types
+                errors.errs.push_back(WrongTypedValueError().from(current_stmt_context, ctx->expression(), [&type]() -> std::string { return type->REAL32()?"real32":"real64"; }()+";"+it->second->getText()));
+            }
+        }
     } else if (ctx->expression()->literal()) {
         if (type->BOOLEAN() && !ctx->expression()->literal()->BOOL_LITERAL()) {
             // error: value is of wrong type

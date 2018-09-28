@@ -18,7 +18,7 @@
 #include <llvm/IR/IRBuilder.h>
 
 class Visitor : public SnowStarParserBaseVisitor {
-    using Var = std::pair<std::string, antlr4::Token*>;
+    using Var = std::pair<std::string, SnowStarParser::PrimitiveTypeContext*>;
     std::vector<Var> declared{};
 
     struct E {

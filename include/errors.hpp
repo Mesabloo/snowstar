@@ -49,6 +49,14 @@ struct InvalidDeclaringTypeError : Error {
     virtual std::unique_ptr<Error> from(antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::string const...);
 };
 
+struct UndeclaredVariableError : Error {
+    UndeclaredVariableError() = default;
+    UndeclaredVariableError(std::string const& msg) : Error(msg) {}
+
+    virtual std::unique_ptr<Error> from(antlr4::ParserRuleContext*, antlr4::Token*, std::string const...);
+    virtual std::unique_ptr<Error> from(antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::string const...);
+};
+
 class Warning {
 public:
     Warning() = default;

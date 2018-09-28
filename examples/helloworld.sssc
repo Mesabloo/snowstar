@@ -1,6 +1,9 @@
 bool blablablablabla = 0123456789;  
 int32 blablablablabla = 0;
 int64 x = 'e';
+int32 f = b;
+bool a = x;
+bool c = a;
 void f = 0;
 real32 y = 1000000000;
    § def y,c <> real32 = 2;
