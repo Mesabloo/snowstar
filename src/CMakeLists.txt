@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4.3)
+cmake_minimum_required(VERSION 3.8)
 project(Compiler)
 
 find_package(LLVM REQUIRED CONFIG)
@@ -34,13 +34,16 @@ if(CMAKE_DL_LIBS)
     target_link_libraries(Compiler ${CMAKE_DL_LIBS})
 endif(CMAKE_DL_LIBS)
 
+target_compile_features(Compiler PUBLIC cxx_std_17)
+set(CMAKE_BUILD_TYPE "Debug")
+
 if (MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
 endif (MSVC)
 
 if (CMAKE_COMPILER_IS_GNUCC)
 #    set(CMAKE_CXX_FLAGS "-std=c++17 -O2 -march=native -DNDEBUG")
-    set(CMAKE_CXX_FLAGS "-std=c++17 -ggdb -Wall -Wextra -W")
+    set(CMAKE_CXX_FLAGS "-ggdb -Wall -Wextra -W")
 endif()
 
 add_custom_command(
