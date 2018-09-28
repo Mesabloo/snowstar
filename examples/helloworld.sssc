@@ -1,11 +1,9 @@
-def a -> bool = false;
-def x -> int64 = 2;
-def y,c -> real32 = 2;
-def z -> bool = true;
+bool blablablablabla = 0123456789;  
+int32 blablablablabla = 0;
+int64 x = 'e';
+void f = 0;
+real32 y = 1000000000;
+   § def y,c <> real32 = 2;
+   § def z <> bool = true;
 
-
-defn x;
-
-
-
-def w -> real32 = x;
+   § def w <> real32 = x;

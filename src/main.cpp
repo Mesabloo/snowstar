@@ -34,6 +34,10 @@ int main(int argc, char** argv) {
         }
     }
 
+    #ifndef NDEBUG
+        std::clog << termcolor::yellow << "Entering DEBUG mode..." << termcolor::reset << std::endl;
+    #endif
+
     antlr4::ANTLRFileStream input(argv[1]);
     SnowStarLexer lexer(&input);
     ErrorListener lexer_listener;
@@ -52,7 +56,7 @@ int main(int argc, char** argv) {
     ErrorListener parser_listener;
     parser.removeErrorListeners();
     parser.addErrorListener(&parser_listener);
-    antlr4::tree::ParseTree* tree = parser.statement();
+    antlr4::tree::ParseTree* tree = parser.compilationUnit();
 
     if (parser.getNumberOfSyntaxErrors() > 0) {
         std::cerr << "Unexpected errors occured:\n" << parser_listener << std::endl;
@@ -68,14 +72,15 @@ int main(int argc, char** argv) {
     llvm::Module mod = llvm::Module("test.ll", ctx);
 
     Visitor v{mod};
-    std::pair<std::vector<Error>, std::vector<Warning>> const& result = v.visit(tree);
-    for (auto const& e : result.first) {
-        std::cerr << e.print() << std::endl;
+    v.visit(tree);
+    auto const& result = v.getErrorsAndWarnings();
+    for (auto& e : result.errs) {
+        std::cerr << e->getError() << std::endl;
     }
-    if (!result.first.empty()) return 1;
-    for (auto const& w : result.second) {
-        std::cerr << w.print() << std::endl;
+    for (auto& w : result.warns) {
+        std::cerr << w->getError() << std::endl;
     }
+    if (!result.errs.empty()) return 1;
 
     //mod.dump();
 
