@@ -6,6 +6,10 @@ find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+set(LLVM_BUILD_LLVM_DYLIB OFF)
+set(LLVM_LINK_LLVM_DYLIB OFF)
+set(LLVM_ENABLE_CXX1Y ON)
+
 include_directories(
     ${SnowStar_SOURCE_DIR}/antlr/cpp_runtime/runtime/src
     ${SnowStar_SOURCE_DIR}/lib/antlr
@@ -26,24 +30,45 @@ add_executable(
     Compiler ${SOURCE_FILES}
 )
 
-llvm_map_components_to_libnames(llvm_libs support core irreader)
+llvm_map_components_to_libnames(LLVM_LIBRARIES
+    support core irreader option
+    x86asmparser      x86codegen
+    amdgpuasmparser   amdgpucodegen
+    armasmparser      armcodegen
+                      msp430codegen    
+                      xcorecodegen
+    aarch64asmparser  aarch64codegen
+    mipsasmparser     mipscodegen
+    systemzasmparser  systemzcodegen
+    hexagonasmparser  hexagoncodegen
+    powerpcasmparser  powerpccodegen
+                      nvptxcodegen
+                      lanaicodegen
+    sparcasmparser    sparccodegen
+    bpfasmparser      bpfcodegen
+)
 
 target_link_libraries(Compiler antlr4_shared)
-target_link_libraries(Compiler ${llvm_libs})
+target_link_libraries(Compiler ${LLVM_LIBRARIES})
+target_link_libraries(Compiler tiny-process-library)
 if(CMAKE_DL_LIBS)
     target_link_libraries(Compiler ${CMAKE_DL_LIBS})
 endif(CMAKE_DL_LIBS)
 
 target_compile_features(Compiler PUBLIC cxx_std_17)
 set(CMAKE_BUILD_TYPE "Debug")
+set_target_properties(Compiler PROPERTIES OUTPUT_NAME "ssc")
 
 if (MSVC)
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif (MSVC)
 
 if (CMAKE_COMPILER_IS_GNUCC)
-#    set(CMAKE_CXX_FLAGS "-std=c++17 -O2 -march=native -DNDEBUG")
-    set(CMAKE_CXX_FLAGS "-ggdb -Wall -Wextra -W")
+    if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+        set(CMAKE_CXX_FLAGS "-O2 -march=native -DNDEBUG")
+    else()
+        set(CMAKE_CXX_FLAGS "-ggdb -Wall -Wextra -W")
+    endif()
 endif()
 
 add_custom_command(
