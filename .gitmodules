@@ -1,3 +1,6 @@
 [submodule "antlr"]
 	path = antlr
 	url = https://github.com/Kafe-lang/ANTLR4-CPP-runtime.git
+[submodule "tiny_process_library"]
+	path = tiny_process_library
+	url = http://gitlab.com/eidheim/tiny-process-library
