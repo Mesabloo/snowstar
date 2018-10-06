@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iostream>
 #include <variant>
+#include <map>
 
 #include <SnowStarParserBaseVisitor.h>
 #include <SnowStarLexer.h>
@@ -18,7 +19,8 @@
 #include <llvm/IR/IRBuilder.h>
 
 class Visitor : public SnowStarParserBaseVisitor {
-    using Var = std::pair<std::string, SnowStarParser::PrimitiveTypeContext*>;
+    using Var = std::tuple<std::string, SnowStarParser::PrimitiveTypeContext*, std::pair<int, int>>;
+    using Decl = std::pair<SnowStarParser::PrimitiveTypeContext*, llvm::AllocaInst*>;
     std::vector<Var> declared{};
 
     struct E {
@@ -26,16 +28,22 @@ class Visitor : public SnowStarParserBaseVisitor {
         std::vector<std::unique_ptr<Warning>> warns;
     } errors;
 
+    llvm::Module& module;
+    // llvm::IRBuilder<> current_builder;
+    llvm::BasicBlock* cur_block;
+
+    std::map<std::string, llvm::Type*> llvm_types;
+
     antlr4::ParserRuleContext* current_stmt_context;
 
-    llvm::Module& module;
-    llvm::IRBuilder<> current_builder;
+    std::string file_name;
 
 public:
-    Visitor(llvm::Module&);
+    Visitor(std::string const&, llvm::Module&);
 
     E& getErrorsAndWarnings() { return errors; }
 
+    virtual antlrcpp::Any visitCompilationUnit(SnowStarParser::CompilationUnitContext*) override;
     virtual antlrcpp::Any visitStatement(SnowStarParser::StatementContext*) override;
     virtual antlrcpp::Any visitExpression(SnowStarParser::ExpressionContext*) override;
     virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext*) override;

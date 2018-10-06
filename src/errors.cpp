@@ -19,7 +19,7 @@ std::unique_ptr<Error> RedeclaredVariableError::from(antlr4::ParserRuleContext* 
     std::string code = ctx->getStart()->getInputStream()->getText(antlr4::misc::Interval{ctx->getStart()->getStartIndex(), ctx->getStop()->getStopIndex()}),
                 token = in_fault->getText();
 
-    auto token_beg = code.find(token);
+    auto token_beg = code.find(token, character-first_character);
     if (token_beg != code.npos) {
         std::stringstream ss;
         ss << code.substr(0, token_beg) << termcolor::colorize << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
@@ -27,9 +27,9 @@ std::unique_ptr<Error> RedeclaredVariableError::from(antlr4::ParserRuleContext* 
     }
 
     std::stringstream ss;
-    ss << "Redeclared variable `" << args << "` at line " << std::to_string(line) << ":" << std::to_string(character+1) << "\n"
-        << termcolor::colorize << code << "\n"
-        << spacer(" ", character-first_character) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
+    ss << termcolor::colorize << termcolor::red << "error at " << std::to_string(line) << ":" << std::to_string(character+1) << termcolor::reset <<  ": Redeclared variable `" << utils::str_split(args, ';')[0] << "`, previously declared at line " << utils::str_split(args, ';')[1] << ":" << utils::str_split(args, ';')[2] << ".\n"
+        << "    " << code << "\n"
+        << spacer(" ", character-first_character+4) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
     
     return std::make_unique<RedeclaredVariableError>(std::string{ss.str()});
 }
@@ -44,7 +44,7 @@ std::unique_ptr<Error> UndeclaredVariableError::from(antlr4::ParserRuleContext* 
     std::string code = ctx->getStart()->getInputStream()->getText(antlr4::misc::Interval{ctx->getStart()->getStartIndex(), ctx->getStop()->getStopIndex()}),
                 token = in_fault->getText();
 
-    auto token_beg = code.find(token);
+    auto token_beg = code.find(token, character-first_character);
     if (token_beg != code.npos) {
         std::stringstream ss;
         ss << code.substr(0, token_beg) << termcolor::colorize << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
@@ -52,9 +52,9 @@ std::unique_ptr<Error> UndeclaredVariableError::from(antlr4::ParserRuleContext* 
     }
 
     std::stringstream ss;
-    ss << "Undeclared variable `" << args << "` at line " << std::to_string(line) << ":" << std::to_string(character+1) << "\n"
-        << termcolor::colorize << code << "\n"
-        << spacer(" ", character-first_character) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
+    ss << termcolor::colorize << termcolor::red << "error at " << std::to_string(line) << ":" << std::to_string(character+1) << termcolor::reset << ": Undeclared variable `" << args << "`.\n"
+        << "    " << code << "\n"
+        << spacer(" ", character-first_character+4) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
     
     return std::make_unique<RedeclaredVariableError>(std::string{ss.str()});
 }
@@ -69,7 +69,7 @@ std::unique_ptr<Error> WrongTypedValueError::from(antlr4::ParserRuleContext* ctx
     std::string code = ctx->getStart()->getInputStream()->getText(antlr4::misc::Interval{ctx->getStart()->getStartIndex(), ctx->getStop()->getStopIndex()}),
                 token = in_fault->getText();
 
-    auto token_beg = code.find(token);
+    auto token_beg = code.find(token, character-first_character);
     if (token_beg != code.npos) {
         std::stringstream ss;
         ss << code.substr(0, token_beg) << termcolor::colorize << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
@@ -77,9 +77,9 @@ std::unique_ptr<Error> WrongTypedValueError::from(antlr4::ParserRuleContext* ctx
     }
 
     std::stringstream ss;
-    ss << "Inconsistent types, expected `" << utils::str_split(args, ';')[0] << "` found `" << utils::str_split(args, ';')[1] << "` on variable declaration at line " << std::to_string(line) << ":" << std::to_string(character+1) << "\n"
-        << termcolor::colorize << code << "\n"
-        << spacer(" ", character-first_character) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
+    ss << termcolor::colorize << termcolor::red << "error at " << std::to_string(line) << ":" << std::to_string(character+1) << termcolor::reset << ": Inconsistent types. Expected `" << utils::str_split(args, ';')[0] << "`, found `" << utils::str_split(args, ';')[1] << "` on variable declaration.\n"
+        << "    " << code << "\n"
+        << spacer(" ", character-first_character+4) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
     
     return std::make_unique<WrongTypedValueError>(std::string{ss.str()});
 }
@@ -94,7 +94,7 @@ std::unique_ptr<Error> InvalidDeclaringTypeError::from(antlr4::ParserRuleContext
     std::string code = ctx->getStart()->getInputStream()->getText(antlr4::misc::Interval{ctx->getStart()->getStartIndex(), ctx->getStop()->getStopIndex()}),
                 token = in_fault->getText();
 
-    auto token_beg = code.find(token);
+    auto token_beg = code.find(token, character-first_character);
     if (token_beg != code.npos) {
         std::stringstream ss;
         ss << code.substr(0, token_beg) << termcolor::colorize << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
@@ -102,9 +102,9 @@ std::unique_ptr<Error> InvalidDeclaringTypeError::from(antlr4::ParserRuleContext
     }
 
     std::stringstream ss;
-    ss << "Cannot declare a variable of type void at line " << std::to_string(line) << ":" << std::to_string(character+1) << "\n"
-        << termcolor::colorize << code << "\n"
-        << spacer(" ", character-first_character) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
+    ss << termcolor::colorize << termcolor::red << "error at " << std::to_string(line) << ":" << std::to_string(character+1) << termcolor::reset << ": Cannot declare a variable of type " << args << ".\n"
+        << "    " << code << "\n"
+        << spacer(" ", character-first_character+4) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
     
     return std::make_unique<InvalidDeclaringTypeError>(std::string{ss.str()});
 }
@@ -119,7 +119,7 @@ std::unique_ptr<Warning> ImplicitCastWarning::from(antlr4::ParserRuleContext* ct
     std::string code = ctx->getStart()->getInputStream()->getText(antlr4::misc::Interval{ctx->getStart()->getStartIndex(), ctx->getStop()->getStopIndex()}),
                 token = in_fault->getText();
 
-    auto token_beg = code.find(token);
+    auto token_beg = code.find(token, character-first_character);
     if (token_beg != code.npos) {
         std::stringstream ss;
         ss << code.substr(0, token_beg) << termcolor::colorize << termcolor::yellow << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
@@ -127,9 +127,9 @@ std::unique_ptr<Warning> ImplicitCastWarning::from(antlr4::ParserRuleContext* ct
     }
 
     std::stringstream ss;
-    ss << "Implicit cast performed from type `" << utils::str_split(args, ';')[0] << "` to type `" << utils::str_split(args, ';')[1] << "` at line " << std::to_string(line) << ":" << std::to_string(character+1) << "\n"
-        << termcolor::colorize << code << "\n"
-        << spacer(" ", character-first_character) << termcolor::yellow << "^" << spacer("~", token.size()-1) << termcolor::reset;
+    ss << termcolor::colorize << termcolor::yellow << "warning at " << std::to_string(line) << ":" << std::to_string(character+1) << termcolor::reset << ": Implicit cast performed from type `" << utils::str_split(args, ';')[0] << "` to type `" << utils::str_split(args, ';')[1] << "`.\n"
+        << "    " << code << "\n"
+        << spacer(" ", character-first_character+4) << termcolor::yellow << "^" << spacer("~", token.size()-1) << termcolor::reset;
     
     return std::make_unique<ImplicitCastWarning>(std::string{ss.str()});
 }
