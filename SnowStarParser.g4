@@ -32,6 +32,8 @@ primitiveType:   BOOLEAN
              |   INTEGER16
              |   INTEGER32
              |   INTEGER64
+             |   INTEGER128
+             |   REAL16
              |   REAL32
              |   REAL64
              |   VOID;

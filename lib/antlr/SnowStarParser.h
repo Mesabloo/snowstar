@@ -13,11 +13,12 @@ class  SnowStarParser : public antlr4::Parser {
 public:
   enum {
     BOOLEAN = 1, CHAR = 2, INTEGER8 = 3, INTEGER16 = 4, INTEGER32 = 5, INTEGER64 = 6, 
-    REAL32 = 7, REAL64 = 8, VOID = 9, DECIMAL_LITERAL = 10, HEX_LITERAL = 11, 
-    BIN_LITERAL = 12, FLOAT_LITERAL = 13, BOOL_LITERAL = 14, CHAR_LITERAL = 15, 
-    STRING_LITERAL = 16, NIL_LITERAL = 17, LPAREN = 18, RPAREN = 19, LBRACE = 20, 
-    RBRACE = 21, LBRACK = 22, RBRACK = 23, SEMI = 24, COMMA = 25, DOT = 26, 
-    ASSIGN = 27, WS = 28, COMMENT = 29, LINE_COMMENT = 30, IDENTIFIER = 31
+    INTEGER128 = 7, REAL16 = 8, REAL32 = 9, REAL64 = 10, VOID = 11, DECIMAL_LITERAL = 12, 
+    HEX_LITERAL = 13, BIN_LITERAL = 14, FLOAT_LITERAL = 15, BOOL_LITERAL = 16, 
+    CHAR_LITERAL = 17, STRING_LITERAL = 18, NIL_LITERAL = 19, LPAREN = 20, 
+    RPAREN = 21, LBRACE = 22, RBRACE = 23, LBRACK = 24, RBRACK = 25, SEMI = 26, 
+    COMMA = 27, DOT = 28, ASSIGN = 29, WS = 30, COMMENT = 31, LINE_COMMENT = 32, 
+    IDENTIFIER = 33
   };
 
   enum {
@@ -136,6 +137,8 @@ public:
     antlr4::tree::TerminalNode *INTEGER16();
     antlr4::tree::TerminalNode *INTEGER32();
     antlr4::tree::TerminalNode *INTEGER64();
+    antlr4::tree::TerminalNode *INTEGER128();
+    antlr4::tree::TerminalNode *REAL16();
     antlr4::tree::TerminalNode *REAL32();
     antlr4::tree::TerminalNode *REAL64();
     antlr4::tree::TerminalNode *VOID();

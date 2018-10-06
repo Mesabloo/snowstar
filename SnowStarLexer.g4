@@ -8,6 +8,8 @@ INTEGER8:   'int8';
 INTEGER16:  'int16';
 INTEGER32:  'int32';
 INTEGER64:  'int64';
+INTEGER128: 'int128';
+REAL16:     'real16';
 REAL32:     'real32';
 REAL64:     'real64';
 VOID:       'void';
