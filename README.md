@@ -1,4 +1,4 @@
-# <img src="https://mesabloo.github.io/snowstar-lang/icons/snowstar_64x64.png" type="image/png" height="64" widht="64" style="vertical-align: -60%;"/> <b>Snow*, 4th generation</b>
+# <img src="https://mesabloo.github.io/snowstar-lang/icons/snowstar_64x64.png" type="image/png" height="64" widht="64" style="vertical-align:middle"/> <b>Snow*, 4th generation</b>
 
 ## <u>What is Snow* ?</u>
 
@@ -36,6 +36,9 @@ Samples can be found [here](https://mesabloo.github.io/snowstar-lang/about.html#
     @return int32
 :.
 
+§ So that we can use `print()`.
+import stdio;
+
 int32 main(int8 argc, list&lt;string&gt; argv) {
     print("Hello, World!")
     § We print "Hello, World!" in the console.
@@ -64,3 +67,4 @@ People from many Discord servers helping me when I need help. Links to them will
 - [__termcolor__](https://github.com/ikalnytskyi/termcolor), released under BSD license, Copyright (c) 2013 Ihor Kalnytskyi
 - [__LLVM__](https://github.com/llvm-mirror/llvm), released under Open Source license, Copyright (c) 2003-2018 University of Illinois at Urbana-Champaign.
 All rights reserved.
+- [__Tiny Process Library__](https://gitlab.com/eidheim/tiny-process-library), released under the MIT License, Copyright (c) 2015-2018 Ole Christian Eidheim
