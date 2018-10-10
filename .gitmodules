@@ -4,3 +4,12 @@
 [submodule "tiny_process_library"]
 	path = tiny_process_library
 	url = http://gitlab.com/eidheim/tiny-process-library
+[submodule "cli11"]
+	path = cli11
+	url = https://github.com/CLIUtils/CLI11.git
+[submodule "cxxopts"]
+	path = cxxopts
+	url = https://github.com/jarro2783/cxxopts
+[submodule "argh"]
+	path = argh
+	url = https://github.com/adishavit/argh
