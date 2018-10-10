@@ -9,8 +9,8 @@
 #include <visitor.hpp>
 #include <error_listener.hpp>
 #include <termcolor/termcolor.hpp>
-#include <args_parser.hpp>
 #include <process.hpp>
+#include <argh.h>
 
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
@@ -39,21 +39,49 @@ namespace utils {
 
 int main(int argc, char** argv) {
 
+    std::string file_name_ll = "",
+                file_name_o = "",
+                file_name_out = "a.out";
+    std::vector<std::string> input_files{};
+
     // check args here
-    {
-        args_parser::CLI interface;
-        std::vector<args_parser::Option> opts {
-            args_parser::Option({"-h", "--help"}),
-            args_parser::Option({"-v", "--version"})
-        };
-        interface.setOptions(opts);
+    auto parsed_cmd = argh::parser(argc, argv);
+    parsed_cmd.add_params({"-o","--output"});
+    
+    for (unsigned i{1};i < parsed_cmd.pos_args().size();++i) {
+        input_files.push_back(parsed_cmd.pos_args()[i]);
+    }
+    for (auto& param : parsed_cmd.params()) {
+        if (param.first == "o" || param.first == "output") {
+            file_name_out = param.second;
+        }
+    }
+
+    if (parsed_cmd[{"-h", "--help"}]) {
+        llvm::outs() << "─────< Snow* compiler, made by Mesabloo >──────" << "\n\n"
+            << "Usage:\n"
+            << argv[0] << " [-h | --help] [-v | --version] [-o | --output=<PATH>] <file1.ss file2.ss ...>\n\n"
+            << "Options:\n"
+            << "  -v,--version       Display the version of the Snow* compiler\n"
+            << "  -h,--help          Display this message\n"
+            << "  -o,--output=PATH   Change the output executable name/path\n\n"
+            << "      Licenced under the GNU Public Licence v3";
+        return 0;
+    }
+    if (parsed_cmd[{"-v", "--version"}]) {
+        llvm::outs() << "ssc (Snow* Compiler) 0.0.1-Beta 20181010\n"
+            << "Copyright (C) 2018 Mesabloo.";
+        return 0;
     }
 
     #ifndef NDEBUG
         std::clog << termcolor::yellow << "   /!\\   | Entering DEBUG mode..." << termcolor::reset << std::endl;
+
+        std::clog << termcolor::magenta << "   ...   | Input files: " << [](std::vector<std::string> const& array) -> std::string { std::string s; for (auto file : array) { s += file + " ; "; } return s; }(input_files) << "\n"
+            << "   ...   | Output file: " << file_name_out << " ;" << termcolor::reset << std::endl;
     #endif
 
-    antlr4::ANTLRFileStream input(argv[1]);
+    antlr4::ANTLRFileStream input(input_files[0]);
     SnowStarLexer lexer(&input);
     ErrorListener lexer_listener;
     lexer.removeErrorListeners();
@@ -80,13 +108,7 @@ int main(int argc, char** argv) {
 
     std::clog << tree->toStringTree(&parser) << std::endl;
 
-    std::string arg{argv[1]};
-    arg.erase(arg.begin(), arg.begin()+arg.find_last_of("/\\")+1);
-
-    std::string file_name_ll = arg+".ll",
-                file_name_o = arg+".o",
-                file_name_out = arg+".out",
-                file_name = arg;
+    file_name_ll = input_files[0]+".ll";
 
     static llvm::LLVMContext ctx{};
     llvm::Module mod = llvm::Module(file_name_ll, ctx);
@@ -113,7 +135,7 @@ int main(int argc, char** argv) {
     mod.setDataLayout(machine->createDataLayout());
     mod.setTargetTriple(targetTriple);
 
-    Visitor v{arg, mod};
+    Visitor v{input_files[0], mod};
     v.visit(tree);
     auto const& result = v.getErrorsAndWarnings();
     for (auto& e : result.errs) {
@@ -129,6 +151,8 @@ int main(int argc, char** argv) {
     #ifndef NDEBUG
         mod.print(llvm::outs(), nullptr, false, true);
     #endif
+
+    file_name_o = input_files[0]+".o";
 
     std::error_code code;
     llvm::raw_fd_ostream destination{file_name_o, code, llvm::sys::fs::F_None};

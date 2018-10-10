@@ -118,8 +118,8 @@ antlrcpp::Any Visitor::visitDefine(SnowStarParser::DefineContext* ctx) {
         std::clog << termcolor::green << "   [i]   | Visiting a definition..." << termcolor::reset << std::endl;
     #endif
     antlrcpp::Any t = visitDeclare(ctx->declare());
-    if (t.is<decltype(nullptr)>()) return antlrcpp::Any();
-    Decl type = t;
+    if (!t.is<Decl>()) return antlrcpp::Any();
+    Decl type = t.as<Decl>();
     if (type.first->VOID()) return antlrcpp::Any();
 
     auto findStringType = [] (SnowStarParser::LiteralContext* ct) -> std::string {
