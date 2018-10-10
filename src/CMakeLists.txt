@@ -12,6 +12,7 @@ set(LLVM_ENABLE_CXX1Y ON)
 
 include_directories(
     ${SnowStar_SOURCE_DIR}/antlr/cpp_runtime/runtime/src
+    ${SnowStar_SOURCE_DIR}/argh
     ${SnowStar_SOURCE_DIR}/lib/antlr
     ${SnowStar_SOURCE_DIR}/ext
     ${SnowStar_SOURCE_DIR}/include
@@ -31,7 +32,7 @@ add_executable(
 )
 
 llvm_map_components_to_libnames(LLVM_LIBRARIES
-    support core irreader option
+    support core irreader option target
     x86asmparser      x86codegen
     amdgpuasmparser   amdgpucodegen
     armasmparser      armcodegen
@@ -64,8 +65,8 @@ if (MSVC)
 endif (MSVC)
 
 if (CMAKE_COMPILER_IS_GNUCC)
-    if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
-        set(CMAKE_CXX_FLAGS "-O2 -march=native -DNDEBUG")
+    if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+        set(CMAKE_CXX_FLAGS "-O3 -march=native -DNDEBUG")
     else()
         set(CMAKE_CXX_FLAGS "-ggdb -Wall -Wextra -W")
     endif()
