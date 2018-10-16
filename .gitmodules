@@ -13,3 +13,6 @@
 [submodule "argh"]
 	path = argh
 	url = https://github.com/adishavit/argh
+[submodule "termcolor"]
+	path = termcolor
+	url = https://github.com/ikalnytskyi/termcolor
