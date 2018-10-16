@@ -34,6 +34,11 @@
 # Special entry
 .vscode/*.*
 .vscode
+.vs/*.*
+.vs
 build/*.*
 build/*
 build
+CMakeSettings.json
+dist/*.*
+dist
