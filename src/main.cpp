@@ -41,7 +41,11 @@ int main(int argc, char** argv) {
 
     std::string file_name_ll = "",
                 file_name_o = "",
+    #ifdef WIN32
+                file_name_out = "a.exe";
+    #else
                 file_name_out = "a.out";
+    #endif
     std::vector<std::string> input_files{};
 
     // check args here
@@ -57,7 +61,14 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (parsed_cmd[{"-h", "--help"}]) {
+    if (parsed_cmd[{"-v", "--version"}]) {
+        llvm::outs() << "ssc (Snow* Compiler) 0.0.1-Beta 20181010\n"
+            << "Copyright (C) 2018 Mesabloo.\n";
+        llvm::outs().flush();
+        return 0;
+    }
+
+    if (parsed_cmd[{"-h", "--help"}] || (input_files.empty() && parsed_cmd.flags().empty())) {
         llvm::outs() << "─────< Snow* compiler, made by Mesabloo >──────" << "\n\n"
             << "Usage:\n"
             << argv[0] << " [-h | --help] [-v | --version] [-o | --output=<PATH>] <file1.ss file2.ss ...>\n\n"
@@ -65,12 +76,8 @@ int main(int argc, char** argv) {
             << "  -v,--version       Display the version of the Snow* compiler\n"
             << "  -h,--help          Display this message\n"
             << "  -o,--output=PATH   Change the output executable name/path\n\n"
-            << "      Licenced under the GNU Public Licence v3";
-        return 0;
-    }
-    if (parsed_cmd[{"-v", "--version"}]) {
-        llvm::outs() << "ssc (Snow* Compiler) 0.0.1-Beta 20181010\n"
-            << "Copyright (C) 2018 Mesabloo.";
+            << "      Licenced under the GNU Public Licence v3\n";
+        llvm::outs().flush();
         return 0;
     }
 
@@ -106,7 +113,9 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::clog << tree->toStringTree(&parser) << std::endl;
+    #ifndef NDEBUG
+        std::clog << tree->toStringTree(&parser) << std::endl;
+    #endif
 
     file_name_ll = input_files[0]+".ll";
 
@@ -170,7 +179,13 @@ int main(int argc, char** argv) {
     pass.run(mod);
     destination.flush();
 
-    TinyProcessLib::Process linker{"clang " + file_name_o + " -o " + file_name_out, "", [](char const* bytes, size_t n) {
+    TinyProcessLib::Process::string_type cmd;
+    #ifdef UNICODE
+    cmd = L"clang " + std::wstring(file_name_o.begin(), file_name_o.end()) + L" -o " + std::wstring(file_name_out.begin(), file_name_out.end());
+    #else
+    cmd = "clang " + file_name_o + " -o " + file_name_out;
+    #endif
+    TinyProcessLib::Process linker{cmd, TinyProcessLib::Process::string_type{}, [](char const* bytes, size_t n) {
         std::cout << std::string{bytes, n} << std::endl;
     }};
     linker.get_exit_status();

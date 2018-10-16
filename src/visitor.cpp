@@ -1,5 +1,9 @@
 #include <visitor.hpp>
 
+#ifdef WIN32
+    #undef VOID
+#endif
+
 #include <llvm/Support/raw_ostream.h>
 
 #define ERRORED (!errors.errs.empty() && !errors.warns.empty())
