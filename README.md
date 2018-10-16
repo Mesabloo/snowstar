@@ -32,14 +32,15 @@ Samples can be found [here](https://mesabloo.github.io/snowstar-lang/about.html#
     Declaration of the main method. The parameters of it are unrequired, you may write it without.
 
     @param `argc` is of type int8 ;
-    @param `argv` is of type list&lt;string&gt; ;
+    @param `argv` is of type array&lt;char*&gt; ;
     @return int32
 :.
 
 § So that we can use `print()`.
 import stdio;
+import array;
 
-int32 main(int8 argc, list&lt;string&gt; argv) {
+int32 main(int8 argc, array&lt;char*&gt; argv) {
     print("Hello, World!")
     § We print "Hello, World!" in the console.
     return 0
@@ -68,3 +69,4 @@ People from many Discord servers helping me when I need help. Links to them will
 - [__LLVM__](https://github.com/llvm-mirror/llvm), released under Open Source license, Copyright (c) 2003-2018 University of Illinois at Urbana-Champaign.
 All rights reserved.
 - [__Tiny Process Library__](https://gitlab.com/eidheim/tiny-process-library), released under the MIT License, Copyright (c) 2015-2018 Ole Christian Eidheim
+- [__Argh !__](https://github.com/adishavit/argh) released under the BSD-3 License, Copyright (c) 2016 Adi Shavit
