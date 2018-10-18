@@ -25,6 +25,11 @@
 #include <llvm/Support/Path.h>
 #include <llvm/Support/Program.h>
 
+#if defined(_WIN32) || defined(_WIN64)
+#   include <io.h>
+#   include <fcntl.h>
+#endif
+
 namespace utils {
     std::vector<std::string> str_split(std::string const& str, char const separator) {
         std::vector<std::string> vect;
@@ -38,6 +43,10 @@ namespace utils {
 };
 
 int main(int argc, char** argv) {
+
+    #if defined(_WIN32) || defined(_WIN64)
+    _set_mode(_fileno(stdout), _O_U16TEXT);
+    #endif
 
     std::string file_name_ll = "",
                 file_name_o = "",
@@ -62,22 +71,25 @@ int main(int argc, char** argv) {
     }
 
     if (parsed_cmd[{"-v", "--version"}]) {
-        llvm::outs() << "ssc (Snow* Compiler) 0.0.1-Beta 20181010\n"
-            << "Copyright (C) 2018 Mesabloo.\n";
-        llvm::outs().flush();
+        std::cout << "ssc (Snow* Compiler) 0.0.1-Beta 20181010\n"
+            << "Copyright (C) 2018 Mesabloo." << std::endl;
         return 0;
     }
 
     if (parsed_cmd[{"-h", "--help"}] || (input_files.empty() && parsed_cmd.flags().empty())) {
-        llvm::outs() << "─────< Snow* compiler, made by Mesabloo >──────" << "\n\n"
+
+        #ifndef UNICODE
+        std::cout << "─────< Snow* compiler, made by Mesabloo >──────" << "\n\n"
+        #else
+        std::wcout << L"─────< Snow* compiler, made by Mesabloo >──────" << "\n\n"
+        #endif
             << "Usage:\n"
             << argv[0] << " [-h | --help] [-v | --version] [-o | --output=<PATH>] <file1.ss file2.ss ...>\n\n"
             << "Options:\n"
             << "  -v,--version       Display the version of the Snow* compiler\n"
             << "  -h,--help          Display this message\n"
             << "  -o,--output=PATH   Change the output executable name/path\n\n"
-            << "      Licenced under the GNU Public Licence v3\n";
-        llvm::outs().flush();
+            << "      Licenced under the GNU Public Licence v3" << std::endl;
         return 0;
     }
 
@@ -148,10 +160,18 @@ int main(int argc, char** argv) {
     v.visit(tree);
     auto const& result = v.getErrorsAndWarnings();
     for (auto& e : result.errs) {
+        #ifndef UNICODE
         std::cerr << e->getError() << std::endl;
+        #else
+        std::wcerr << e->getError() << std::endl;
+        #endif
     }
     for (auto& w : result.warns) {
+        #ifndef UNICODE
         std::cerr << w->getError() << std::endl;
+        #else
+        std::wcerr << w->getError() << std::endl;
+        #endif
     }
     if (!result.errs.empty()) return 1;
 

@@ -13,7 +13,12 @@ namespace utils {
 }
 
 std::string Error::prettify(std::string const& file, int errCode, int line, int charac, int firstCharac, std::string const& msg, std::string const& code, antlr4::Token* tk) {
+    #if !defined(_WIN32) && !defined(_WIN64)
     std::stringstream ss;
+    #else
+    std::wstringstream ss;
+    #endif
+    
     ss
     #if !defined(_WIN32) && !defined(_WIN64)
         << termcolor::colorize
@@ -29,7 +34,11 @@ std::string Error::prettify(std::string const& file, int errCode, int line, int 
     #else
         << termcolor::reset << termcolor::white
     #endif
+    #if !defined(_WIN32) && !defined(_WIN64)
         << " ├─╼"
+    #else
+        << L" ├─╼"
+    #endif
         << termcolor::reset << termcolor::red
         << " code"
         << termcolor::reset << termcolor::white
@@ -40,7 +49,11 @@ std::string Error::prettify(std::string const& file, int errCode, int line, int 
     #else
         << termcolor::reset << termcolor::white
     #endif
+    #if !defined(_WIN32) && !defined(_WIN64)
         << " ╰┬╼ "
+    #else
+        << L" ╰┬╼ "
+    #endif
         << termcolor::reset << termcolor::green
         << file << " @ line " << std::to_string(line) << ":" << std::to_string(charac+1) << "\n"
         << termcolor::reset << termcolor::grey
@@ -49,9 +62,18 @@ std::string Error::prettify(std::string const& file, int errCode, int line, int 
     #else
         << termcolor::reset << termcolor::white
     #endif
-        << "  │" << spacer(" ", charac-firstCharac+4)
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << "  │"
+    #else
+        << L"  │"
+    #endif
+        << spacer(" ", charac-firstCharac+4)
         << termcolor::reset << termcolor::red
+    #if !defined(_WIN32) && !defined(_WIN64)
         << spacer("↓", tk->getText().size())
+    #else
+        << spacer(L"↓", tk->getText().size())
+    #endif
         << termcolor::grey
     #if !defined(_WIN32) && !defined(_WIN64)
         << termcolor::bold
@@ -59,21 +81,34 @@ std::string Error::prettify(std::string const& file, int errCode, int line, int 
         << termcolor::reset << termcolor::white
     #endif
         << "\n"
+    #if !defined(_WIN32) && !defined(_WIN64)
         << "  ╰──╼" << " "
+    #else
+        << L"  ╰──╼" << " "
+    #endif
         << termcolor::reset
         << code
         << "\n";
+    #if !defined(_WIN32) && !defined(_WIN64)
     return std::string{ss.str()};
+    #else
+    return std::wstring{ss.str()};
+    #endif
 }
 std::string Warning::prettify(std::string const& file, int errCode, int line, int charac, int firstCharac, std::string const& msg, std::string const& code, antlr4::Token* tk) {
+        #if !defined(_WIN32) && !defined(_WIN64)
     std::stringstream ss;
+    #else
+    std::wstringstream ss;
+    #endif
+    
     ss
     #if !defined(_WIN32) && !defined(_WIN64)
         << termcolor::colorize
         << termcolor::bold
     #endif
         << termcolor::on_yellow << termcolor::white
-        << "Warning"
+        << "Error"
         << termcolor::reset << termcolor::white
         << ": " << msg << "\n"
         << termcolor::grey
@@ -82,8 +117,12 @@ std::string Warning::prettify(std::string const& file, int errCode, int line, in
     #else
         << termcolor::reset << termcolor::white
     #endif
+    #if !defined(_WIN32) && !defined(_WIN64)
         << " ├─╼"
-        << termcolor::reset << termcolor::yellow 
+    #else
+        << L" ├─╼"
+    #endif
+        << termcolor::reset << termcolor::yellow
         << " code"
         << termcolor::reset << termcolor::white
         << ": " << std::to_string(errCode) << "\n"
@@ -93,7 +132,11 @@ std::string Warning::prettify(std::string const& file, int errCode, int line, in
     #else
         << termcolor::reset << termcolor::white
     #endif
+    #if !defined(_WIN32) && !defined(_WIN64)
         << " ╰┬╼ "
+    #else
+        << L" ╰┬╼ "
+    #endif
         << termcolor::reset << termcolor::green
         << file << " @ line " << std::to_string(line) << ":" << std::to_string(charac+1) << "\n"
         << termcolor::reset << termcolor::grey
@@ -102,9 +145,18 @@ std::string Warning::prettify(std::string const& file, int errCode, int line, in
     #else
         << termcolor::reset << termcolor::white
     #endif
-        << "  │" << spacer(" ", charac-firstCharac+4)
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << "  │"
+    #else
+        << L"  │"
+    #endif
+        << spacer(" ", charac-firstCharac+4)
         << termcolor::reset << termcolor::yellow
+    #if !defined(_WIN32) && !defined(_WIN64)
         << spacer("↓", tk->getText().size())
+    #else
+        << spacer(L"↓", tk->getText().size())
+    #endif
         << termcolor::grey
     #if !defined(_WIN32) && !defined(_WIN64)
         << termcolor::bold
@@ -112,11 +164,19 @@ std::string Warning::prettify(std::string const& file, int errCode, int line, in
         << termcolor::reset << termcolor::white
     #endif
         << "\n"
+    #if !defined(_WIN32) && !defined(_WIN64)
         << "  ╰──╼" << " "
+    #else
+        << L"  ╰──╼" << " "
+    #endif
         << termcolor::reset
         << code
         << "\n";
+    #if !defined(_WIN32) && !defined(_WIN64)
     return std::string{ss.str()};
+    #else
+    return std::wstring{ss.str()};
+    #endif
 }
 
 std::unique_ptr<Error> RedeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
