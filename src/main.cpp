@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
 
     std::string file_name_ll = "",
                 file_name_o = "",
-    #ifdef WIN32
+    #if defined(_WIN32) || defined(_WIN64)
                 file_name_out = "a.exe";
     #else
                 file_name_out = "a.out";

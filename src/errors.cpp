@@ -12,7 +12,114 @@ namespace utils {
     }
 }
 
-std::unique_ptr<Error> RedeclaredVariableError::from(antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::string Error::prettify(std::string const& file, int errCode, int line, int charac, int firstCharac, std::string const& msg, std::string const& code, antlr4::Token* tk) {
+    std::stringstream ss;
+    ss
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << termcolor::colorize
+        << termcolor::bold
+    #endif
+        << termcolor::on_red << termcolor::white
+        << "Error"
+        << termcolor::reset << termcolor::white
+        << ": " << msg << "\n"
+        << termcolor::grey
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << termcolor::bold
+    #else
+        << termcolor::reset << termcolor::white
+    #endif
+        << " ├─╼"
+        << termcolor::reset << termcolor::red
+        << " code"
+        << termcolor::reset << termcolor::white
+        << ": " << std::to_string(errCode) << "\n"
+        << termcolor::grey
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << termcolor::bold
+    #else
+        << termcolor::reset << termcolor::white
+    #endif
+        << " ╰┬╼ "
+        << termcolor::reset << termcolor::green
+        << file << " @ line " << std::to_string(line) << ":" << std::to_string(charac+1) << "\n"
+        << termcolor::reset << termcolor::grey
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << termcolor::bold
+    #else
+        << termcolor::reset << termcolor::white
+    #endif
+        << "  │" << spacer(" ", charac-firstCharac+4)
+        << termcolor::reset << termcolor::red
+        << spacer("↓", tk->getText().size())
+        << termcolor::grey
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << termcolor::bold
+    #else
+        << termcolor::reset << termcolor::white
+    #endif
+        << "\n"
+        << "  ╰──╼" << " "
+        << termcolor::reset
+        << code
+        << "\n";
+    return std::string{ss.str()};
+}
+std::string Warning::prettify(std::string const& file, int errCode, int line, int charac, int firstCharac, std::string const& msg, std::string const& code, antlr4::Token* tk) {
+    std::stringstream ss;
+    ss
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << termcolor::colorize
+        << termcolor::bold
+    #endif
+        << termcolor::on_yellow << termcolor::white
+        << "Warning"
+        << termcolor::reset << termcolor::white
+        << ": " << msg << "\n"
+        << termcolor::grey
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << termcolor::bold
+    #else
+        << termcolor::reset << termcolor::white
+    #endif
+        << " ├─╼"
+        << termcolor::reset << termcolor::yellow 
+        << " code"
+        << termcolor::reset << termcolor::white
+        << ": " << std::to_string(errCode) << "\n"
+        << termcolor::grey
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << termcolor::bold
+    #else
+        << termcolor::reset << termcolor::white
+    #endif
+        << " ╰┬╼ "
+        << termcolor::reset << termcolor::green
+        << file << " @ line " << std::to_string(line) << ":" << std::to_string(charac+1) << "\n"
+        << termcolor::reset << termcolor::grey
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << termcolor::bold
+    #else
+        << termcolor::reset << termcolor::white
+    #endif
+        << "  │" << spacer(" ", charac-firstCharac+4)
+        << termcolor::reset << termcolor::yellow
+        << spacer("↓", tk->getText().size())
+        << termcolor::grey
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << termcolor::bold
+    #else
+        << termcolor::reset << termcolor::white
+    #endif
+        << "\n"
+        << "  ╰──╼" << " "
+        << termcolor::reset
+        << code
+        << "\n";
+    return std::string{ss.str()};
+}
+
+std::unique_ptr<Error> RedeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -22,22 +129,21 @@ std::unique_ptr<Error> RedeclaredVariableError::from(antlr4::ParserRuleContext* 
     auto token_beg = code.find(token, character-first_character);
     if (token_beg != code.npos) {
         std::stringstream ss;
-        ss << code.substr(0, token_beg) << termcolor::colorize << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
+        ss << code.substr(0, token_beg)
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << termcolor::colorize
+        #endif 
+            << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
         code = std::string{ss.str()};
     }
-
-    std::stringstream ss;
-    ss << termcolor::colorize << termcolor::red << "error at " << std::to_string(line) << ":" << std::to_string(character+1) << termcolor::reset <<  ": Redeclared variable `" << utils::str_split(args, ';')[0] << "`, previously declared at line " << utils::str_split(args, ';')[1] << ":" << utils::str_split(args, ';')[2] << ".\n"
-        << "    " << code << "\n"
-        << spacer(" ", character-first_character+4) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
     
-    return std::make_unique<RedeclaredVariableError>(std::string{ss.str()});
+    return std::make_unique<RedeclaredVariableError>(prettify(path, -3, line, character, first_character, "Redeclared variable `" + utils::str_split(args, ';')[0] + "`, previously declared at line " + utils::str_split(args, ';')[1] + ":" + utils::str_split(args, ';')[2] + ".", code, in_fault));
 }
-std::unique_ptr<Error> RedeclaredVariableError::from(antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
-    return this->from(ctx, in_fault->getStart(), args);
+std::unique_ptr<Error> RedeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+    return this->from(path, ctx, in_fault->getStart(), args);
 }
 
-std::unique_ptr<Error> UndeclaredVariableError::from(antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Error> UndeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -47,22 +153,21 @@ std::unique_ptr<Error> UndeclaredVariableError::from(antlr4::ParserRuleContext* 
     auto token_beg = code.find(token, character-first_character);
     if (token_beg != code.npos) {
         std::stringstream ss;
-        ss << code.substr(0, token_beg) << termcolor::colorize << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
+        ss << code.substr(0, token_beg)
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << termcolor::colorize
+        #endif 
+            << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
         code = std::string{ss.str()};
     }
-
-    std::stringstream ss;
-    ss << termcolor::colorize << termcolor::red << "error at " << std::to_string(line) << ":" << std::to_string(character+1) << termcolor::reset << ": Undeclared variable `" << args << "`.\n"
-        << "    " << code << "\n"
-        << spacer(" ", character-first_character+4) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
     
-    return std::make_unique<RedeclaredVariableError>(std::string{ss.str()});
+    return std::make_unique<RedeclaredVariableError>(prettify(path, 7, line, character, first_character, "Undeclared variable `" + args + "`.", code, in_fault));
 }
-std::unique_ptr<Error> UndeclaredVariableError::from(antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
-    return this->from(ctx, in_fault->getStart(), args);
+std::unique_ptr<Error> UndeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+    return this->from(path, ctx, in_fault->getStart(), args);
 }
 
-std::unique_ptr<Error> WrongTypedValueError::from(antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -72,22 +177,21 @@ std::unique_ptr<Error> WrongTypedValueError::from(antlr4::ParserRuleContext* ctx
     auto token_beg = code.find(token, character-first_character);
     if (token_beg != code.npos) {
         std::stringstream ss;
-        ss << code.substr(0, token_beg) << termcolor::colorize << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
+        ss << code.substr(0, token_beg)
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << termcolor::colorize
+        #endif 
+            << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
         code = std::string{ss.str()};
-    }
-
-    std::stringstream ss;
-    ss << termcolor::colorize << termcolor::red << "error at " << std::to_string(line) << ":" << std::to_string(character+1) << termcolor::reset << ": Inconsistent types. Expected `" << utils::str_split(args, ';')[0] << "`, found `" << utils::str_split(args, ';')[1] << "` on variable declaration.\n"
-        << "    " << code << "\n"
-        << spacer(" ", character-first_character+4) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
+    };
     
-    return std::make_unique<WrongTypedValueError>(std::string{ss.str()});
+    return std::make_unique<WrongTypedValueError>(prettify(path, line, -2, character, first_character, "Inconsistent types. Expected `" + utils::str_split(args, ';')[0] + "`, found `" + utils::str_split(args, ';')[1] + "` on variable declaration.", code, in_fault));
 }
-std::unique_ptr<Error> WrongTypedValueError::from(antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
-    return this->from(ctx, in_fault->getStart(), args);
+std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+    return this->from(path, ctx, in_fault->getStart(), args);
 }
 
-std::unique_ptr<Error> InvalidDeclaringTypeError::from(antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Error> InvalidDeclaringTypeError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -97,22 +201,21 @@ std::unique_ptr<Error> InvalidDeclaringTypeError::from(antlr4::ParserRuleContext
     auto token_beg = code.find(token, character-first_character);
     if (token_beg != code.npos) {
         std::stringstream ss;
-        ss << code.substr(0, token_beg) << termcolor::colorize << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
+        ss << code.substr(0, token_beg)
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << termcolor::colorize
+        #endif 
+            << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
         code = std::string{ss.str()};
     }
-
-    std::stringstream ss;
-    ss << termcolor::colorize << termcolor::red << "error at " << std::to_string(line) << ":" << std::to_string(character+1) << termcolor::reset << ": Cannot declare a variable of type " << args << ".\n"
-        << "    " << code << "\n"
-        << spacer(" ", character-first_character+4) << termcolor::red << "^" << spacer("~", token.size()-1) << termcolor::reset;
     
-    return std::make_unique<InvalidDeclaringTypeError>(std::string{ss.str()});
+    return std::make_unique<InvalidDeclaringTypeError>(prettify(path, 2, line, character, first_character, "Cannot declare a variable of type " + args + ".", code, in_fault));
 }
-std::unique_ptr<Error> InvalidDeclaringTypeError::from(antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
-    return this->from(ctx, in_fault->getStart(), args);
+std::unique_ptr<Error> InvalidDeclaringTypeError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+    return this->from(path, ctx, in_fault->getStart(), args);
 }
 
-std::unique_ptr<Warning> ImplicitCastWarning::from(antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Warning> ImplicitCastWarning::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -122,17 +225,16 @@ std::unique_ptr<Warning> ImplicitCastWarning::from(antlr4::ParserRuleContext* ct
     auto token_beg = code.find(token, character-first_character);
     if (token_beg != code.npos) {
         std::stringstream ss;
-        ss << code.substr(0, token_beg) << termcolor::colorize << termcolor::yellow << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
+        ss << code.substr(0, token_beg)
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << termcolor::colorize
+        #endif 
+            << termcolor::yellow << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
         code = std::string{ss.str()};
     }
-
-    std::stringstream ss;
-    ss << termcolor::colorize << termcolor::yellow << "warning at " << std::to_string(line) << ":" << std::to_string(character+1) << termcolor::reset << ": Implicit cast performed from type `" << utils::str_split(args, ';')[0] << "` to type `" << utils::str_split(args, ';')[1] << "`.\n"
-        << "    " << code << "\n"
-        << spacer(" ", character-first_character+4) << termcolor::yellow << "^" << spacer("~", token.size()-1) << termcolor::reset;
     
-    return std::make_unique<ImplicitCastWarning>(std::string{ss.str()});
+    return std::make_unique<ImplicitCastWarning>(prettify(path, -4, line, character, first_character, "Implicit cast performed from type `" + utils::str_split(args, ';')[0] + "` to type `" + utils::str_split(args, ';')[1] + "`.", code, in_fault));
 }
-std::unique_ptr<Warning> ImplicitCastWarning::from(antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
-    return this->from(ctx, in_fault->getStart(), args);
+std::unique_ptr<Warning> ImplicitCastWarning::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+    return this->from(path, ctx, in_fault->getStart(), args);
 }

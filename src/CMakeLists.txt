@@ -39,7 +39,7 @@ else()
 endif()
 
 add_executable(
-    Compiler ${SOURCE_FILES}
+    ${PROJECT_NAME} ${SOURCE_FILES}
 )
 
 llvm_map_components_to_libnames(LLVM_LIBRARIES
@@ -61,16 +61,17 @@ llvm_map_components_to_libnames(LLVM_LIBRARIES
     webassemblyasmparser  webassemblycodegen  webassemblyinfo  webassemblydesc
 )
 
-target_link_libraries (Compiler ${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries(Compiler antlr4_shared)
-target_link_libraries(Compiler ${LLVM_LIBRARIES})
+target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${PROJECT_NAME} stdc++fs)
+target_link_libraries(${PROJECT_NAME} antlr4_shared)
+target_link_libraries(${PROJECT_NAME} ${LLVM_LIBRARIES})
 if(CMAKE_DL_LIBS)
-    target_link_libraries(Compiler ${CMAKE_DL_LIBS})
+    target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
 endif(CMAKE_DL_LIBS)
 
-target_compile_features(Compiler PUBLIC cxx_std_17)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 set(CMAKE_BUILD_TYPE "Debug")
-set_target_properties(Compiler PROPERTIES OUTPUT_NAME "ssc")
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "ssc")
 
 if (MSVC)
 	if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
