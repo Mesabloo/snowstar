@@ -27,11 +27,15 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual antlrcpp::Any visitDeclare(SnowStarParser::DeclareContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext *ctx) override {
+  virtual antlrcpp::Any visitDeclareNoID(SnowStarParser::DeclareNoIDContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -39,7 +43,11 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitPrimitiveType(SnowStarParser::PrimitiveTypeContext *ctx) override {
+  virtual antlrcpp::Any visitType(SnowStarParser::TypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitError(SnowStarParser::ErrorContext *ctx) override {
     return visitChildren(ctx);
   }
 

@@ -67,13 +67,13 @@ SnowStarParser::CompilationUnitContext* SnowStarParser::compilationUnit() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(15); 
+    setState(19); 
     _errHandler->sync(this);
     _la = _input->LA(1);
     do {
-      setState(14);
+      setState(18);
       statement();
-      setState(17); 
+      setState(21); 
       _errHandler->sync(this);
       _la = _input->LA(1);
     } while ((((_la & ~ 0x3fULL) == 0) &&
@@ -83,11 +83,11 @@ SnowStarParser::CompilationUnitContext* SnowStarParser::compilationUnit() {
       | (1ULL << SnowStarParser::INTEGER16)
       | (1ULL << SnowStarParser::INTEGER32)
       | (1ULL << SnowStarParser::INTEGER64)
-      | (1ULL << SnowStarParser::INTEGER128)
       | (1ULL << SnowStarParser::REAL16)
       | (1ULL << SnowStarParser::REAL32)
       | (1ULL << SnowStarParser::REAL64)
-      | (1ULL << SnowStarParser::VOID))) != 0));
+      | (1ULL << SnowStarParser::VOID)
+      | (1ULL << SnowStarParser::IDENTIFIER))) != 0));
    
   }
   catch (RecognitionException &e) {
@@ -128,29 +128,42 @@ antlrcpp::Any SnowStarParser::StatementContext::accept(tree::ParseTreeVisitor *v
 SnowStarParser::StatementContext* SnowStarParser::statement() {
   StatementContext *_localctx = _tracker.createInstance<StatementContext>(_ctx, getState());
   enterRule(_localctx, 2, SnowStarParser::RuleStatement);
+  size_t _la = 0;
 
   auto onExit = finally([=] {
     exitRule();
   });
   try {
-    setState(25);
+    setState(31);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 1, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 3, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(19);
+      setState(23);
       declare();
-      setState(20);
-      match(SnowStarParser::SEMI);
+      setState(25);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == SnowStarParser::SEMI) {
+        setState(24);
+        dynamic_cast<StatementContext *>(_localctx)->eol = match(SnowStarParser::SEMI);
+      }
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(22);
+      setState(27);
       define();
-      setState(23);
-      match(SnowStarParser::SEMI);
+      setState(29);
+      _errHandler->sync(this);
+
+      _la = _input->LA(1);
+      if (_la == SnowStarParser::SEMI) {
+        setState(28);
+        dynamic_cast<StatementContext *>(_localctx)->eol = match(SnowStarParser::SEMI);
+      }
       break;
     }
 
@@ -200,12 +213,12 @@ SnowStarParser::ExpressionContext* SnowStarParser::expression() {
     exitRule();
   });
   try {
-    setState(29);
+    setState(35);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case SnowStarParser::IDENTIFIER: {
         enterOuterAlt(_localctx, 1);
-        setState(27);
+        setState(33);
         match(SnowStarParser::IDENTIFIER);
         break;
       }
@@ -218,7 +231,7 @@ SnowStarParser::ExpressionContext* SnowStarParser::expression() {
       case SnowStarParser::CHAR_LITERAL:
       case SnowStarParser::NIL_LITERAL: {
         enterOuterAlt(_localctx, 2);
-        setState(28);
+        setState(34);
         literal();
         break;
       }
@@ -226,56 +239,6 @@ SnowStarParser::ExpressionContext* SnowStarParser::expression() {
     default:
       throw NoViableAltException(this);
     }
-   
-  }
-  catch (RecognitionException &e) {
-    _errHandler->reportError(this, e);
-    _localctx->exception = std::current_exception();
-    _errHandler->recover(this, _localctx->exception);
-  }
-
-  return _localctx;
-}
-
-//----------------- DeclareContext ------------------------------------------------------------------
-
-SnowStarParser::DeclareContext::DeclareContext(ParserRuleContext *parent, size_t invokingState)
-  : ParserRuleContext(parent, invokingState) {
-}
-
-SnowStarParser::PrimitiveTypeContext* SnowStarParser::DeclareContext::primitiveType() {
-  return getRuleContext<SnowStarParser::PrimitiveTypeContext>(0);
-}
-
-tree::TerminalNode* SnowStarParser::DeclareContext::IDENTIFIER() {
-  return getToken(SnowStarParser::IDENTIFIER, 0);
-}
-
-
-size_t SnowStarParser::DeclareContext::getRuleIndex() const {
-  return SnowStarParser::RuleDeclare;
-}
-
-antlrcpp::Any SnowStarParser::DeclareContext::accept(tree::ParseTreeVisitor *visitor) {
-  if (auto parserVisitor = dynamic_cast<SnowStarParserVisitor*>(visitor))
-    return parserVisitor->visitDeclare(this);
-  else
-    return visitor->visitChildren(this);
-}
-
-SnowStarParser::DeclareContext* SnowStarParser::declare() {
-  DeclareContext *_localctx = _tracker.createInstance<DeclareContext>(_ctx, getState());
-  enterRule(_localctx, 6, SnowStarParser::RuleDeclare);
-
-  auto onExit = finally([=] {
-    exitRule();
-  });
-  try {
-    enterOuterAlt(_localctx, 1);
-    setState(31);
-    primitiveType();
-    setState(32);
-    match(SnowStarParser::IDENTIFIER);
    
   }
   catch (RecognitionException &e) {
@@ -297,6 +260,10 @@ SnowStarParser::DeclareContext* SnowStarParser::DefineContext::declare() {
   return getRuleContext<SnowStarParser::DeclareContext>(0);
 }
 
+SnowStarParser::DeclareNoIDContext* SnowStarParser::DefineContext::declareNoID() {
+  return getRuleContext<SnowStarParser::DeclareNoIDContext>(0);
+}
+
 SnowStarParser::ExpressionContext* SnowStarParser::DefineContext::expression() {
   return getRuleContext<SnowStarParser::ExpressionContext>(0);
 }
@@ -315,20 +282,143 @@ antlrcpp::Any SnowStarParser::DefineContext::accept(tree::ParseTreeVisitor *visi
 
 SnowStarParser::DefineContext* SnowStarParser::define() {
   DefineContext *_localctx = _tracker.createInstance<DefineContext>(_ctx, getState());
-  enterRule(_localctx, 8, SnowStarParser::RuleDefine);
+  enterRule(_localctx, 6, SnowStarParser::RuleDefine);
+  size_t _la = 0;
 
   auto onExit = finally([=] {
     exitRule();
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(34);
-    declare();
-    setState(35);
-    match(SnowStarParser::ASSIGN);
+    setState(39);
+    _errHandler->sync(this);
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 5, _ctx)) {
+    case 1: {
+      setState(37);
+      declare();
+      break;
+    }
 
-    setState(36);
-    expression();
+    case 2: {
+      setState(38);
+      declareNoID();
+      break;
+    }
+
+    }
+    setState(42);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == SnowStarParser::ASSIGN) {
+      setState(41);
+      dynamic_cast<DefineContext *>(_localctx)->eop = match(SnowStarParser::ASSIGN);
+    }
+    setState(45);
+    _errHandler->sync(this);
+
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 7, _ctx)) {
+    case 1: {
+      setState(44);
+      expression();
+      break;
+    }
+
+    }
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- DeclareContext ------------------------------------------------------------------
+
+SnowStarParser::DeclareContext::DeclareContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+SnowStarParser::TypeContext* SnowStarParser::DeclareContext::type() {
+  return getRuleContext<SnowStarParser::TypeContext>(0);
+}
+
+tree::TerminalNode* SnowStarParser::DeclareContext::IDENTIFIER() {
+  return getToken(SnowStarParser::IDENTIFIER, 0);
+}
+
+
+size_t SnowStarParser::DeclareContext::getRuleIndex() const {
+  return SnowStarParser::RuleDeclare;
+}
+
+antlrcpp::Any SnowStarParser::DeclareContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<SnowStarParserVisitor*>(visitor))
+    return parserVisitor->visitDeclare(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+SnowStarParser::DeclareContext* SnowStarParser::declare() {
+  DeclareContext *_localctx = _tracker.createInstance<DeclareContext>(_ctx, getState());
+  enterRule(_localctx, 8, SnowStarParser::RuleDeclare);
+
+  auto onExit = finally([=] {
+    exitRule();
+  });
+  try {
+    enterOuterAlt(_localctx, 1);
+    setState(47);
+    type();
+    setState(48);
+    match(SnowStarParser::IDENTIFIER);
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- DeclareNoIDContext ------------------------------------------------------------------
+
+SnowStarParser::DeclareNoIDContext::DeclareNoIDContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+SnowStarParser::TypeContext* SnowStarParser::DeclareNoIDContext::type() {
+  return getRuleContext<SnowStarParser::TypeContext>(0);
+}
+
+
+size_t SnowStarParser::DeclareNoIDContext::getRuleIndex() const {
+  return SnowStarParser::RuleDeclareNoID;
+}
+
+antlrcpp::Any SnowStarParser::DeclareNoIDContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<SnowStarParserVisitor*>(visitor))
+    return parserVisitor->visitDeclareNoID(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+SnowStarParser::DeclareNoIDContext* SnowStarParser::declareNoID() {
+  DeclareNoIDContext *_localctx = _tracker.createInstance<DeclareNoIDContext>(_ctx, getState());
+  enterRule(_localctx, 10, SnowStarParser::RuleDeclareNoID);
+
+  auto onExit = finally([=] {
+    exitRule();
+  });
+  try {
+    enterOuterAlt(_localctx, 1);
+    setState(50);
+    type();
    
   }
   catch (RecognitionException &e) {
@@ -388,7 +478,7 @@ antlrcpp::Any SnowStarParser::LiteralContext::accept(tree::ParseTreeVisitor *vis
 
 SnowStarParser::LiteralContext* SnowStarParser::literal() {
   LiteralContext *_localctx = _tracker.createInstance<LiteralContext>(_ctx, getState());
-  enterRule(_localctx, 10, SnowStarParser::RuleLiteral);
+  enterRule(_localctx, 12, SnowStarParser::RuleLiteral);
   size_t _la = 0;
 
   auto onExit = finally([=] {
@@ -396,7 +486,7 @@ SnowStarParser::LiteralContext* SnowStarParser::literal() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(38);
+    setState(52);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & ((1ULL << SnowStarParser::DECIMAL_LITERAL)
@@ -423,71 +513,71 @@ SnowStarParser::LiteralContext* SnowStarParser::literal() {
   return _localctx;
 }
 
-//----------------- PrimitiveTypeContext ------------------------------------------------------------------
+//----------------- TypeContext ------------------------------------------------------------------
 
-SnowStarParser::PrimitiveTypeContext::PrimitiveTypeContext(ParserRuleContext *parent, size_t invokingState)
+SnowStarParser::TypeContext::TypeContext(ParserRuleContext *parent, size_t invokingState)
   : ParserRuleContext(parent, invokingState) {
 }
 
-tree::TerminalNode* SnowStarParser::PrimitiveTypeContext::BOOLEAN() {
+tree::TerminalNode* SnowStarParser::TypeContext::BOOLEAN() {
   return getToken(SnowStarParser::BOOLEAN, 0);
 }
 
-tree::TerminalNode* SnowStarParser::PrimitiveTypeContext::CHAR() {
+tree::TerminalNode* SnowStarParser::TypeContext::CHAR() {
   return getToken(SnowStarParser::CHAR, 0);
 }
 
-tree::TerminalNode* SnowStarParser::PrimitiveTypeContext::INTEGER8() {
+tree::TerminalNode* SnowStarParser::TypeContext::INTEGER8() {
   return getToken(SnowStarParser::INTEGER8, 0);
 }
 
-tree::TerminalNode* SnowStarParser::PrimitiveTypeContext::INTEGER16() {
+tree::TerminalNode* SnowStarParser::TypeContext::INTEGER16() {
   return getToken(SnowStarParser::INTEGER16, 0);
 }
 
-tree::TerminalNode* SnowStarParser::PrimitiveTypeContext::INTEGER32() {
+tree::TerminalNode* SnowStarParser::TypeContext::INTEGER32() {
   return getToken(SnowStarParser::INTEGER32, 0);
 }
 
-tree::TerminalNode* SnowStarParser::PrimitiveTypeContext::INTEGER64() {
+tree::TerminalNode* SnowStarParser::TypeContext::INTEGER64() {
   return getToken(SnowStarParser::INTEGER64, 0);
 }
 
-tree::TerminalNode* SnowStarParser::PrimitiveTypeContext::INTEGER128() {
-  return getToken(SnowStarParser::INTEGER128, 0);
-}
-
-tree::TerminalNode* SnowStarParser::PrimitiveTypeContext::REAL16() {
+tree::TerminalNode* SnowStarParser::TypeContext::REAL16() {
   return getToken(SnowStarParser::REAL16, 0);
 }
 
-tree::TerminalNode* SnowStarParser::PrimitiveTypeContext::REAL32() {
+tree::TerminalNode* SnowStarParser::TypeContext::REAL32() {
   return getToken(SnowStarParser::REAL32, 0);
 }
 
-tree::TerminalNode* SnowStarParser::PrimitiveTypeContext::REAL64() {
+tree::TerminalNode* SnowStarParser::TypeContext::REAL64() {
   return getToken(SnowStarParser::REAL64, 0);
 }
 
-tree::TerminalNode* SnowStarParser::PrimitiveTypeContext::VOID() {
+tree::TerminalNode* SnowStarParser::TypeContext::VOID() {
   return getToken(SnowStarParser::VOID, 0);
 }
 
-
-size_t SnowStarParser::PrimitiveTypeContext::getRuleIndex() const {
-  return SnowStarParser::RulePrimitiveType;
+tree::TerminalNode* SnowStarParser::TypeContext::IDENTIFIER() {
+  return getToken(SnowStarParser::IDENTIFIER, 0);
 }
 
-antlrcpp::Any SnowStarParser::PrimitiveTypeContext::accept(tree::ParseTreeVisitor *visitor) {
+
+size_t SnowStarParser::TypeContext::getRuleIndex() const {
+  return SnowStarParser::RuleType;
+}
+
+antlrcpp::Any SnowStarParser::TypeContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<SnowStarParserVisitor*>(visitor))
-    return parserVisitor->visitPrimitiveType(this);
+    return parserVisitor->visitType(this);
   else
     return visitor->visitChildren(this);
 }
 
-SnowStarParser::PrimitiveTypeContext* SnowStarParser::primitiveType() {
-  PrimitiveTypeContext *_localctx = _tracker.createInstance<PrimitiveTypeContext>(_ctx, getState());
-  enterRule(_localctx, 12, SnowStarParser::RulePrimitiveType);
+SnowStarParser::TypeContext* SnowStarParser::type() {
+  TypeContext *_localctx = _tracker.createInstance<TypeContext>(_ctx, getState());
+  enterRule(_localctx, 14, SnowStarParser::RuleType);
   size_t _la = 0;
 
   auto onExit = finally([=] {
@@ -495,7 +585,7 @@ SnowStarParser::PrimitiveTypeContext* SnowStarParser::primitiveType() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(40);
+    setState(54);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & ((1ULL << SnowStarParser::BOOLEAN)
@@ -504,17 +594,57 @@ SnowStarParser::PrimitiveTypeContext* SnowStarParser::primitiveType() {
       | (1ULL << SnowStarParser::INTEGER16)
       | (1ULL << SnowStarParser::INTEGER32)
       | (1ULL << SnowStarParser::INTEGER64)
-      | (1ULL << SnowStarParser::INTEGER128)
       | (1ULL << SnowStarParser::REAL16)
       | (1ULL << SnowStarParser::REAL32)
       | (1ULL << SnowStarParser::REAL64)
-      | (1ULL << SnowStarParser::VOID))) != 0))) {
+      | (1ULL << SnowStarParser::VOID)
+      | (1ULL << SnowStarParser::IDENTIFIER))) != 0))) {
     _errHandler->recoverInline(this);
     }
     else {
       _errHandler->reportMatch(this);
       consume();
     }
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- ErrorContext ------------------------------------------------------------------
+
+SnowStarParser::ErrorContext::ErrorContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+
+size_t SnowStarParser::ErrorContext::getRuleIndex() const {
+  return SnowStarParser::RuleError;
+}
+
+antlrcpp::Any SnowStarParser::ErrorContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<SnowStarParserVisitor*>(visitor))
+    return parserVisitor->visitError(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+SnowStarParser::ErrorContext* SnowStarParser::error() {
+  ErrorContext *_localctx = _tracker.createInstance<ErrorContext>(_ctx, getState());
+  enterRule(_localctx, 16, SnowStarParser::RuleError);
+
+  auto onExit = finally([=] {
+    exitRule();
+  });
+  try {
+    enterOuterAlt(_localctx, 1);
+    setState(56);
+    matchWildcard();
    
   }
   catch (RecognitionException &e) {
@@ -535,24 +665,22 @@ atn::ATN SnowStarParser::_atn;
 std::vector<uint16_t> SnowStarParser::_serializedATN;
 
 std::vector<std::string> SnowStarParser::_ruleNames = {
-  "compilationUnit", "statement", "expression", "declare", "define", "literal", 
-  "primitiveType"
+  "compilationUnit", "statement", "expression", "define", "declare", "declareNoID", 
+  "literal", "type", "error"
 };
 
 std::vector<std::string> SnowStarParser::_literalNames = {
-  "", "'bool'", "'char'", "'int8'", "'int16'", "'int32'", "'int64'", "'int128'", 
-  "'real16'", "'real32'", "'real64'", "'void'", "", "", "", "", "", "", 
-  "", "'nil'", "'('", "')'", "'{'", "'}'", "'['", "']'", "';'", "','", "'.'", 
-  "'='"
+  "", "'bool'", "'char'", "'int8'", "'int16'", "'int32'", "'int64'", "'real16'", 
+  "'real32'", "'real64'", "'void'", "", "", "", "", "", "", "", "'nil'", 
+  "'('", "')'", "'{'", "'}'", "'['", "']'", "';'", "','", "'.'", "'='"
 };
 
 std::vector<std::string> SnowStarParser::_symbolicNames = {
   "", "BOOLEAN", "CHAR", "INTEGER8", "INTEGER16", "INTEGER32", "INTEGER64", 
-  "INTEGER128", "REAL16", "REAL32", "REAL64", "VOID", "DECIMAL_LITERAL", 
-  "HEX_LITERAL", "BIN_LITERAL", "FLOAT_LITERAL", "BOOL_LITERAL", "CHAR_LITERAL", 
-  "STRING_LITERAL", "NIL_LITERAL", "LPAREN", "RPAREN", "LBRACE", "RBRACE", 
-  "LBRACK", "RBRACK", "SEMI", "COMMA", "DOT", "ASSIGN", "WS", "COMMENT", 
-  "LINE_COMMENT", "IDENTIFIER"
+  "REAL16", "REAL32", "REAL64", "VOID", "DECIMAL_LITERAL", "HEX_LITERAL", 
+  "BIN_LITERAL", "FLOAT_LITERAL", "BOOL_LITERAL", "CHAR_LITERAL", "STRING_LITERAL", 
+  "NIL_LITERAL", "LPAREN", "RPAREN", "LBRACE", "RBRACE", "LBRACK", "RBRACK", 
+  "SEMI", "COMMA", "DOT", "ASSIGN", "WS", "COMMENT", "LINE_COMMENT", "IDENTIFIER"
 };
 
 dfa::Vocabulary SnowStarParser::_vocabulary(_literalNames, _symbolicNames);
@@ -575,33 +703,45 @@ SnowStarParser::Initializer::Initializer() {
 
   _serializedATN = {
     0x3, 0x608b, 0xa72a, 0x8133, 0xb9ed, 0x417c, 0x3be7, 0x7786, 0x5964, 
-    0x3, 0x23, 0x2d, 0x4, 0x2, 0x9, 0x2, 0x4, 0x3, 0x9, 0x3, 0x4, 0x4, 0x9, 
+    0x3, 0x22, 0x3d, 0x4, 0x2, 0x9, 0x2, 0x4, 0x3, 0x9, 0x3, 0x4, 0x4, 0x9, 
     0x4, 0x4, 0x5, 0x9, 0x5, 0x4, 0x6, 0x9, 0x6, 0x4, 0x7, 0x9, 0x7, 0x4, 
-    0x8, 0x9, 0x8, 0x3, 0x2, 0x6, 0x2, 0x12, 0xa, 0x2, 0xd, 0x2, 0xe, 0x2, 
-    0x13, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x5, 
-    0x3, 0x1c, 0xa, 0x3, 0x3, 0x4, 0x3, 0x4, 0x5, 0x4, 0x20, 0xa, 0x4, 0x3, 
-    0x5, 0x3, 0x5, 0x3, 0x5, 0x3, 0x6, 0x3, 0x6, 0x3, 0x6, 0x3, 0x6, 0x3, 
-    0x7, 0x3, 0x7, 0x3, 0x8, 0x3, 0x8, 0x3, 0x8, 0x2, 0x2, 0x9, 0x2, 0x4, 
-    0x6, 0x8, 0xa, 0xc, 0xe, 0x2, 0x4, 0x4, 0x2, 0xe, 0x13, 0x15, 0x15, 
-    0x3, 0x2, 0x3, 0xd, 0x2, 0x28, 0x2, 0x11, 0x3, 0x2, 0x2, 0x2, 0x4, 0x1b, 
-    0x3, 0x2, 0x2, 0x2, 0x6, 0x1f, 0x3, 0x2, 0x2, 0x2, 0x8, 0x21, 0x3, 0x2, 
-    0x2, 0x2, 0xa, 0x24, 0x3, 0x2, 0x2, 0x2, 0xc, 0x28, 0x3, 0x2, 0x2, 0x2, 
-    0xe, 0x2a, 0x3, 0x2, 0x2, 0x2, 0x10, 0x12, 0x5, 0x4, 0x3, 0x2, 0x11, 
-    0x10, 0x3, 0x2, 0x2, 0x2, 0x12, 0x13, 0x3, 0x2, 0x2, 0x2, 0x13, 0x11, 
-    0x3, 0x2, 0x2, 0x2, 0x13, 0x14, 0x3, 0x2, 0x2, 0x2, 0x14, 0x3, 0x3, 
-    0x2, 0x2, 0x2, 0x15, 0x16, 0x5, 0x8, 0x5, 0x2, 0x16, 0x17, 0x7, 0x1c, 
-    0x2, 0x2, 0x17, 0x1c, 0x3, 0x2, 0x2, 0x2, 0x18, 0x19, 0x5, 0xa, 0x6, 
-    0x2, 0x19, 0x1a, 0x7, 0x1c, 0x2, 0x2, 0x1a, 0x1c, 0x3, 0x2, 0x2, 0x2, 
-    0x1b, 0x15, 0x3, 0x2, 0x2, 0x2, 0x1b, 0x18, 0x3, 0x2, 0x2, 0x2, 0x1c, 
-    0x5, 0x3, 0x2, 0x2, 0x2, 0x1d, 0x20, 0x7, 0x23, 0x2, 0x2, 0x1e, 0x20, 
-    0x5, 0xc, 0x7, 0x2, 0x1f, 0x1d, 0x3, 0x2, 0x2, 0x2, 0x1f, 0x1e, 0x3, 
-    0x2, 0x2, 0x2, 0x20, 0x7, 0x3, 0x2, 0x2, 0x2, 0x21, 0x22, 0x5, 0xe, 
-    0x8, 0x2, 0x22, 0x23, 0x7, 0x23, 0x2, 0x2, 0x23, 0x9, 0x3, 0x2, 0x2, 
-    0x2, 0x24, 0x25, 0x5, 0x8, 0x5, 0x2, 0x25, 0x26, 0x7, 0x1f, 0x2, 0x2, 
-    0x26, 0x27, 0x5, 0x6, 0x4, 0x2, 0x27, 0xb, 0x3, 0x2, 0x2, 0x2, 0x28, 
-    0x29, 0x9, 0x2, 0x2, 0x2, 0x29, 0xd, 0x3, 0x2, 0x2, 0x2, 0x2a, 0x2b, 
-    0x9, 0x3, 0x2, 0x2, 0x2b, 0xf, 0x3, 0x2, 0x2, 0x2, 0x5, 0x13, 0x1b, 
-    0x1f, 
+    0x8, 0x9, 0x8, 0x4, 0x9, 0x9, 0x9, 0x4, 0xa, 0x9, 0xa, 0x3, 0x2, 0x6, 
+    0x2, 0x16, 0xa, 0x2, 0xd, 0x2, 0xe, 0x2, 0x17, 0x3, 0x3, 0x3, 0x3, 0x5, 
+    0x3, 0x1c, 0xa, 0x3, 0x3, 0x3, 0x3, 0x3, 0x5, 0x3, 0x20, 0xa, 0x3, 0x5, 
+    0x3, 0x22, 0xa, 0x3, 0x3, 0x4, 0x3, 0x4, 0x5, 0x4, 0x26, 0xa, 0x4, 0x3, 
+    0x5, 0x3, 0x5, 0x5, 0x5, 0x2a, 0xa, 0x5, 0x3, 0x5, 0x5, 0x5, 0x2d, 0xa, 
+    0x5, 0x3, 0x5, 0x5, 0x5, 0x30, 0xa, 0x5, 0x3, 0x6, 0x3, 0x6, 0x3, 0x6, 
+    0x3, 0x7, 0x3, 0x7, 0x3, 0x8, 0x3, 0x8, 0x3, 0x9, 0x3, 0x9, 0x3, 0xa, 
+    0x3, 0xa, 0x3, 0xa, 0x2, 0x2, 0xb, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 
+    0x10, 0x12, 0x2, 0x4, 0x4, 0x2, 0xd, 0x12, 0x14, 0x14, 0x4, 0x2, 0x3, 
+    0xc, 0x22, 0x22, 0x2, 0x3b, 0x2, 0x15, 0x3, 0x2, 0x2, 0x2, 0x4, 0x21, 
+    0x3, 0x2, 0x2, 0x2, 0x6, 0x25, 0x3, 0x2, 0x2, 0x2, 0x8, 0x29, 0x3, 0x2, 
+    0x2, 0x2, 0xa, 0x31, 0x3, 0x2, 0x2, 0x2, 0xc, 0x34, 0x3, 0x2, 0x2, 0x2, 
+    0xe, 0x36, 0x3, 0x2, 0x2, 0x2, 0x10, 0x38, 0x3, 0x2, 0x2, 0x2, 0x12, 
+    0x3a, 0x3, 0x2, 0x2, 0x2, 0x14, 0x16, 0x5, 0x4, 0x3, 0x2, 0x15, 0x14, 
+    0x3, 0x2, 0x2, 0x2, 0x16, 0x17, 0x3, 0x2, 0x2, 0x2, 0x17, 0x15, 0x3, 
+    0x2, 0x2, 0x2, 0x17, 0x18, 0x3, 0x2, 0x2, 0x2, 0x18, 0x3, 0x3, 0x2, 
+    0x2, 0x2, 0x19, 0x1b, 0x5, 0xa, 0x6, 0x2, 0x1a, 0x1c, 0x7, 0x1b, 0x2, 
+    0x2, 0x1b, 0x1a, 0x3, 0x2, 0x2, 0x2, 0x1b, 0x1c, 0x3, 0x2, 0x2, 0x2, 
+    0x1c, 0x22, 0x3, 0x2, 0x2, 0x2, 0x1d, 0x1f, 0x5, 0x8, 0x5, 0x2, 0x1e, 
+    0x20, 0x7, 0x1b, 0x2, 0x2, 0x1f, 0x1e, 0x3, 0x2, 0x2, 0x2, 0x1f, 0x20, 
+    0x3, 0x2, 0x2, 0x2, 0x20, 0x22, 0x3, 0x2, 0x2, 0x2, 0x21, 0x19, 0x3, 
+    0x2, 0x2, 0x2, 0x21, 0x1d, 0x3, 0x2, 0x2, 0x2, 0x22, 0x5, 0x3, 0x2, 
+    0x2, 0x2, 0x23, 0x26, 0x7, 0x22, 0x2, 0x2, 0x24, 0x26, 0x5, 0xe, 0x8, 
+    0x2, 0x25, 0x23, 0x3, 0x2, 0x2, 0x2, 0x25, 0x24, 0x3, 0x2, 0x2, 0x2, 
+    0x26, 0x7, 0x3, 0x2, 0x2, 0x2, 0x27, 0x2a, 0x5, 0xa, 0x6, 0x2, 0x28, 
+    0x2a, 0x5, 0xc, 0x7, 0x2, 0x29, 0x27, 0x3, 0x2, 0x2, 0x2, 0x29, 0x28, 
+    0x3, 0x2, 0x2, 0x2, 0x2a, 0x2c, 0x3, 0x2, 0x2, 0x2, 0x2b, 0x2d, 0x7, 
+    0x1e, 0x2, 0x2, 0x2c, 0x2b, 0x3, 0x2, 0x2, 0x2, 0x2c, 0x2d, 0x3, 0x2, 
+    0x2, 0x2, 0x2d, 0x2f, 0x3, 0x2, 0x2, 0x2, 0x2e, 0x30, 0x5, 0x6, 0x4, 
+    0x2, 0x2f, 0x2e, 0x3, 0x2, 0x2, 0x2, 0x2f, 0x30, 0x3, 0x2, 0x2, 0x2, 
+    0x30, 0x9, 0x3, 0x2, 0x2, 0x2, 0x31, 0x32, 0x5, 0x10, 0x9, 0x2, 0x32, 
+    0x33, 0x7, 0x22, 0x2, 0x2, 0x33, 0xb, 0x3, 0x2, 0x2, 0x2, 0x34, 0x35, 
+    0x5, 0x10, 0x9, 0x2, 0x35, 0xd, 0x3, 0x2, 0x2, 0x2, 0x36, 0x37, 0x9, 
+    0x2, 0x2, 0x2, 0x37, 0xf, 0x3, 0x2, 0x2, 0x2, 0x38, 0x39, 0x9, 0x3, 
+    0x2, 0x2, 0x39, 0x11, 0x3, 0x2, 0x2, 0x2, 0x3a, 0x3b, 0xb, 0x2, 0x2, 
+    0x2, 0x3b, 0x13, 0x3, 0x2, 0x2, 0x2, 0xa, 0x17, 0x1b, 0x1f, 0x21, 0x25, 
+    0x29, 0x2c, 0x2f, 
   };
 
   atn::ATNDeserializer deserializer;

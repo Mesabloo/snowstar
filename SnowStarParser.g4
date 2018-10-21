@@ -1,24 +1,37 @@
 parser grammar SnowStarParser;
 
-options { tokenVocab=SnowStarLexer; }
+options {
+    tokenVocab = SnowStarLexer;
+}
 
 // global
 compilationUnit: statement+;
 
-statement:       declare ';'
-         |       define ';';
+statement
+// options { paraphrase = 'a statement'; }
+         :       declare (eol=';')?
+         |       define (eol=';')?;
 
-expression:      IDENTIFIER
+expression
+// options { paraphrase = 'an expression'; }
+          :      IDENTIFIER
           |      literal;
 
 // variables
-declare:   primitiveType IDENTIFIER;
-define:    declare '=' (expression);
+define
+// options { paraphrase = 'a definition'; }
+      :          (declare|declareNoID) (eop='=')? (expression)?;
+declare
+// options { paraphrase = 'a declaration'; }
+       :         (type IDENTIFIER);
+declareNoID:   type;
 
 
 // primitives
 
-literal:         DECIMAL_LITERAL
+literal
+// options { paraphrase = 'a literal'; }
+       :         DECIMAL_LITERAL
        |         HEX_LITERAL
        |         BIN_LITERAL
        |         FLOAT_LITERAL
@@ -26,14 +39,18 @@ literal:         DECIMAL_LITERAL
        |         CHAR_LITERAL
        |         NIL_LITERAL;
 
-primitiveType:   BOOLEAN
-             |   CHAR
-             |   INTEGER8
-             |   INTEGER16
-             |   INTEGER32
-             |   INTEGER64
-             |   INTEGER128
-             |   REAL16
-             |   REAL32
-             |   REAL64
-             |   VOID;
+type
+// options { paraphrase = 'a type'; }
+    :   BOOLEAN
+    |   CHAR
+    |   INTEGER8
+    |   INTEGER16
+    |   INTEGER32
+    |   INTEGER64
+    |   REAL16
+    |   REAL32
+    |   REAL64
+    |   VOID
+    |   IDENTIFIER;
+
+error: .;

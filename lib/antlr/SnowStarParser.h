@@ -13,17 +13,18 @@ class  SnowStarParser : public antlr4::Parser {
 public:
   enum {
     BOOLEAN = 1, CHAR = 2, INTEGER8 = 3, INTEGER16 = 4, INTEGER32 = 5, INTEGER64 = 6, 
-    INTEGER128 = 7, REAL16 = 8, REAL32 = 9, REAL64 = 10, VOID = 11, DECIMAL_LITERAL = 12, 
-    HEX_LITERAL = 13, BIN_LITERAL = 14, FLOAT_LITERAL = 15, BOOL_LITERAL = 16, 
-    CHAR_LITERAL = 17, STRING_LITERAL = 18, NIL_LITERAL = 19, LPAREN = 20, 
-    RPAREN = 21, LBRACE = 22, RBRACE = 23, LBRACK = 24, RBRACK = 25, SEMI = 26, 
-    COMMA = 27, DOT = 28, ASSIGN = 29, WS = 30, COMMENT = 31, LINE_COMMENT = 32, 
-    IDENTIFIER = 33
+    REAL16 = 7, REAL32 = 8, REAL64 = 9, VOID = 10, DECIMAL_LITERAL = 11, 
+    HEX_LITERAL = 12, BIN_LITERAL = 13, FLOAT_LITERAL = 14, BOOL_LITERAL = 15, 
+    CHAR_LITERAL = 16, STRING_LITERAL = 17, NIL_LITERAL = 18, LPAREN = 19, 
+    RPAREN = 20, LBRACE = 21, RBRACE = 22, LBRACK = 23, RBRACK = 24, SEMI = 25, 
+    COMMA = 26, DOT = 27, ASSIGN = 28, WS = 29, COMMENT = 30, LINE_COMMENT = 31, 
+    IDENTIFIER = 32
   };
 
   enum {
-    RuleCompilationUnit = 0, RuleStatement = 1, RuleExpression = 2, RuleDeclare = 3, 
-    RuleDefine = 4, RuleLiteral = 5, RulePrimitiveType = 6
+    RuleCompilationUnit = 0, RuleStatement = 1, RuleExpression = 2, RuleDefine = 3, 
+    RuleDeclare = 4, RuleDeclareNoID = 5, RuleLiteral = 6, RuleType = 7, 
+    RuleError = 8
   };
 
   SnowStarParser(antlr4::TokenStream *input);
@@ -39,10 +40,12 @@ public:
   class CompilationUnitContext;
   class StatementContext;
   class ExpressionContext;
-  class DeclareContext;
   class DefineContext;
+  class DeclareContext;
+  class DeclareNoIDContext;
   class LiteralContext;
-  class PrimitiveTypeContext; 
+  class TypeContext;
+  class ErrorContext; 
 
   class  CompilationUnitContext : public antlr4::ParserRuleContext {
   public:
@@ -59,6 +62,7 @@ public:
 
   class  StatementContext : public antlr4::ParserRuleContext {
   public:
+    antlr4::Token *eol = nullptr;;
     StatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     DeclareContext *declare();
@@ -83,11 +87,26 @@ public:
 
   ExpressionContext* expression();
 
+  class  DefineContext : public antlr4::ParserRuleContext {
+  public:
+    antlr4::Token *eop = nullptr;;
+    DefineContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    DeclareContext *declare();
+    DeclareNoIDContext *declareNoID();
+    ExpressionContext *expression();
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  DefineContext* define();
+
   class  DeclareContext : public antlr4::ParserRuleContext {
   public:
     DeclareContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    PrimitiveTypeContext *primitiveType();
+    TypeContext *type();
     antlr4::tree::TerminalNode *IDENTIFIER();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -96,18 +115,17 @@ public:
 
   DeclareContext* declare();
 
-  class  DefineContext : public antlr4::ParserRuleContext {
+  class  DeclareNoIDContext : public antlr4::ParserRuleContext {
   public:
-    DefineContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    DeclareNoIDContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    DeclareContext *declare();
-    ExpressionContext *expression();
+    TypeContext *type();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
   };
 
-  DefineContext* define();
+  DeclareNoIDContext* declareNoID();
 
   class  LiteralContext : public antlr4::ParserRuleContext {
   public:
@@ -127,9 +145,9 @@ public:
 
   LiteralContext* literal();
 
-  class  PrimitiveTypeContext : public antlr4::ParserRuleContext {
+  class  TypeContext : public antlr4::ParserRuleContext {
   public:
-    PrimitiveTypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    TypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *BOOLEAN();
     antlr4::tree::TerminalNode *CHAR();
@@ -137,17 +155,28 @@ public:
     antlr4::tree::TerminalNode *INTEGER16();
     antlr4::tree::TerminalNode *INTEGER32();
     antlr4::tree::TerminalNode *INTEGER64();
-    antlr4::tree::TerminalNode *INTEGER128();
     antlr4::tree::TerminalNode *REAL16();
     antlr4::tree::TerminalNode *REAL32();
     antlr4::tree::TerminalNode *REAL64();
     antlr4::tree::TerminalNode *VOID();
+    antlr4::tree::TerminalNode *IDENTIFIER();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
   };
 
-  PrimitiveTypeContext* primitiveType();
+  TypeContext* type();
+
+  class  ErrorContext : public antlr4::ParserRuleContext {
+  public:
+    ErrorContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  ErrorContext* error();
 
 
 private:
