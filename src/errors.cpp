@@ -1,17 +1,5 @@
 #include <errors.hpp>
 
-namespace utils {
-    inline std::vector<std::string> str_split(std::string const& str, char const separator) {
-        std::vector<std::string> vect;
-        std::istringstream f{str};
-        std::string s;
-        while (getline(f, s, separator)) {
-            vect.push_back(s);
-        }
-        return vect;
-    }
-}
-
 std::string Error::prettify(std::string const& file, int errCode, int line, int charac, int firstCharac, std::string const& msg, std::string const& code, antlr4::Token* tk) {
     #if !defined(_WIN32) && !defined(_WIN64)
     std::stringstream ss;
@@ -68,12 +56,19 @@ std::string Error::prettify(std::string const& file, int errCode, int line, int 
         << L"  │"
     #endif
         << spacer(" ", charac-firstCharac+4)
-        << termcolor::reset << termcolor::red
+        << termcolor::reset << termcolor::red;
     #if !defined(_WIN32) && !defined(_WIN64)
-        << spacer("↓", tk->getText().size())
+    if (!tk)
+        ss << spacer("↓", code.size());
+    else
+        ss << spacer("↓", tk->getText().size());
     #else
-        << spacer(L"↓", tk->getText().size())
+    if (!tk)
+        ss << spacer(L"↓", code.size());
+    else
+        ss << spacer(L"↓", tk->getText().size());
     #endif
+    ss
         << termcolor::grey
     #if !defined(_WIN32) && !defined(_WIN64)
         << termcolor::bold
@@ -96,7 +91,7 @@ std::string Error::prettify(std::string const& file, int errCode, int line, int 
     #endif
 }
 std::string Warning::prettify(std::string const& file, int errCode, int line, int charac, int firstCharac, std::string const& msg, std::string const& code, antlr4::Token* tk) {
-        #if !defined(_WIN32) && !defined(_WIN64)
+    #if !defined(_WIN32) && !defined(_WIN64)
     std::stringstream ss;
     #else
     std::wstringstream ss;
@@ -197,7 +192,7 @@ std::unique_ptr<Error> RedeclaredVariableError::from(std::string const& path, an
         code = std::string{ss.str()};
     }
     
-    return std::make_unique<RedeclaredVariableError>(prettify(path, -3, line, character, first_character, "Redeclared variable `" + utils::str_split(args, ';')[0] + "`, previously declared at line " + utils::str_split(args, ';')[1] + ":" + utils::str_split(args, ';')[2] + ".", code, in_fault));
+    return std::make_unique<RedeclaredVariableError>(prettify(path, -3, line, character, first_character, "Redeclared variable `" + utils::str_split(args, '~')[0] + "`, previously declared at line " + utils::str_split(args, '~')[1] + ":" + utils::str_split(args, '~')[2] + ".", code, in_fault));
 }
 std::unique_ptr<Error> RedeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
     return this->from(path, ctx, in_fault->getStart(), args);
@@ -245,7 +240,7 @@ std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr
         code = std::string{ss.str()};
     };
     
-    return std::make_unique<WrongTypedValueError>(prettify(path, line, -2, character, first_character, "Inconsistent types. Expected `" + utils::str_split(args, ';')[0] + "`, found `" + utils::str_split(args, ';')[1] + "` on variable declaration.", code, in_fault));
+    return std::make_unique<WrongTypedValueError>(prettify(path, line, -2, character, first_character, "Inconsistent types. Expected `" + utils::str_split(args, '~')[0] + "`, found `" + utils::str_split(args, '~')[1] + "` on variable declaration.", code, in_fault));
 }
 std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
     return this->from(path, ctx, in_fault->getStart(), args);
@@ -269,7 +264,7 @@ std::unique_ptr<Error> InvalidDeclaringTypeError::from(std::string const& path, 
         code = std::string{ss.str()};
     }
     
-    return std::make_unique<InvalidDeclaringTypeError>(prettify(path, 2, line, character, first_character, "Cannot declare a variable of type " + args + ".", code, in_fault));
+    return std::make_unique<InvalidDeclaringTypeError>(prettify(path, 2, line, character, first_character, "Invalid variable declaration type `" + args + "`.", code, in_fault));
 }
 std::unique_ptr<Error> InvalidDeclaringTypeError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
     return this->from(path, ctx, in_fault->getStart(), args);
@@ -293,7 +288,7 @@ std::unique_ptr<Warning> ImplicitCastWarning::from(std::string const& path, antl
         code = std::string{ss.str()};
     }
     
-    return std::make_unique<ImplicitCastWarning>(prettify(path, -4, line, character, first_character, "Implicit cast performed from type `" + utils::str_split(args, ';')[0] + "` to type `" + utils::str_split(args, ';')[1] + "`.", code, in_fault));
+    return std::make_unique<ImplicitCastWarning>(prettify(path, -4, line, character, first_character, "Implicit cast performed from type `" + utils::str_split(args, '~')[0] + "` to type `" + utils::str_split(args, '~')[1] + "`.", code, in_fault));
 }
 std::unique_ptr<Warning> ImplicitCastWarning::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
     return this->from(path, ctx, in_fault->getStart(), args);
