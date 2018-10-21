@@ -30,18 +30,6 @@
 #   include <fcntl.h>
 #endif
 
-namespace utils {
-    std::vector<std::string> str_split(std::string const& str, char const separator) {
-        std::vector<std::string> vect;
-        std::istringstream f{str};
-        std::string s;
-        while (getline(f, s, separator)) {
-            vect.push_back(s);
-        }
-        return vect;
-    }
-};
-
 int main(int argc, char** argv) {
 
     #if defined(_WIN32) || defined(_WIN64)
@@ -117,13 +105,13 @@ int main(int argc, char** argv) {
     SnowStarParser parser(&tokens);
     ErrorListener parser_listener;
     parser.removeErrorListeners();
-    parser.addErrorListener(&parser_listener);
+    //parser.addErrorListener(&parser_listener);
     antlr4::tree::ParseTree* tree = parser.compilationUnit();
 
-    if (parser.getNumberOfSyntaxErrors() > 0) {
+    /*if (parser.getNumberOfSyntaxErrors() > 0) {
         std::cerr << "Unexpected errors occured:\n" << parser_listener << std::endl;
         return 1;
-    }
+    }*/
 
     #ifndef NDEBUG
         std::clog << tree->toStringTree(&parser) << std::endl;

@@ -19,8 +19,8 @@
 #include <llvm/IR/IRBuilder.h>
 
 class Visitor : public SnowStarParserBaseVisitor {
-    using Var = std::tuple<std::string, SnowStarParser::PrimitiveTypeContext*, std::pair<int, int>>;
-    using Decl = std::pair<SnowStarParser::PrimitiveTypeContext*, llvm::AllocaInst*>;
+    using Var = std::tuple<std::string, SnowStarParser::TypeContext*, std::pair<int, int>>;
+    using Decl = std::pair<SnowStarParser::TypeContext*, llvm::AllocaInst*>;
     std::vector<Var> declared{};
 
     struct E {
@@ -48,6 +48,7 @@ public:
     virtual antlrcpp::Any visitExpression(SnowStarParser::ExpressionContext*) override;
     virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext*) override;
     virtual antlrcpp::Any visitDeclare(SnowStarParser::DeclareContext*) override;
+    virtual antlrcpp::Any visitDeclareNoID(SnowStarParser::DeclareNoIDContext*) override;
 };
 
 #endif
