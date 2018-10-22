@@ -1,6 +1,8 @@
 #ifndef PARSER_ERRORS_HPP
 #define PARSER_ERRORS_HPP
 
+#include <termcolor/termcolor.hpp>
+
 #include <errors.hpp>
 
 struct MissingTokenError : Error {

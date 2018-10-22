@@ -6,7 +6,8 @@
 #include <SnowStarLexer.h>
 #include <SnowStarParser.h>
 
-#include <visitor.hpp>
+#include <antlr_visitor.hpp>
+#include <llvm_visitor.hpp>
 #include <error_listener.hpp>
 #include <termcolor/termcolor.hpp>
 #include <process.hpp>
@@ -117,6 +118,26 @@ int main(int argc, char** argv) {
         std::clog << tree->toStringTree(&parser) << std::endl;
     #endif
 
+    ANTLRVisitor v{input_files[0]};
+    v.visit(tree);
+    auto const& result = v.getErrorsAndWarnings();
+    std::cerr << termcolor::reset << std::endl;
+    for (auto& e : result.errs) {
+        #ifndef UNICODE
+        std::cerr << e->getError() << std::endl;
+        #else
+        std::wcerr << e->getError() << std::endl;
+        #endif
+    }
+    if (!result.errs.empty()) return 1;
+    for (auto& w : result.warns) {
+        #ifndef UNICODE
+        std::cerr << w->getError() << std::endl;
+        #else
+        std::wcerr << w->getError() << std::endl;
+        #endif
+    }
+
     file_name_ll = input_files[0]+".ll";
 
     static llvm::LLVMContext ctx{};
@@ -144,24 +165,8 @@ int main(int argc, char** argv) {
     mod.setDataLayout(machine->createDataLayout());
     mod.setTargetTriple(targetTriple);
 
-    Visitor v{input_files[0], mod};
-    v.visit(tree);
-    auto const& result = v.getErrorsAndWarnings();
-    for (auto& e : result.errs) {
-        #ifndef UNICODE
-        std::cerr << e->getError() << std::endl;
-        #else
-        std::wcerr << e->getError() << std::endl;
-        #endif
-    }
-    for (auto& w : result.warns) {
-        #ifndef UNICODE
-        std::cerr << w->getError() << std::endl;
-        #else
-        std::wcerr << w->getError() << std::endl;
-        #endif
-    }
-    if (!result.errs.empty()) return 1;
+    LLVMVisitor codegen{mod};
+    codegen.visit(tree);
 
     llvm::verifyModule(mod, &llvm::errs());
 

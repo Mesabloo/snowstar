@@ -103,7 +103,7 @@ std::string Warning::prettify(std::string const& file, int errCode, int line, in
         << termcolor::bold
     #endif
         << termcolor::on_yellow << termcolor::white
-        << "Error"
+        << "Warning"
         << termcolor::reset << termcolor::white
         << ": " << msg << "\n"
         << termcolor::grey
