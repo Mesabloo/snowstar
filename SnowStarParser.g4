@@ -18,13 +18,16 @@ expression
           |      literal;
 
 // variables
+assign
+// options { paraphrase = 'an assignation'; }
+      :          IDENTIFIER (eop='=')? (expression)?;
 define
 // options { paraphrase = 'a definition'; }
       :          (declare|declareNoID) (eop='=')? (expression)?;
 declare
 // options { paraphrase = 'a declaration'; }
-       :         (type IDENTIFIER);
-declareNoID:   type;
+       :         type IDENTIFIER;
+declareNoID:     type;
 
 
 // primitives

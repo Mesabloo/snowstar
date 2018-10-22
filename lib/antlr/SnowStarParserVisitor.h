@@ -25,6 +25,8 @@ public:
 
     virtual antlrcpp::Any visitExpression(SnowStarParser::ExpressionContext *context) = 0;
 
+    virtual antlrcpp::Any visitAssign(SnowStarParser::AssignContext *context) = 0;
+
     virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext *context) = 0;
 
     virtual antlrcpp::Any visitDeclare(SnowStarParser::DeclareContext *context) = 0;

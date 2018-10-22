@@ -22,9 +22,9 @@ public:
   };
 
   enum {
-    RuleCompilationUnit = 0, RuleStatement = 1, RuleExpression = 2, RuleDefine = 3, 
-    RuleDeclare = 4, RuleDeclareNoID = 5, RuleLiteral = 6, RuleType = 7, 
-    RuleError = 8
+    RuleCompilationUnit = 0, RuleStatement = 1, RuleExpression = 2, RuleAssign = 3, 
+    RuleDefine = 4, RuleDeclare = 5, RuleDeclareNoID = 6, RuleLiteral = 7, 
+    RuleType = 8, RuleError = 9
   };
 
   SnowStarParser(antlr4::TokenStream *input);
@@ -40,6 +40,7 @@ public:
   class CompilationUnitContext;
   class StatementContext;
   class ExpressionContext;
+  class AssignContext;
   class DefineContext;
   class DeclareContext;
   class DeclareNoIDContext;
@@ -86,6 +87,20 @@ public:
   };
 
   ExpressionContext* expression();
+
+  class  AssignContext : public antlr4::ParserRuleContext {
+  public:
+    antlr4::Token *eop = nullptr;;
+    AssignContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    ExpressionContext *expression();
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  AssignContext* assign();
 
   class  DefineContext : public antlr4::ParserRuleContext {
   public:
