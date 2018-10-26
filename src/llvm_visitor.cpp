@@ -31,13 +31,14 @@ antlrcpp::Any LLVMVisitor::visitCompilationUnit(SnowStarParser::CompilationUnitC
 
     llvm::ConstantInt* i32_0 = llvm::ConstantInt::get(module.getContext(), llvm::APInt(32, 0));
     llvm::ReturnInst::Create(module.getContext(), i32_0, cur_block);
-
-    module.print(llvm::outs(), nullptr);
-
     return 0;
 }
 
 antlrcpp::Any LLVMVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
+
+//    if (llvm_types.find(ctx->type()->getText()))
+
+
     llvm::AllocaInst* val = new llvm::AllocaInst(
         llvm_types[ctx->type()->getText()], 
         0,
@@ -49,7 +50,11 @@ antlrcpp::Any LLVMVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
         std::clog << termcolor::blue << "   :::   | Generated LLVM code for declaration." << termcolor::reset << std::endl;
     #endif
 
-    return Decl(ctx->type(), val);
+    if (ctx->type()->IDENTIFIER()) {
+        return Decl(std::find_if(aliases.begin(), aliases.end(), [&ctx](Alias const& a) { return a.first == ctx->type()->IDENTIFIER()->getText(); })->second, val);
+
+    } else
+        return Decl(ctx->type(), val);
 }
 
 antlrcpp::Any LLVMVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
@@ -78,6 +83,17 @@ antlrcpp::Any LLVMVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
     #endif
 
     return store;
+}
+
+antlrcpp::Any LLVMVisitor::visitAlias(SnowStarParser::AliasContext* ctx) {
+    auto& type = llvm_types[ctx->type()->getText()];
+
+    llvm_types[ctx->IDENTIFIER()->getText()] = type;
+    // llvm_types[ctx->IDENTIFIER()->getText()] = type;
+
+    aliases.push_back(Alias(ctx->IDENTIFIER()->getText(), ctx->type()));
+
+    return type;
 }
 
 

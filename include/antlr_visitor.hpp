@@ -12,9 +12,11 @@
 #include <errors.hpp>
 
 class ANTLRVisitor : public SnowStarParserBaseVisitor {
-    using Var = std::tuple<std::string, SnowStarParser::TypeContext*, std::pair<int, int>>;
     using Decl = SnowStarParser::TypeContext*;
+    using Var = std::tuple<std::string, Decl, std::pair<int, int>>;
+    using Alias = std::pair<std::string, Decl>;
     std::vector<Var> declared{};
+    std::vector<Alias> aliases{};
 
     struct E {
         std::vector<std::unique_ptr<Error>> errs;
@@ -36,6 +38,7 @@ public:
     virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext*) override;
     virtual antlrcpp::Any visitDeclare(SnowStarParser::DeclareContext*) override;
     virtual antlrcpp::Any visitDeclareNoID(SnowStarParser::DeclareNoIDContext*) override;
+    virtual antlrcpp::Any visitAlias(SnowStarParser::AliasContext*) override;
 };
 
 #endif

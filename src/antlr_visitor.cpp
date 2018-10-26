@@ -80,12 +80,8 @@ antlrcpp::Any ANTLRVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
         errors.errs.push_back(InvalidDeclaringTypeError().from(file_name, current_stmt_context, ctx->type()->VOID()->getSymbol(), "void"));
         return ctx->type();
     }
-    if (ctx->type()->IDENTIFIER()) {
-        // check if the type exists (will be seen later, with the `dtype`s)
-        errors.errs.push_back(InvalidDeclaringTypeError().from(file_name, current_stmt_context, ctx->type()->IDENTIFIER()->getSymbol(), ctx->type()->getText()));
-        return nullptr;
-    }
-    auto it = std::find_if(declared.begin(), declared.end(), [&] (Var const& var) { return std::get<0>(var) == ctx->IDENTIFIER()->getText(); });
+    
+    auto it = std::find_if(declared.begin(), declared.end(), [&ctx] (Var const& var) { return std::get<0>(var) == ctx->IDENTIFIER()->getText(); });
     #ifndef NDEBUG
         std::clog << termcolor::green << std::boolalpha << "   [i]   | >> " << ctx->IDENTIFIER()->getText() << " is already declared: " << (it != declared.end()) << std::noboolalpha << termcolor::reset << std::endl;
     #endif
@@ -97,7 +93,18 @@ antlrcpp::Any ANTLRVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
         errors.errs.push_back(RedeclaredVariableError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), ctx->IDENTIFIER()->getText()+"~"+std::to_string(std::get<2>(*it).first)+"~"+std::to_string(std::get<2>(*it).second+1)));
         return nullptr;
     }
-    declared.push_back(std::make_tuple(ctx->IDENTIFIER()->getText(), ctx->type(), std::make_pair(ctx->IDENTIFIER()->getSymbol()->getLine(), ctx->IDENTIFIER()->getSymbol()->getCharPositionInLine())));
+
+    if (ctx->type()->IDENTIFIER()) {
+        auto it1 = std::find_if(aliases.begin(), aliases.end(), [&ctx] (Alias const& alias) { return std::get<0>(alias) == ctx->type()->IDENTIFIER()->getText(); });
+        if (it1 == aliases.end()) {
+            errors.errs.push_back(InvalidDeclaringTypeError().from(file_name, current_stmt_context, ctx->type()->IDENTIFIER()->getSymbol(), ctx->type()->getText()));
+            return nullptr;
+        }
+
+        declared.push_back(std::make_tuple(ctx->IDENTIFIER()->getText(), it1->second, std::make_pair(ctx->IDENTIFIER()->getSymbol()->getLine(), ctx->IDENTIFIER()->getSymbol()->getCharPositionInLine())));
+        return it1->second;
+    } else
+        declared.push_back(std::make_tuple(ctx->IDENTIFIER()->getText(), ctx->type(), std::make_pair(ctx->IDENTIFIER()->getSymbol()->getLine(), ctx->IDENTIFIER()->getSymbol()->getCharPositionInLine())));
 
     return ctx->type();
 }
@@ -218,4 +225,36 @@ antlrcpp::Any ANTLRVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
     }
 
     return antlrcpp::Any();
+}
+
+antlrcpp::Any ANTLRVisitor::visitAlias(SnowStarParser::AliasContext* ctx) {
+    #ifndef NDEBUG
+        std::clog << termcolor::green << "   [i]   | Visiting an alias..." << termcolor::reset << std::endl;
+    #endif
+
+    if (!ctx->IDENTIFIER()) {
+        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->with, "identifier in type aliasing~"+ctx->with->getText()));
+        return antlrcpp::Any();
+    }
+    if (!ctx->eop) {
+        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), "`=` token in type aliasing~"+ctx->IDENTIFIER()->getSymbol()->getText()));
+        return antlrcpp::Any();
+    }
+    if (!ctx->type()) {
+        // missing type;
+        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->eop, "type in type aliasing~"+ctx->eop->getText()));
+        return antlrcpp::Any();
+    }
+
+    auto decl_it = std::find_if(declared.begin(), declared.end(), [&ctx](Var const& v) { return std::get<0>(v) == ctx->IDENTIFIER()->getText(); });
+    auto alias_it = std::find_if(aliases.begin(), aliases.end(), [&ctx](Alias const& a) { return a.first == ctx->IDENTIFIER()->getText(); });
+    if (decl_it != declared.end() || alias_it != aliases.end()) {
+        // name already exists, we can't take it.
+        errors.errs.push_back(AlreadyExistingIDError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), ctx->IDENTIFIER()->getText()));
+        return antlrcpp::Any();
+    }
+
+    aliases.push_back(std::make_pair(ctx->IDENTIFIER()->getText(), ctx->type()));
+
+    return 0;
 }

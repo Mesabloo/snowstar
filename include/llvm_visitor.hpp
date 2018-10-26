@@ -15,12 +15,15 @@
 
 class LLVMVisitor : public SnowStarParserBaseVisitor {
     using Decl = std::pair<SnowStarParser::TypeContext*, llvm::AllocaInst*>;
+    using Alias = std::pair<std::string, SnowStarParser::TypeContext*>;
 
     llvm::Module& module;
     // llvm::IRBuilder<> current_builder;
     llvm::BasicBlock* cur_block;
 
     std::map<std::string, llvm::Type*> llvm_types;
+
+    std::vector<Alias> aliases{};
 
 public:
     LLVMVisitor(llvm::Module&);
@@ -30,6 +33,7 @@ public:
     virtual antlrcpp::Any visitExpression(SnowStarParser::ExpressionContext*) override;
     virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext*) override;
     virtual antlrcpp::Any visitDeclare(SnowStarParser::DeclareContext*) override;
+    virtual antlrcpp::Any visitAlias(SnowStarParser::AliasContext*) override;
 };
 
 #endif

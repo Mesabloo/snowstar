@@ -99,6 +99,18 @@ struct UndeclaredVariableError : Error {
     virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::string const...);
 };
 
+struct AlreadyExistingIDError: Error {
+    AlreadyExistingIDError() = default;
+#if !defined(_WIN32) && !defined(_WIN64)
+    AlreadyExistingIDError(std::string const& msg) : Error{msg} {}
+#else
+    AlreadyExistingIDError(std::wstring const& msg) : Error{msg} {}
+#endif
+
+    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::string const...);
+    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::string const...);
+};
+
 class Warning {
 public:
     Warning() = default;
