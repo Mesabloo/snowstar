@@ -13,6 +13,8 @@ REAL32:     'real32';
 REAL64:     'real64';
 VOID:       'void';
 
+WITH:       'with';
+
 // Literals
 
 DECIMAL_LITERAL:   Digits+;
@@ -32,15 +34,15 @@ NIL_LITERAL:       'nil';
 
 // Separators
 
-LPAREN: '(';
-RPAREN: ')';
-LBRACE: '{';
-RBRACE: '}';
-LBRACK: '[';
-RBRACK: ']';
-SEMI:   ';';
-COMMA:  ',';
-DOT:    '.';
+LPAREN:    '(';
+RPAREN:    ')';
+LBRACE:    '{';
+RBRACE:    '}';
+LBRACK:    '[';
+RBRACK:    ']';
+SEMI:      ';';
+COMMA:     ',';
+DOT:       '.';
 
 // Operators
 

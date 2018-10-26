@@ -9,8 +9,9 @@ compilationUnit: statement+;
 
 statement
 // options { paraphrase = 'a statement'; }
-         :       declare (eol=';')?
-         |       define (eol=';')?;
+         :       declare eol=';'?
+         |       define eol=';'?
+         |       alias eol=';'?;
 
 expression
 // options { paraphrase = 'an expression'; }
@@ -20,15 +21,17 @@ expression
 // variables
 assign
 // options { paraphrase = 'an assignation'; }
-      :          IDENTIFIER (eop='=')? (expression)?;
+      :          IDENTIFIER eop='='? expression?;
+
 define
 // options { paraphrase = 'a definition'; }
-      :          (declare|declareNoID) (eop='=')? (expression)?;
+      :          (declare|declareNoID) eop='='? expression?;
 declare
 // options { paraphrase = 'a declaration'; }
        :         type IDENTIFIER;
 declareNoID:     type;
 
+alias:           with='with' IDENTIFIER? eop='='? type?;
 
 // primitives
 

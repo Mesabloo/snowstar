@@ -43,6 +43,14 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual antlrcpp::Any visitAlias(SnowStarParser::AliasContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitTest(SnowStarParser::TestContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual antlrcpp::Any visitLiteral(SnowStarParser::LiteralContext *ctx) override {
     return visitChildren(ctx);
   }

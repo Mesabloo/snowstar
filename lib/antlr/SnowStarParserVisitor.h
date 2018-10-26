@@ -33,6 +33,10 @@ public:
 
     virtual antlrcpp::Any visitDeclareNoID(SnowStarParser::DeclareNoIDContext *context) = 0;
 
+    virtual antlrcpp::Any visitAlias(SnowStarParser::AliasContext *context) = 0;
+
+    virtual antlrcpp::Any visitTest(SnowStarParser::TestContext *context) = 0;
+
     virtual antlrcpp::Any visitLiteral(SnowStarParser::LiteralContext *context) = 0;
 
     virtual antlrcpp::Any visitType(SnowStarParser::TypeContext *context) = 0;
