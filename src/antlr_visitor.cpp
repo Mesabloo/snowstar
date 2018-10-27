@@ -254,7 +254,32 @@ antlrcpp::Any ANTLRVisitor::visitAlias(SnowStarParser::AliasContext* ctx) {
         return antlrcpp::Any();
     }
 
-    aliases.push_back(std::make_pair(ctx->IDENTIFIER()->getText(), ctx->type()));
+    #ifndef NDEBUG
+        std::clog << termcolor::green << "   [i]   | Alias name is composed?=" << std::boolalpha << (ctx->type()->IDENTIFIER()) << std::noboolalpha << "." << termcolor::reset << std::endl;
+    #endif
+    if (ctx->type()->IDENTIFIER()) {
+        alias_it = std::find_if(aliases.begin(), aliases.end(), [&ctx] (Alias const& a) { return a.first == ctx->type()->IDENTIFIER()->getText(); });
+        while (alias_it != aliases.end() && alias_it->second->IDENTIFIER()) {
+            #ifndef NDEBUG
+                std::string id = alias_it->second->IDENTIFIER()->getText();
+            #endif  
+            alias_it = std::find_if(aliases.begin(), aliases.end(), [&alias_it] (Alias const& a) { return a.first == alias_it->second->IDENTIFIER()->getText(); });
+            #ifndef NDEBUG
+                if (alias_it != aliases.end()) {
+                    std::clog << termcolor::blue << "   :::   | Found alias with name `" << alias_it->second->getText() << "`." << termcolor::reset << std::endl;
+                } else {
+                    std::clog << termcolor::yellow << "   /!\\   | Could not find an alias with name `" << id << "`." << termcolor::reset << std::endl;
+                }
+            #endif
+        }
+        if (alias_it == aliases.end()) {
+            errors.errs.push_back(UnknownIDError().from(file_name, current_stmt_context, ctx->type()->IDENTIFIER()->getSymbol(), ctx->type()->IDENTIFIER()->getText()));
+            return nullptr;
+        }
+
+        aliases.push_back(std::make_pair(ctx->IDENTIFIER()->getText(), alias_it->second));
+    } else
+        aliases.push_back(std::make_pair(ctx->IDENTIFIER()->getText(), ctx->type()));
 
     return 0;
 }

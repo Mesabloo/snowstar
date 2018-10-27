@@ -89,9 +89,16 @@ antlrcpp::Any LLVMVisitor::visitAlias(SnowStarParser::AliasContext* ctx) {
     auto& type = llvm_types[ctx->type()->getText()];
 
     llvm_types[ctx->IDENTIFIER()->getText()] = type;
-    // llvm_types[ctx->IDENTIFIER()->getText()] = type;
 
-    aliases.push_back(Alias(ctx->IDENTIFIER()->getText(), ctx->type()));
+    if (ctx->type()->IDENTIFIER()) {
+        auto alias_it = std::find_if(aliases.begin(), aliases.end(), [&ctx] (Alias const& a) { return a.first == ctx->type()->IDENTIFIER()->getText(); });
+        while (alias_it != aliases.end() && alias_it->second->IDENTIFIER()) {
+            alias_it = std::find_if(aliases.begin(), aliases.end(), [&alias_it] (Alias const& a) { return a.first == alias_it->second->getText(); });
+        }
+        
+        aliases.push_back(Alias(ctx->IDENTIFIER()->getText(), alias_it->second));
+    } else
+        aliases.push_back(Alias(ctx->IDENTIFIER()->getText(), ctx->type()));
 
     return type;
 }

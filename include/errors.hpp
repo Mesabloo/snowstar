@@ -111,6 +111,18 @@ struct AlreadyExistingIDError: Error {
     virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::string const...);
 };
 
+struct UnknownIDError: Error {
+    UnknownIDError() = default;
+#if !defined(_WIN32) && !defined(_WIN64)
+    UnknownIDError(std::string const& msg) : Error{msg} {}
+#else
+    UnknownIDError(std::wstring const& msg) : Error{msg} {}
+#endif
+
+    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::string const...);
+    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::string const...);
+};
+
 class Warning {
 public:
     Warning() = default;
