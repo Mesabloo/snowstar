@@ -1,18 +1,12 @@
-[submodule "antlr"]
-	path = antlr
+[submodule "ext/antlr"]
+	path = ext/antlr
 	url = https://github.com/Kafe-lang/ANTLR4-CPP-runtime.git
-[submodule "tiny_process_library"]
-	path = tiny_process_library
+[submodule "ext/tiny_process_library"]
+	path = ext/tiny_process_library
 	url = http://gitlab.com/eidheim/tiny-process-library
-[submodule "cli11"]
-	path = cli11
-	url = https://github.com/CLIUtils/CLI11.git
-[submodule "cxxopts"]
-	path = cxxopts
-	url = https://github.com/jarro2783/cxxopts
-[submodule "argh"]
-	path = argh
+[submodule "ext/argh"]
+	path = ext/argh
 	url = https://github.com/adishavit/argh
-[submodule "termcolor"]
-	path = termcolor
+[submodule "ext/termcolor"]
+	path = ext/termcolor
 	url = https://github.com/ikalnytskyi/termcolor

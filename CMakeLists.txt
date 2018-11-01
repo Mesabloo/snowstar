@@ -3,7 +3,6 @@ cmake_policy(SET CMP0015 NEW)
 
 project(SnowStar)
 
-add_subdirectory(antlr/cpp_runtime/)
-# add_subdirectory(tiny_process_library/)
-add_subdirectory(argh/)
+add_subdirectory(ext/antlr/cpp_runtime/)
+add_subdirectory(ext/argh/)
 add_subdirectory(src/)

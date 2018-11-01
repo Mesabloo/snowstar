@@ -9,11 +9,11 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 find_package(Threads REQUIRED)
 
 include_directories(
-    ${SnowStar_SOURCE_DIR}/antlr/cpp_runtime/runtime/src
-    ${SnowStar_SOURCE_DIR}/argh
+    ${SnowStar_SOURCE_DIR}/ext/antlr/cpp_runtime/runtime/src
+    ${SnowStar_SOURCE_DIR}/ext/argh
     ${SnowStar_SOURCE_DIR}/lib/antlr
-    ${SnowStar_SOURCE_DIR}/tiny_process_library
-    ${SnowStar_SOURCE_DIR}/termcolor/include
+    ${SnowStar_SOURCE_DIR}/ext/tiny_process_library
+    ${SnowStar_SOURCE_DIR}/ext/termcolor/include
     ${SnowStar_SOURCE_DIR}/include
     ${LLVM_INCLUDE_DIRS}
 )
@@ -25,16 +25,16 @@ if (MSVC)
 		GLOB_RECURSE SOURCE_FILES
 		${SnowStar_SOURCE_DIR}/lib/antlr/*.cpp
 		${Compiler_SOURCE_DIR}/*.cpp
-		${SnowStar_SOURCE_DIR}/tiny_process_library/process.cpp
-		${SnowStar_SOURCE_DIR}/tiny_process_library/process_win.cpp
+		${SnowStar_SOURCE_DIR}/ext/tiny_process_library/process.cpp
+		${SnowStar_SOURCE_DIR}/ext/tiny_process_library/process_win.cpp
 	)
 else()
 	file(
 		GLOB_RECURSE SOURCE_FILES
 		${SnowStar_SOURCE_DIR}/lib/antlr/*.cpp
 		${Compiler_SOURCE_DIR}/*.cpp
-		${SnowStar_SOURCE_DIR}/tiny_process_library/process.cpp
-		${SnowStar_SOURCE_DIR}/tiny_process_library/process_unix.cpp
+		${SnowStar_SOURCE_DIR}/ext/tiny_process_library/process.cpp
+		${SnowStar_SOURCE_DIR}/ext/tiny_process_library/process_unix.cpp
 	)
 endif()
 
