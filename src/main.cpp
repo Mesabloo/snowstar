@@ -12,6 +12,7 @@
 #include <termcolor/termcolor.hpp>
 #include <process.hpp>
 #include <argh.h>
+#include <pprinter.hpp>
 
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
@@ -106,16 +107,12 @@ int main(int argc, char** argv) {
     SnowStarParser parser(&tokens);
     ErrorListener parser_listener;
     parser.removeErrorListeners();
-    //parser.addErrorListener(&parser_listener);
     antlr4::tree::ParseTree* tree = parser.compilationUnit();
 
-    /*if (parser.getNumberOfSyntaxErrors() > 0) {
-        std::cerr << "Unexpected errors occured:\n" << parser_listener << std::endl;
-        return 1;
-    }*/
-
     #ifndef NDEBUG
-        std::clog << tree->toStringTree(&parser) << std::endl;
+        std::clog << '\n';
+        PrettyPrinter pprint(tree, std::clog);
+        std::clog << '\n';
     #endif
 
     ANTLRVisitor v{input_files[0]};
