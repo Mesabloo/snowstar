@@ -17,14 +17,17 @@ public:
     HEX_LITERAL = 13, BIN_LITERAL = 14, FLOAT_LITERAL = 15, BOOL_LITERAL = 16, 
     CHAR_LITERAL = 17, STRING_LITERAL = 18, NIL_LITERAL = 19, LPAREN = 20, 
     RPAREN = 21, LBRACE = 22, RBRACE = 23, LBRACK = 24, RBRACK = 25, SEMI = 26, 
-    COMMA = 27, DOT = 28, ASSIGN = 29, WS = 30, COMMENT = 31, LINE_COMMENT = 32, 
-    IDENTIFIER = 33
+    COMMA = 27, DOT = 28, ASSIGN = 29, EQUALS = 30, NEQUALS = 31, GREATER = 32, 
+    LOWER = 33, GREATER_EQ = 34, LOWER_EQ = 35, LOGIC_OR = 36, LOGIC_AND = 37, 
+    LOGIC_NOT = 38, PLUSPLUS = 39, MINUSMINUS = 40, PLUS = 41, MINUS = 42, 
+    STAR = 43, SLASH = 44, BIN_NOT = 45, BIN_AND = 46, BIN_OR = 47, BIN_XOR = 48, 
+    WS = 49, COMMENT = 50, LINE_COMMENT = 51, IDENTIFIER = 52
   };
 
   enum {
     RuleCompilationUnit = 0, RuleStatement = 1, RuleExpression = 2, RuleAssign = 3, 
     RuleDefine = 4, RuleDeclare = 5, RuleDeclareNoID = 6, RuleAlias = 7, 
-    RuleTest = 8, RuleLiteral = 9, RuleType = 10, RuleError = 11
+    RuleLiteral = 8, RuleType = 9
   };
 
   SnowStarParser(antlr4::TokenStream *input);
@@ -45,10 +48,8 @@ public:
   class DeclareContext;
   class DeclareNoIDContext;
   class AliasContext;
-  class TestContext;
   class LiteralContext;
-  class TypeContext;
-  class ErrorContext; 
+  class TypeContext; 
 
   class  CompilationUnitContext : public antlr4::ParserRuleContext {
   public:
@@ -80,17 +81,21 @@ public:
 
   class  ExpressionContext : public antlr4::ParserRuleContext {
   public:
+    antlr4::Token *uop = nullptr;;
+    antlr4::Token *bop = nullptr;;
     ExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IDENTIFIER();
     LiteralContext *literal();
+    std::vector<ExpressionContext *> expression();
+    ExpressionContext* expression(size_t i);
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
   };
 
   ExpressionContext* expression();
-
+  ExpressionContext* expression(int precedence);
   class  AssignContext : public antlr4::ParserRuleContext {
   public:
     antlr4::Token *eop = nullptr;;
@@ -160,20 +165,6 @@ public:
 
   AliasContext* alias();
 
-  class  TestContext : public antlr4::ParserRuleContext {
-  public:
-    antlr4::Token *e = nullptr;;
-    antlr4::Token *ex = nullptr;;
-    TestContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *IDENTIFIER();
-
-    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  TestContext* test();
-
   class  LiteralContext : public antlr4::ParserRuleContext {
   public:
     LiteralContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -214,17 +205,9 @@ public:
 
   TypeContext* type();
 
-  class  ErrorContext : public antlr4::ParserRuleContext {
-  public:
-    ErrorContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
 
-    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  ErrorContext* error();
-
+  virtual bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;
+  bool expressionSempred(ExpressionContext *_localctx, size_t predicateIndex);
 
 private:
   static std::vector<antlr4::dfa::DFA> _decisionToDFA;

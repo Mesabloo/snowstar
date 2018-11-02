@@ -8,45 +8,44 @@ options {
 compilationUnit: statement+;
 
 statement
-// options { paraphrase = 'a statement'; }
          :       declare eol=';'?
          |       define eol=';'?
          |       alias eol=';'?;
 
-expression
-// options { paraphrase = 'an expression'; }
-          :      IDENTIFIER
-          |      literal;
-
 // variables
+
+expression
+          :      (IDENTIFIER | literal | '(' expression ')')
+          |      uop=('!' | '-' | '+' | '~') expression
+          |      expression bop=('*' | '/') expression
+          |      expression bop=('+' | '-') expression
+          |      expression bop=('==' | '!=' | '<=' | '>=' | '<' | '>') expression
+          |      expression bop=('||' | '&&') expression;
+
 assign
-// options { paraphrase = 'an assignation'; }
       :          IDENTIFIER eop='='? expression?;
 
 define
-// options { paraphrase = 'a definition'; }
-      :          (declare|declareNoID) eop='='? expression?;
+      :          (declare | declareNoID) eop='='? expression?;
 declare
-// options { paraphrase = 'a declaration'; }
        :         type IDENTIFIER;
-declareNoID:     type;
+declareNoID
+           :     type;
 
-alias:           with='with' IDENTIFIER? eop='='? type?;
+alias
+     :           with='with' IDENTIFIER? eop='='? type?;
 
 // primitives
 
 literal
-// options { paraphrase = 'a literal'; }
        :         DECIMAL_LITERAL
        |         HEX_LITERAL
        |         BIN_LITERAL
        |         FLOAT_LITERAL
        |         BOOL_LITERAL
-       |         CHAR_LITERAL
-       |         NIL_LITERAL;
+       |         CHAR_LITERAL;
 
 type
-// options { paraphrase = 'a type'; }
     :   BOOLEAN
     |   CHAR
     |   INTEGER8
@@ -58,5 +57,3 @@ type
     |   REAL64
     |   VOID
     |   IDENTIFIER;
-
-error: .;

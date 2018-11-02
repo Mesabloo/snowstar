@@ -30,8 +30,6 @@ CHAR_LITERAL:      '\'' (~['\\\r\n] | EscapeSequence) '\'';
 
 STRING_LITERAL:    '"' (~["\\\r\n] | EscapeSequence)* '"';
 
-NIL_LITERAL:       'nil';
-
 // Separators
 
 LPAREN:    '(';
@@ -46,7 +44,24 @@ DOT:       '.';
 
 // Operators
 
-ASSIGN:    '=';
+ASSIGN:     '=';
+EQUALS:     '==';
+NEQUALS:    '!=';
+GREATER:    '>';
+LOWER:      '<';
+GREATER_EQ: '>=';
+LOWER_EQ:   '<=';
+LOGIC_OR:   '||';
+LOGIC_AND:  '&&';
+LOGIC_NOT:  '!';
+PLUS:       '+';
+MINUS:      '-';
+STAR:       '*';
+SLASH:      '/';
+BIN_NOT:    '~';
+BIN_AND:    '&';
+BIN_OR:     '|';
+BIN_XOR:    '^';
 
 // Whitespaces and comments
 

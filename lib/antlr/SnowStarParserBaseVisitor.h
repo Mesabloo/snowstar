@@ -47,19 +47,11 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitTest(SnowStarParser::TestContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
   virtual antlrcpp::Any visitLiteral(SnowStarParser::LiteralContext *ctx) override {
     return visitChildren(ctx);
   }
 
   virtual antlrcpp::Any visitType(SnowStarParser::TypeContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitError(SnowStarParser::ErrorContext *ctx) override {
     return visitChildren(ctx);
   }
 
