@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include <initializer_list>
+#include <variant>
 
 #include <antlr4-runtime.h>
 
@@ -41,14 +42,14 @@ protected:
     std::string m_msg;
 
     std::function<std::string(std::string const, unsigned int)> spacer = [=] (std::string const s1, unsigned int n) -> std::string { std::string s; for (unsigned int tmp{0};tmp < n;++tmp) s+=s1; return s; };
-    std::string prettify(std::string const&, int, int, int, int, std::string const&, std::string const&, antlr4::Token*);
+    std::string prettify(std::string const&, int, int, int, std::string const&, std::string const&, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>);
 #else
     std::wstring getError() const { return m_msg; }
 protected:
     std::wstring m_msg;
 
     std::function<std::wstring(std::wstring const, unsigned int)> spacer = [=] (std::wstring const s1, unsigned int n) -> std::wstring { std::wstring s; for (unsigned int tmp{0};tmp < n;++tmp) s+=s1; return s; };
-    std::wstring prettify(std::string const&, int, int, int, int, std::string const&, std::string const&, antlr4::Token*);
+    std::wstring prettify(std::string const&, int, int, int, std::string const&, std::string const&, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>);
 #endif
 };
 
@@ -142,14 +143,15 @@ protected:
     std::string m_msg;
 
     std::function<std::string(std::string const, unsigned int)> spacer = [=] (std::string const s1, unsigned int n) -> std::string { std::string s; for (unsigned int tmp{0};tmp < n;++tmp) s+=s1; return s; };
-    std::string prettify(std::string const&, int, int, int, int, std::string const&, std::string const&, antlr4::Token*);
+    std::string prettify(std::string const&, int, int, int, std::string const&, std::string const&, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>);
 #else
     std::wstring getError() const { return m_msg; }
 protected:
     std::wstring m_msg;
 
     std::function<std::wstring(std::wstring const, unsigned int)> spacer = [=] (std::wstring const s1, unsigned int n) -> std::wstring { std::wstring s; for (unsigned int tmp{0};tmp < n;++tmp) s+=s1; return s; };
-    std::wstring prettify(std::string const&, int, int, int, int, std::string const&, std::string const&, antlr4::Token*);
+    std::wstring prettify(std::string const&, int, int, int, std::string const&, std::string const&, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>);
+    
 #endif
 };
 
