@@ -59,64 +59,115 @@ antlrcpp::Any ANTLRVisitor::visitStatement(SnowStarParser::StatementContext* ctx
 antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* ctx) {
     #ifndef NDEBUG
         std::clog << termcolor::green << "   [i]   | Visiting an expression..." << termcolor::reset << std::endl;
+        std::clog << termcolor::magenta << "   ...   | " << ctx->getText() << termcolor::reset << std::endl;
     #endif
 
-    std::string ret{"void"};
+    ExprType ret{ExprType::VOID};
+
+    auto getType = [] (ExprType const e) -> std::string {
+        switch (e) {
+            case ExprType::BOOL: return "bool";
+            case ExprType::CHAR: return "char";
+            case ExprType::INT8: return "int8";
+            case ExprType::INT16: return "int16";
+            case ExprType::INT32: return "int32";
+            case ExprType::INT64: return "int64";
+            case ExprType::REAL16: return "real16";
+            case ExprType::REAL32: return "real32";
+            case ExprType::REAL64: return "real64";
+            case ExprType::VOID: return "void";
+            default: return "";
+        }
+    };
 
     if (ctx->bop) {
-        std::string lhs = visitExpression(ctx->expression()[0]).as<std::string>(),
-                    rhs = visitExpression(ctx->expression()[1]).as<std::string>();
+        ExprType lhs = visitExpression(ctx->expression()[0]).as<ExprType>(),
+                    rhs = visitExpression(ctx->expression()[1]).as<ExprType>();
 
         std::unordered_set<std::string> bool_op{"||", "&&", "^", "==", "!=", "<=", ">=", "<", ">"},
                                 integer_op{"|", "&"},
                                 int_real_op{"+", "-", "*", "/"};
         if (bool_op.find(ctx->bop->getText()) != bool_op.end()) {
-            ret = "bool";
+            ret = ExprType::BOOL;
         }
         if (integer_op.find(ctx->bop->getText()) != integer_op.end()) {
-            if (lhs != "int" || rhs != "int") {
-                // there's an error here
-            } else
-                ret = "int";
+            if ((lhs == ExprType::INT8 || lhs == ExprType::INT16 || lhs == ExprType::INT32 || lhs == ExprType::INT64) && (rhs == ExprType::INT8 || rhs == ExprType::INT16 || rhs == ExprType::INT32 || rhs == ExprType::INT64)) {
+                if (lhs == ExprType::INT64 || rhs == ExprType::INT64) {
+                    ret = ExprType::INT64;
+                } else if (lhs == ExprType::INT32 || rhs == ExprType::INT32) {
+                    ret = ExprType::INT32;
+                } else if (lhs == ExprType::INT16 || rhs == ExprType::INT16) {
+                    ret = ExprType::INT16;
+                } else {
+                    ret = ExprType::INT8;
+                }
+            } else {
+                bool lhs_typed = (lhs != ExprType::INT8 && lhs != ExprType::INT16 && lhs != ExprType::INT32 && lhs != ExprType::INT64);
+                errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, lhs_typed?ctx->expression()[0]:ctx->expression()[1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
+            }
         }
         if (int_real_op.find(ctx->bop->getText()) != int_real_op.end()) {
-            if (lhs == "real" || rhs == "real")
-                ret = "real";
-            else if (lhs == "int" || rhs == "int")
-                ret = "int";
-            else {
-                // there's an error here again
+            if ((lhs == ExprType::REAL64 || lhs == ExprType::REAL32 || lhs == ExprType::REAL16) || (rhs == ExprType::REAL64 || rhs == ExprType::REAL32 || rhs == ExprType::REAL16)) {
+                if (lhs == ExprType::REAL64 || rhs == ExprType::REAL64)
+                    ret = ExprType::REAL64;
+                else if (lhs == ExprType::REAL32 || rhs == ExprType::REAL32)
+                    ret = ExprType::REAL32;
+                else
+                    ret = ExprType::REAL16;
+            } else if ((lhs == ExprType::INT64 || lhs == ExprType::INT32 || lhs == ExprType::INT16 || lhs == ExprType::INT8) || (rhs == ExprType::INT64 || rhs == ExprType::INT32 || rhs == ExprType::INT16 || rhs == ExprType::INT8)) {
+                if (lhs == ExprType::INT64 || rhs == ExprType::INT64) {
+                    ret = ExprType::INT64;
+                } else if (lhs == ExprType::INT32 || rhs == ExprType::INT32) {
+                    ret = ExprType::INT32;
+                } else if (lhs == ExprType::INT16 || rhs == ExprType::INT16) {
+                    ret = ExprType::INT16;
+                } else {
+                    ret = ExprType::INT8;
+                }
+            } else {
+                bool lhs_typed = (lhs != ExprType::REAL64 && lhs != ExprType::REAL32 && lhs != ExprType::REAL16 && lhs != ExprType::INT64 && lhs != ExprType::INT32 && lhs != ExprType::INT16 && lhs != ExprType::INT8);
+                errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, lhs_typed?ctx->expression()[0]:ctx->expression()[1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
             }
         }
     } else if (ctx->uop) {
-        std::string expr = visitExpression(ctx->expression()[0]).as<std::string>();
+        ExprType expr = visitExpression(ctx->expression()[0]).as<ExprType>();
 
         if (ctx->uop->getText() == "~") {
-            if (expr != "int") {
-                // there's also an error here
-            } else
-                ret = "int";
-        } else if (ctx->uop->getText() == "+" || ctx->uop->getText() == "-") {
-            if (expr == "int") {
-                ret = "int";
-            } else if (expr == "real") {
-                ret = "real";
+            if (expr != ExprType::INT64 && expr != ExprType::INT32 && expr != ExprType::INT16 && expr != ExprType::INT8) {
+                errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[0], {"int32", getType(expr), "in expression"}));
             } else {
-                // there's an error also here
+                ret = expr;
+            }
+        } else if (ctx->uop->getText() == "+" || ctx->uop->getText() == "-") {
+            if (expr != ExprType::INT64 && expr != ExprType::INT32 && expr != ExprType::INT16 && expr != ExprType::INT8 && expr != ExprType::REAL16 && expr != ExprType::REAL32 && expr != ExprType::REAL64) {
+                errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[0], {"int32", getType(expr), "in expression"}));
+            } else {
+                ret = expr;
             }
         } else
-            ret = "bool";
+            ret = ExprType::BOOL;
     } else {
         if (ctx->literal()) {
-            if (ctx->literal()->DECIMAL_LITERAL() || ctx->literal()->HEX_LITERAL() || ctx->literal()->BIN_LITERAL()) {
-                ret = "int";
-            } else if (ctx->literal()->FLOAT_LITERAL()) {
-                ret = "real";
-            } else if (ctx->literal()->BOOL_LITERAL()) {
-                ret = "bool";
-            } else if (ctx->literal()->CHAR_LITERAL()) {
-                ret = "char";
-            }
+            auto findType = [] (SnowStarParser::LiteralContext* ct) -> ExprType {
+                std::string val{ct->getText()};
+                if (ct->BOOL_LITERAL()) return ExprType::BOOL;
+                if (ct->CHAR_LITERAL()) return ExprType::CHAR;
+                if (ct->FLOAT_LITERAL()) {
+                    double d = std::stod(val);
+                    if (d > std::numeric_limits<float>::max() || d < std::numeric_limits<float>::min()) return ExprType::REAL64;
+                    else if (d < std::numeric_limits<float>::max()/2) return ExprType::REAL16;
+                    else return ExprType::REAL32;
+                }
+                if (ct->DECIMAL_LITERAL()) {
+                    int64_t i = std::stoll(val);
+                    if (i < std::numeric_limits<int8_t>::max() && i > std::numeric_limits<int8_t>::min()) return ExprType::INT8;
+                    else if (i < std::numeric_limits<int16_t>::max() && i > std::numeric_limits<int16_t>::min()) return ExprType::INT16;
+                    else if (i < std::numeric_limits<int32_t>::max() && i > std::numeric_limits<int32_t>::min()) return ExprType::INT32;
+                    else return ExprType::INT32;
+                }
+                return ExprType::VOID;
+            };
+            ret = findType(ctx->literal());
         } else if (ctx->IDENTIFIER()) {
             auto it = std::find_if(declared.begin(), declared.end(), [&ctx] (Var const& v) { return ctx->IDENTIFIER()->getText() == std::get<0>(v); });
             if (it == declared.end()) {
@@ -125,17 +176,29 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
             } else {
                 auto type = std::get<1>(*it);
                 if (type->INTEGER16() || type->INTEGER32() || type->INTEGER64() || type->INTEGER8()) {
-                    ret = "int";
+                    if (type->INTEGER8())
+                        ret = ExprType::INT8;
+                    else if (type->INTEGER16())
+                        ret = ExprType::INT16;
+                    else if (type->INTEGER32())
+                        ret = ExprType::INT32;
+                    else
+                        ret = ExprType::INT64;
                 } else if (type->REAL16() || type->REAL32() || type->REAL64()) {
-                    ret = "real";
+                    if (type->REAL16()) {
+                        ret = ExprType::REAL16;
+                    } else if (type->REAL32()) {
+                        ret = ExprType::REAL32;
+                    } else
+                        ret = ExprType::REAL64;
                 } else if (type->CHAR()) {
-                    ret = "char";
+                    ret = ExprType::CHAR;
                 } else if (type->BOOLEAN()) {
-                    ret = "bool";
+                    ret = ExprType::BOOL;
                 }
             }
         } else {
-            ret = visitChildren(ctx->expression()[0]).as<std::string>();
+            ret = visitExpression(ctx->expression()[0]).as<ExprType>();
         }
     }
     
@@ -216,63 +279,52 @@ antlrcpp::Any ANTLRVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
     Decl type = t.as<Decl>();
     if (type->VOID()) return antlrcpp::Any();
 
-    /* auto findStringType = [] (SnowStarParser::LiteralContext* ct) -> std::string {
-        std::string val{ct->getText()};
-        if (ct->BOOL_LITERAL()) return "bool";
-        if (ct->CHAR_LITERAL()) return "char";
-        if (ct->FLOAT_LITERAL()) {
-            double d = std::stod(val);
-            if (d > std::numeric_limits<float>::max() || d < std::numeric_limits<float>::min()) return "real64";
-            else if (d < std::numeric_limits<float>::max()/2) return "real16";
-            else return "real32";
-        }
-        if (ct->DECIMAL_LITERAL()) {
-            int64_t i = std::stoll(val);
-            if (i < std::numeric_limits<int8_t>::max() && i > std::numeric_limits<int8_t>::min()) return "int8";
-            else if (i < std::numeric_limits<int16_t>::max() && i > std::numeric_limits<int16_t>::min()) return "int16";
-            else if (i < std::numeric_limits<int32_t>::max() && i > std::numeric_limits<int32_t>::min()) return "int32";
-            else return "int64";
-        }
-        return "void";
-    }; */
+    /*  */
 
-    std::string res = visitExpression(ctx->expression()).as<std::string>();
-    if (res == "void") {
+    auto getType = [] (ExprType const e) -> std::string {
+        switch (e) {
+            case ExprType::BOOL: return "bool";
+            case ExprType::CHAR: return "char";
+            case ExprType::INT8: return "int8";
+            case ExprType::INT16: return "int16";
+            case ExprType::INT32: return "int32";
+            case ExprType::INT64: return "int64";
+            case ExprType::REAL16: return "real16";
+            case ExprType::REAL32: return "real32";
+            case ExprType::REAL64: return "real64";
+            case ExprType::VOID: return "void";
+            default: return "";
+        }
+    };
 
+    ExprType res = visitExpression(ctx->expression()).as<ExprType>();
+    if (res == ExprType::VOID) return antlrcpp::Any();
+
+    if (type->BOOLEAN()) {
+        if (res != ExprType::BOOL) {
+            // type mismatch
+            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), {"bool", getType(res), "in variable declaration"}));
+        }
+    } else if (type->CHAR()) {
+        if (res != ExprType::CHAR) {
+            // type mismatch
+            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), {"char", getType(res), "in variable declaration"}));
+        }
+    } else if (type->INTEGER8() || type->INTEGER16() || type->INTEGER32() || type->INTEGER64()) {
+        if (res != ExprType::INT8 && res != ExprType::INT16 && res != ExprType::INT32 && res != ExprType::INT64 && res != ExprType::REAL16 && res != ExprType::REAL32 && res != ExprType::REAL64) {
+            // type mismatch
+            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), {[&type]() -> std::string { return type->INTEGER8()?"int8":type->INTEGER16()?"int16":type->INTEGER32()?"int32":"int64"; }(), getType(res), "in variable declaration"}));
+        } else if (res == ExprType::REAL16 || res == ExprType::REAL32 || res == ExprType::REAL64) {
+            // warning narrowing conversion
+            errors.warns.push_back(ImplicitCastWarning().from(file_name, current_stmt_context, ctx->expression(), {getType(res), [&type]() -> std::string { return type->INTEGER8()?"int8":type->INTEGER16()?"int16":type->INTEGER32()?"int32":"int64"; }()}));
+        }
+    } else if (type->REAL16() || type->REAL32() || type->REAL64()) {
+        if (res != ExprType::INT8 && res != ExprType::INT16 && res != ExprType::INT32 && res != ExprType::INT64 && res != ExprType::REAL16 && res != ExprType::REAL32 && res != ExprType::REAL64) {
+            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), {[&type]() -> std::string { return type->REAL32()?"real32":"real64"; }(), getType(res), "in variable declaration"}));
+        }
     }
 
-    /* if (auto id = ctx->expression()->IDENTIFIER()) {
-        auto it = std::find_if(declared.begin(), declared.end(), [&] (Var const& v) { return id->getText() == std::get<0>(v); });
-        if (it == declared.end()) {
-            // throw error
-            errors.errs.push_back(UndeclaredVariableError().from(file_name, current_stmt_context, id->getSymbol(), id->getSymbol()->getText()));
-            return antlrcpp::Any();
-        }
-        if (type->BOOLEAN() && std::get<1>(*it)->getText() != "bool") {
-            // inconsistent types bool and not bool
-            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()->getStart(), "bool~"+std::get<1>(*it)->getText()));
-            return antlrcpp::Any();
-        }
-        if (type->CHAR() && std::get<1>(*it)->getText() != "char") {
-            // inconsistent types char and not char
-            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), "char~"+std::get<1>(*it)->getText()));
-            return antlrcpp::Any();
-        }
-        if ((type->INTEGER8() || type->INTEGER16() || type->INTEGER32() || type->INTEGER64())) {
-            if (utils::str_startswith(std::get<1>(*it)->getText(), "real")) {
-                // implicit cast
-                errors.warns.push_back(ImplicitCastWarning().from(file_name, current_stmt_context, ctx->expression(), std::get<1>(*it)->getText()+"~"+[&type]() -> std::string { return type->INTEGER8()?"int8":type->INTEGER16()?"int16":type->INTEGER32()?"int32":"int64"; }()));
-            } else if (!utils::str_startswith(std::get<1>(*it)->getText(), "int")) {
-                // inconsistent types
-                errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), [&type]() -> std::string { return type->INTEGER8()?"int8":type->INTEGER16()?"int16":type->INTEGER32()?"int32":"int64"; }()+"~"+std::get<1>(*it)->getText()));
-                return antlrcpp::Any();
-            }
-        }
-        if ((type->REAL32() || type->REAL64() || type->REAL16()) && !utils::str_startswith(std::get<1>(*it)->getText(), "int") && !utils::str_startswith(std::get<1>(*it)->getText(), "real")) {
-            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), [&type]() -> std::string { return type->REAL32()?"real32":"real64"; }()+"~"+std::get<1>(*it)->getText()));
-            return antlrcpp::Any();
-        }
-    } else if (ctx->expression()->literal()) {
+    /* {
         if (type->BOOLEAN() && !ctx->expression()->literal()->BOOL_LITERAL()) {
             // error: value is of wrong type
             errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()->getStart(), "bool~"+findStringType(ctx->expression()->literal())));
@@ -298,8 +350,6 @@ antlrcpp::Any ANTLRVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
             errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), [&type]() -> std::string { return type->REAL32()?"real32":"real64"; }()+"~"+findStringType(ctx->expression()->literal())));
             return antlrcpp::Any();
         }
-    } else {
-        // error: invalid expression. Should be detected by the Lexer.
     } */
 
     return antlrcpp::Any();

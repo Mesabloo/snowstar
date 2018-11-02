@@ -1,8 +1,3 @@
-with int32_t = int32;
-with int64_t = int64;
-with i32 = int32_t;
-with i = i32;
-
-
-i x = 1.0;
-int64_t y = 1.0;
+int8 x = 3.0 & 2;
+int8 a = (8 == 5) || 2;
+int8 y = 1.0;
