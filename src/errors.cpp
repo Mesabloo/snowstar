@@ -270,7 +270,7 @@ std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr
         code = std::string{ss.str()};
     };
     
-    return std::make_unique<WrongTypedValueError>(prettify(path, line, character, first_character, "Inconsistent types. Expected `" + *(args.begin()+0) + "`, found `" + *(args.begin()+1) + "` on variable declaration.", code, in_fault));
+    return std::make_unique<WrongTypedValueError>(prettify(path, line, character, first_character, "Inconsistent types. Expected `" + *(args.begin()+0) + "`, found `" + *(args.begin()+1) + "` " + *(args.begin()+2) + ".", code, in_fault));
 }
 std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
     int line = in_fault->getStart()->getLine(),
@@ -290,7 +290,7 @@ std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr
         code = std::string{ss.str()};
     }
 
-    return std::make_unique<WrongTypedValueError>(prettify(path, line, character, first_character, "Inconsistent types. Expected `" + *(args.begin()+0) + "`, found `" + *(args.begin()+1) + "` on variable declaration.", code, in_fault));
+    return std::make_unique<WrongTypedValueError>(prettify(path, line, character, first_character, "Inconsistent types. Expected `" + *(args.begin()+0) + "`, found `" + *(args.begin()+1) + "` " + *(args.begin()+2) + ".", code, in_fault));
 }
 
 std::unique_ptr<Error> InvalidDeclaringTypeError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
