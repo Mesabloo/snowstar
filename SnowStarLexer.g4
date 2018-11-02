@@ -58,6 +58,7 @@ PLUS:       '+';
 MINUS:      '-';
 STAR:       '*';
 SLASH:      '/';
+PERCENT:    '%';
 BIN_NOT:    '~';
 BIN_AND:    '&';
 BIN_OR:     '|';

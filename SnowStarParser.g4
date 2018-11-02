@@ -16,11 +16,11 @@ statement
 
 expression
           :      (IDENTIFIER | literal | '(' expression ')')
-          |      uop=('!' | '-' | '+' | '~') expression
-          |      expression bop=('*' | '/') expression
+          |      uop=('+' | '-' | '!' | '~') expression
+          |      expression bop=('*' | '/' | '%') expression
           |      expression bop=('+' | '-') expression
-          |      expression bop=('==' | '!=' | '<=' | '>=' | '<' | '>') expression
-          |      expression bop=('||' | '&&') expression;
+          |      expression bop=('<=' | '>=' | '<' | '>' | '==' | '!=') expression
+          |      expression bop=( '&' | '^' | '|' | '&&' |'||') expression;
 
 assign
       :          IDENTIFIER eop='='? expression?;
