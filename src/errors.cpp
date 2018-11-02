@@ -174,7 +174,7 @@ std::string Warning::prettify(std::string const& file, int errCode, int line, in
     #endif
 }
 
-std::unique_ptr<Error> RedeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Error> RedeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -192,13 +192,13 @@ std::unique_ptr<Error> RedeclaredVariableError::from(std::string const& path, an
         code = std::string{ss.str()};
     }
     
-    return std::make_unique<RedeclaredVariableError>(prettify(path, -3, line, character, first_character, "Redeclared variable `" + utils::str_split(args, '~')[0] + "`, previously declared at line " + utils::str_split(args, '~')[1] + ":" + utils::str_split(args, '~')[2] + ".", code, in_fault));
+    return std::make_unique<RedeclaredVariableError>(prettify(path, -3, line, character, first_character, "Redeclared variable `" + *(args.begin()+0) + "`, previously declared at line " + *(args.begin()+1) + ":" + *(args.begin()+2) + ".", code, in_fault));
 }
-std::unique_ptr<Error> RedeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+std::unique_ptr<Error> RedeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
     return this->from(path, ctx, in_fault->getStart(), args);
 }
 
-std::unique_ptr<Error> UndeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Error> UndeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -216,13 +216,13 @@ std::unique_ptr<Error> UndeclaredVariableError::from(std::string const& path, an
         code = std::string{ss.str()};
     }
     
-    return std::make_unique<RedeclaredVariableError>(prettify(path, 7, line, character, first_character, "Undeclared variable `" + args + "`.", code, in_fault));
+    return std::make_unique<RedeclaredVariableError>(prettify(path, 7, line, character, first_character, "Undeclared variable `" + *(args.begin()+0) + "`.", code, in_fault));
 }
-std::unique_ptr<Error> UndeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+std::unique_ptr<Error> UndeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
     return this->from(path, ctx, in_fault->getStart(), args);
 }
 
-std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -240,13 +240,13 @@ std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr
         code = std::string{ss.str()};
     };
     
-    return std::make_unique<WrongTypedValueError>(prettify(path, line, -2, character, first_character, "Inconsistent types. Expected `" + utils::str_split(args, '~')[0] + "`, found `" + utils::str_split(args, '~')[1] + "` on variable declaration.", code, in_fault));
+    return std::make_unique<WrongTypedValueError>(prettify(path, line, -2, character, first_character, "Inconsistent types. Expected `" + *(args.begin()+0) + "`, found `" + *(args.begin()+1) + "` on variable declaration.", code, in_fault));
 }
-std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
     return this->from(path, ctx, in_fault->getStart(), args);
 }
 
-std::unique_ptr<Error> InvalidDeclaringTypeError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Error> InvalidDeclaringTypeError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -264,13 +264,13 @@ std::unique_ptr<Error> InvalidDeclaringTypeError::from(std::string const& path, 
         code = std::string{ss.str()};
     }
     
-    return std::make_unique<InvalidDeclaringTypeError>(prettify(path, 2, line, character, first_character, "Invalid variable declaration type `" + args + "`.", code, in_fault));
+    return std::make_unique<InvalidDeclaringTypeError>(prettify(path, 2, line, character, first_character, "Invalid variable declaration type `" + *(args.begin()+0) + "`.", code, in_fault));
 }
-std::unique_ptr<Error> InvalidDeclaringTypeError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+std::unique_ptr<Error> InvalidDeclaringTypeError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
     return this->from(path, ctx, in_fault->getStart(), args);
 }
 
-std::unique_ptr<Error> AlreadyExistingIDError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Error> AlreadyExistingIDError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -288,13 +288,13 @@ std::unique_ptr<Error> AlreadyExistingIDError::from(std::string const& path, ant
         code = std::string{ss.str()};
     }
     
-    return std::make_unique<AlreadyExistingIDError>(prettify(path, 2, line, character, first_character, "Name `" + args + "` already taken.", code, in_fault));
+    return std::make_unique<AlreadyExistingIDError>(prettify(path, 2, line, character, first_character, "Name `" + *(args.begin()+0) + "` already taken.", code, in_fault));
 }
-std::unique_ptr<Error> AlreadyExistingIDError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+std::unique_ptr<Error> AlreadyExistingIDError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
     return this->from(path, ctx, in_fault->getStart(), args);
 }
 
-std::unique_ptr<Error> UnknownIDError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Error> UnknownIDError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -312,13 +312,13 @@ std::unique_ptr<Error> UnknownIDError::from(std::string const& path, antlr4::Par
         code = std::string{ss.str()};
     }
     
-    return std::make_unique<UnknownIDError>(prettify(path, 2, line, character, first_character, "Unknown name `" + args + "`.", code, in_fault));
+    return std::make_unique<UnknownIDError>(prettify(path, 2, line, character, first_character, "Unknown name `" + *(args.begin()+0) + "`.", code, in_fault));
 }
-std::unique_ptr<Error> UnknownIDError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+std::unique_ptr<Error> UnknownIDError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
     return this->from(path, ctx, in_fault->getStart(), args);
 }
 
-std::unique_ptr<Warning> ImplicitCastWarning::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Warning> ImplicitCastWarning::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -336,8 +336,8 @@ std::unique_ptr<Warning> ImplicitCastWarning::from(std::string const& path, antl
         code = std::string{ss.str()};
     }
     
-    return std::make_unique<ImplicitCastWarning>(prettify(path, -4, line, character, first_character, "Implicit cast performed from type `" + utils::str_split(args, '~')[0] + "` to type `" + utils::str_split(args, '~')[1] + "`.", code, in_fault));
+    return std::make_unique<ImplicitCastWarning>(prettify(path, -4, line, character, first_character, "Implicit cast performed from type `" + *(args.begin()+0) + "` to type `" + *(args.begin()+1) + "`.", code, in_fault));
 }
-std::unique_ptr<Warning> ImplicitCastWarning::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+std::unique_ptr<Warning> ImplicitCastWarning::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
     return this->from(path, ctx, in_fault->getStart(), args);
 }

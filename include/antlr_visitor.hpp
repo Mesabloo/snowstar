@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iostream>
 #include <map>
+#include <variant>
 
 #include <SnowStarParserBaseVisitor.h>
 
@@ -15,6 +16,7 @@ class ANTLRVisitor : public SnowStarParserBaseVisitor {
     using Decl = SnowStarParser::TypeContext*;
     using Var = std::tuple<std::string, Decl, std::pair<int, int>>;
     using Alias = std::pair<std::string, Decl>;
+    using ExprType = std::string;
     std::vector<Var> declared{};
     std::vector<Alias> aliases{};
 

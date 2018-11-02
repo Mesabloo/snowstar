@@ -13,8 +13,8 @@ struct MissingTokenError : Error {
     MissingTokenError(std::wstring const& msg) : Error{msg} {}
 #endif
 
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::string const...);
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::string const...);
+    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
+    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
 };
 
 struct InvalidStatementError : Error {
@@ -25,8 +25,8 @@ struct InvalidStatementError : Error {
     InvalidStatementError(std::wstring const& msg) : Error{msg} {}
 #endif
 
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::string const...);
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::string const...);
+    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
+    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
 };
 
 #endif

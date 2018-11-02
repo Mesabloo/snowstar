@@ -1,6 +1,6 @@
 #include <parser_errors.hpp>
 
-std::unique_ptr<Error> MissingTokenError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::string const args...) {
+std::unique_ptr<Error> MissingTokenError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -18,9 +18,9 @@ std::unique_ptr<Error> MissingTokenError::from(std::string const& path, antlr4::
         code = std::string{ss.str()};
     }
 
-    return std::make_unique<MissingTokenError>(prettify(path, 15, line, character, first_character, "Missing " + utils::str_split(args, '~')[0] + " after `" + utils::str_split(args, '~')[1] + "` token.", code, in_fault));
+    return std::make_unique<MissingTokenError>(prettify(path, 15, line, character, first_character, "Missing " + *(args.begin()+0) + " after `" + *(args.begin()+1) + "` token.", code, in_fault));
 }
 
-std::unique_ptr<Error> MissingTokenError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::string const args...) {
+std::unique_ptr<Error> MissingTokenError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
     return from(path, ctx, in_fault->getStart(), args);
 }
