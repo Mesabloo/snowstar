@@ -17,7 +17,7 @@ statement
 expression
           :      (IDENTIFIER | literal | '(' expression ')')
           |      uop=('+' | '-' | '!' | '~') expression
-          |      expression bop=('*' | '/' | '%') expression
+          |      expression bop=('*' | '/') expression
           |      expression bop=('+' | '-') expression
           |      expression bop=('<=' | '>=' | '<' | '>' | '==' | '!=') expression
           |      expression bop=( '&' | '^' | '|' | '&&' |'||') expression;
