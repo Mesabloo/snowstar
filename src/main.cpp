@@ -142,6 +142,7 @@ int main(int argc, char** argv) {
     std::string targetTriple = llvm::sys::getDefaultTargetTriple(),
                 err;
 
+    llvm::InitializeNativeTarget();
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetInfos();
     llvm::InitializeAllTargetMCs();

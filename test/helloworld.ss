@@ -1,3 +1,22 @@
-int8 x = 3.0 & 2;
-int8 a = (8 == 5) || 2;
-int8 y = 1.0;
+with i8 = int8;
+with i1 = bool;
+
+i8 a = +1;
+i8 b = -1;
+i8 c = ~1;
+i1 d = !false;
+i8 e = 1*2;
+i8 f = 1/2;
+i8 g = 1+2;
+i8 h = 1-2;
+i1 i = 1<2;
+i1 j = 1>2;
+i1 k = 1>=2;
+i1 l = 1<=2;
+i1 m = 1==2;
+i1 n = 1!=2;
+i8 o = 1&2;
+i8 p = 1|2;
+i8 q = 1^2;
+i1 r = true&&true;
+i1 s = false||false;

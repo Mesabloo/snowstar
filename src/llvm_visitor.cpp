@@ -35,10 +35,6 @@ antlrcpp::Any LLVMVisitor::visitCompilationUnit(SnowStarParser::CompilationUnitC
 }
 
 antlrcpp::Any LLVMVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
-
-//    if (llvm_types.find(ctx->type()->getText()))
-
-
     llvm::AllocaInst* val = new llvm::AllocaInst(
         llvm_types[ctx->type()->getText()], 
         0,
@@ -59,22 +55,9 @@ antlrcpp::Any LLVMVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
 
 antlrcpp::Any LLVMVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
     auto type = visitDeclare(ctx->declare()).as<Decl>();
-    llvm::Value* value = nullptr;
-
-    if (ctx->expression()->literal()) {
-        if (type.first->BOOLEAN() && ctx->expression()->literal()->BOOL_LITERAL()) {
-            value = llvm::Constant::getIntegerValue(llvm_types["bool"], llvm::APInt(1, ctx->expression()->literal()->BOOL_LITERAL()->getText()=="true"?1:0, false));
-        }
-        if (type.first->CHAR() && ctx->expression()->literal()->CHAR_LITERAL()) {
-            value = llvm::Constant::getIntegerValue(llvm_types["char"], llvm::APInt(8, ctx->expression()->literal()->CHAR_LITERAL()->getText()[1], true));
-        }
-        if ((type.first->INTEGER8() || type.first->INTEGER16() || type.first->INTEGER32() || type.first->INTEGER64()) && (ctx->expression()->literal()->DECIMAL_LITERAL() || ctx->expression()->literal()->FLOAT_LITERAL())) {
-            value = llvm::Constant::getIntegerValue(llvm_types[type.first->getText()], llvm::APInt(type.first->INTEGER8()?8:type.first->INTEGER16()?16:type.first->INTEGER32()?32:type.first->INTEGER64()?64:0, std::stoll(ctx->expression()->literal()->getText()), true));
-        }
-        if ((type.first->REAL32() || type.first->REAL64() || type.first->REAL16()) && ctx->expression()->literal()->FLOAT_LITERAL() && ctx->expression()->literal()->DECIMAL_LITERAL()) {
-            value = llvm::ConstantFP::get(llvm_types[type.first->getText()], std::stod(ctx->expression()->literal()->getText()));
-        }
-    }
+    declared.push_back(type);
+    llvm::Value* value = visitExpression(ctx->expression());
+    expr_number_tmp = 0;
 
     llvm::StoreInst* store = new llvm::StoreInst{value, type.second, cur_block};
 
@@ -109,6 +92,117 @@ antlrcpp::Any LLVMVisitor::visitStatement(SnowStarParser::StatementContext* ctx)
     return 0;
 }
 antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ctx) {
-    visitChildren(ctx);
-    return 0;
+
+    llvm::IRBuilder<> builder(cur_block);
+    llvm::Value* val;
+    
+    if (ctx->bop) {
+        llvm::Value *lhs = visitExpression(ctx->expression()[0]).as<llvm::Value*>(),
+                    *rhs = visitExpression(ctx->expression()[1]).as<llvm::Value*>();
+
+        #ifndef NDEBUG
+            std::clog << termcolor::magenta << "   ...   | Operator='" << ctx->bop->getText() << "'" << termcolor::reset << std::endl;
+        #endif
+
+        if (ctx->bop->getText() == "+")
+            val = builder.CreateAdd(lhs, rhs, std::to_string(expr_number_tmp));
+        else if (ctx->bop->getText() == "-")
+            val = builder.CreateSub(lhs, rhs, std::to_string(expr_number_tmp));
+        else if (ctx->bop->getText() == "*")
+            val = builder.CreateMul(lhs, rhs, std::to_string(expr_number_tmp));
+        else if (ctx->bop->getText() == "/") {
+            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
+                val = builder.CreateFDiv(lhs, rhs, std::to_string(expr_number_tmp));
+            else
+                val = builder.CreateSDiv(lhs, rhs, std::to_string(expr_number_tmp), false);
+        } else if (ctx->bop->getText() == "^")
+            val = builder.CreateXor(lhs, rhs, std::to_string(expr_number_tmp));
+        else if (ctx->bop->getText() == "&&" || ctx->bop->getText() == "&")
+            val = builder.CreateAnd(lhs, rhs, std::to_string(expr_number_tmp));
+        else if (ctx->bop->getText() == "||" || ctx->bop->getText() == "|")
+            val = builder.CreateOr(lhs, rhs, std::to_string(expr_number_tmp));
+        else if (ctx->bop->getText() == "==") {
+            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
+                val = builder.CreateFCmpOEQ(lhs, rhs, std::to_string(expr_number_tmp));
+            else
+                val = builder.CreateICmpEQ(lhs, rhs, std::to_string(expr_number_tmp));
+        } else if (ctx->bop->getText() == "!=") {
+            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
+                val = builder.CreateFCmpONE(lhs, rhs, std::to_string(expr_number_tmp));
+            else
+                val = builder.CreateICmpNE(lhs, rhs, std::to_string(expr_number_tmp));
+        } else if (ctx->bop->getText() == ">=") {
+            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
+                val = builder.CreateFCmpOGE(lhs, rhs, std::to_string(expr_number_tmp));
+            else
+                val = builder.CreateICmpSGE(lhs, rhs, std::to_string(expr_number_tmp));
+        } else if (ctx->bop->getText() == "<=") {
+            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
+                val = builder.CreateFCmpOLE(lhs, rhs, std::to_string(expr_number_tmp));
+            else
+                val = builder.CreateICmpSLE(lhs, rhs, std::to_string(expr_number_tmp));
+        } else if (ctx->bop->getText() == ">") {
+            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
+                val = builder.CreateFCmpOGT(lhs, rhs, std::to_string(expr_number_tmp));
+            else
+                val = builder.CreateICmpSGT(lhs, rhs, std::to_string(expr_number_tmp));
+        } else if (ctx->bop->getText() == "<") {
+            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
+                val = builder.CreateFCmpOLT(lhs, rhs, std::to_string(expr_number_tmp));
+            else
+                val = builder.CreateICmpSLT(lhs, rhs, std::to_string(expr_number_tmp));
+        }
+    } else if (ctx->uop) {
+        llvm::Value* expr = visitExpression(ctx->expression()[0]).as<llvm::Value*>();
+        if (ctx->uop->getText() == "-")
+            val = builder.CreateSub(llvm::Constant::getIntegerValue(expr->getType(), llvm::APInt(8, 0, true)), expr, std::to_string(expr_number_tmp));
+        else if (ctx->uop->getText() == "+")
+            val = expr;
+        else if (ctx->uop->getText() == "~")
+            val = builder.CreateNeg(expr, std::to_string(expr_number_tmp));
+        else if (ctx->uop->getText() == "!")
+            val = builder.CreateNot(expr, std::to_string(expr_number_tmp));
+    } else {
+        if (ctx->IDENTIFIER()) {
+            auto it = std::find_if(declared.begin(), declared.end(), [&ctx] (Decl const& d) { return static_cast<std::string>(d.second->getName()) == ctx->IDENTIFIER()->getText(); });
+            val = it->second;
+        } else if (ctx->literal()) {
+            auto findType = [] (SnowStarParser::LiteralContext* ct) -> std::string {
+                std::string val{ct->getText()};
+                if (ct->BOOL_LITERAL()) return "bool";
+                if (ct->CHAR_LITERAL()) return "char";
+                if (ct->FLOAT_LITERAL()) {
+                    double d = std::stod(val);
+                    if (d > std::numeric_limits<float>::max() || d < std::numeric_limits<float>::min()) return "real64";
+                    else if (d < std::numeric_limits<float>::max()/2) return "real16";
+                    else return "real32";
+                }
+                if (ct->DECIMAL_LITERAL()) {
+                    int64_t i = std::stoll(val);
+                    if (i < std::numeric_limits<int8_t>::max() && i > std::numeric_limits<int8_t>::min()) return "int8";
+                    else if (i < std::numeric_limits<int16_t>::max() && i > std::numeric_limits<int16_t>::min()) return "int16";
+                    else if (i < std::numeric_limits<int32_t>::max() && i > std::numeric_limits<int32_t>::min()) return "int64";
+                    else return "int32";
+                }
+                return "void";
+            };
+
+            if (ctx->literal()->BOOL_LITERAL()) {
+                val = llvm::Constant::getIntegerValue(llvm_types["bool"], llvm::APInt(1, ctx->literal()->BOOL_LITERAL()->getText()=="true"?1:0, false));
+            } else if (ctx->literal()->CHAR_LITERAL()) {
+                val = llvm::Constant::getIntegerValue(llvm_types["char"], llvm::APInt(8, ctx->literal()->CHAR_LITERAL()->getText()[1], true));
+            } else if (ctx->literal()->FLOAT_LITERAL()) {
+                val = llvm::ConstantFP::get(llvm_types[findType(ctx->literal())], std::stod(ctx->literal()->getText()));
+            } else {
+                std::string type = findType(ctx->literal());
+                val = llvm::Constant::getIntegerValue(llvm_types[type], llvm::APInt(type == "int8"?8:type == "int16"?16:type == "int32"?32:type == "int64"?64:0, std::stoll(ctx->literal()->getText()), true));
+            }
+        } else {
+            val = visitExpression(ctx->expression()[0]).as<llvm::Value*>();
+        }
+    }
+
+    expr_number_tmp++;
+
+    return val;
 }

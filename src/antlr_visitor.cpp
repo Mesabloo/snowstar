@@ -84,10 +84,48 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
         ExprType lhs = visitExpression(ctx->expression()[0]).as<ExprType>(),
                     rhs = visitExpression(ctx->expression()[1]).as<ExprType>();
 
-        std::unordered_set<std::string> bool_op{"||", "&&", "^", "==", "!=", "<=", ">=", "<", ">"},
-                                integer_op{"|", "&"},
+        std::unordered_set<std::string> bool_op{"||", "&&", "==", "!=", "<=", ">=", "<", ">"},
+                                integer_op{"|", "&", "^"},
                                 int_real_op{"+", "-", "*", "/"};
         if (bool_op.find(ctx->bop->getText()) != bool_op.end()) {
+            if (ctx->bop->getText() == "||" || ctx->bop->getText() == "&&") {
+                if (lhs != ExprType::BOOL || rhs != ExprType::BOOL) {
+                    bool lhs_typed = lhs == ExprType::BOOL;
+                    errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?1:0], {"bool", getType(lhs_typed?rhs:lhs), "in expression"}));
+                }
+            } else {
+                if (ctx->bop->getText() == "==" || ctx->bop->getText() == "!=") {
+                    if ((lhs == ExprType::REAL16 || lhs == ExprType::REAL32 || lhs == ExprType::REAL64) && (rhs == ExprType::REAL16 || rhs == ExprType::REAL32 || rhs == ExprType::REAL64)) {
+                        errors.warns.push_back(FloatingPointWarning().from(file_name, current_stmt_context, ctx->bop, {}));
+                    } else if ((lhs == ExprType::CHAR) ^ (rhs == ExprType::CHAR)) {
+                        bool lhs_typed = lhs == ExprType::CHAR;
+                        errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
+                    } else if ((lhs == ExprType::BOOL) ^ (rhs == ExprType::BOOL)) {
+                        bool lhs_typed = lhs == ExprType::BOOL;
+                        errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
+                    } else if ((lhs == ExprType::INT8 || lhs == ExprType::INT16 || lhs == ExprType::INT32 || lhs == ExprType::INT64) ^ (rhs == ExprType::INT8 || rhs == ExprType::INT16 || rhs == ExprType::INT32 || rhs == ExprType::INT64)) {
+                        bool lhs_typed = (lhs == ExprType::INT8 || lhs == ExprType::INT16 || lhs == ExprType::INT32 || lhs == ExprType::INT64);
+                        errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
+                    } else if ((lhs == ExprType::REAL16 || lhs == ExprType::REAL32 || lhs == ExprType::REAL64) ^ (rhs == ExprType::REAL16 || rhs == ExprType::REAL32 || rhs == ExprType::REAL64)) {
+                        bool lhs_typed = (lhs == ExprType::REAL16 || lhs == ExprType::REAL32 || lhs == ExprType::REAL64);
+                        errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
+                    }
+                } else {
+                    if (lhs == ExprType::BOOL || rhs == ExprType::BOOL) {
+                        bool lhs_typed = lhs == ExprType::BOOL;
+                        errors.errs.push_back(InvalidComparisonTypeError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?lhs:rhs)}));
+                    } else if ((lhs == ExprType::CHAR) ^ (rhs == ExprType::CHAR)) {
+                        bool lhs_typed = lhs == ExprType::CHAR;
+                        errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
+                    } else if ((lhs == ExprType::INT8 || lhs == ExprType::INT16 || lhs == ExprType::INT32 || lhs == ExprType::INT64) ^ (rhs == ExprType::INT8 || rhs == ExprType::INT16 || rhs == ExprType::INT32 || rhs == ExprType::INT64)) {
+                        bool lhs_typed = (lhs == ExprType::INT8 || lhs == ExprType::INT16 || lhs == ExprType::INT32 || lhs == ExprType::INT64);
+                        errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
+                    } else if ((lhs == ExprType::REAL16 || lhs == ExprType::REAL32 || lhs == ExprType::REAL64) ^ (rhs == ExprType::REAL16 || rhs == ExprType::REAL32 || rhs == ExprType::REAL64)) {
+                        bool lhs_typed = (lhs == ExprType::REAL16 || lhs == ExprType::REAL32 || lhs == ExprType::REAL64);
+                        errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
+                    }
+                }
+            }
             ret = ExprType::BOOL;
         }
         if (integer_op.find(ctx->bop->getText()) != integer_op.end()) {
@@ -144,8 +182,12 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
             } else {
                 ret = expr;
             }
-        } else
+        } else {
+            if (expr != ExprType::BOOL) {
+                errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[0], {"bool", getType(expr), "in expression"}));
+            }
             ret = ExprType::BOOL;
+        }
     } else {
         if (ctx->literal()) {
             auto findType = [] (SnowStarParser::LiteralContext* ct) -> ExprType {

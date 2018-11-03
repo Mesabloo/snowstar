@@ -18,12 +18,14 @@ class LLVMVisitor : public SnowStarParserBaseVisitor {
     using Alias = std::pair<std::string, SnowStarParser::TypeContext*>;
 
     llvm::Module& module;
-    // llvm::IRBuilder<> current_builder;
     llvm::BasicBlock* cur_block;
 
     std::map<std::string, llvm::Type*> llvm_types;
 
     std::vector<Alias> aliases{};
+    std::vector<Decl> declared{};
+
+    long long expr_number_tmp{0};
 
 public:
     LLVMVisitor(llvm::Module&);
