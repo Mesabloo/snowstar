@@ -89,6 +89,18 @@ struct InvalidDeclaringTypeError : Error {
     virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
 };
 
+struct InvalidComparisonTypeError : Error {
+    InvalidComparisonTypeError() = default;
+#if !defined(_WIN32) && !defined(_WIN64)
+    InvalidComparisonTypeError(std::string const& msg) : Error{msg} {}
+#else
+    InvalidComparisonTypeError(std::wstring const& msg) : Error{msg} {}
+#endif
+
+    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
+    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
+};
+
 struct UndeclaredVariableError : Error {
     UndeclaredVariableError() = default;
 #if !defined(_WIN32) && !defined(_WIN64)
@@ -161,6 +173,18 @@ struct ImplicitCastWarning : Warning {
     ImplicitCastWarning(std::string const& msg) : Warning{msg} {}
 #else
     ImplicitCastWarning(std::wstring const& msg) : Warning{msg} {}
+#endif
+
+    virtual std::unique_ptr<Warning> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
+    virtual std::unique_ptr<Warning> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
+};
+
+struct FloatingPointWarning : Warning {
+    FloatingPointWarning() = default;
+#if !defined(_WIN32) && !defined(_WIN64)
+    FloatingPointWarning(std::string const& msg) : Warning{msg} {}
+#else
+    FloatingPointWarning(std::wstring const& msg) : Warning{msg} {}
 #endif
 
     virtual std::unique_ptr<Warning> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
