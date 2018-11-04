@@ -81,6 +81,7 @@ public:
 
   class  ExpressionContext : public antlr4::ParserRuleContext {
   public:
+    antlr4::Token *lparen = nullptr;;
     antlr4::Token *uop = nullptr;;
     antlr4::Token *bop = nullptr;;
     ExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);

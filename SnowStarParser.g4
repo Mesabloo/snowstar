@@ -10,17 +10,18 @@ compilationUnit: statement+;
 statement
          :       declare eol=';'?
          |       define eol=';'?
-         |       alias eol=';'?;
+         |       alias eol=';'?
+                 ;
 
 // variables
 
 expression
-          :      (IDENTIFIER | literal | '(' expression ')')
-          |      uop=('+' | '-' | '!' | '~') expression
-          |      expression bop=('*' | '/') expression
-          |      expression bop=('+' | '-') expression
-          |      expression bop=('<=' | '>=' | '<' | '>' | '==' | '!=') expression
-          |      expression bop=( '&' | '^' | '|' | '&&' |'||') expression;
+          :      (IDENTIFIER | literal | lparen='(' expression ')')
+          |      uop=('+' | '-' | '!' | '~') expression?
+          |      expression bop=('*' | '/') expression?
+          |      expression bop=('+' | '-') expression?
+          |      expression bop=('<=' | '>=' | '<' | '>' | '==' | '!=') expression?
+          |      expression bop=( '&' | '^' | '|' | '&&' |'||') expression?;
 
 assign
       :          IDENTIFIER eop='='? expression?;
