@@ -25,7 +25,7 @@ class LLVMVisitor : public SnowStarParserBaseVisitor {
     std::vector<Alias> aliases{};
     std::vector<Decl> declared{};
 
-    long long expr_number_tmp{0};
+    int expr_number_tmp{0};
 
 public:
     LLVMVisitor(llvm::Module&);

@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
 
     #ifndef NDEBUG
         std::clog << '\n';
-        PrettyPrinter pprint(tree, std::clog);
+    //    PrettyPrinter pprint(tree, std::clog);
         std::clog << '\n';
     #endif
 

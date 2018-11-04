@@ -153,19 +153,24 @@ antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ct
                 val = builder.CreateICmpSLT(lhs, rhs, std::to_string(expr_number_tmp));
         }
     } else if (ctx->uop) {
+
+        #ifndef NDEBUG
+            std::clog << termcolor::magenta << "   ...   | Operator='" << ctx->uop->getText() << "'" << termcolor::reset << std::endl;
+        #endif
+
         llvm::Value* expr = visitExpression(ctx->expression()[0]).as<llvm::Value*>();
         if (ctx->uop->getText() == "-")
             val = builder.CreateSub(llvm::Constant::getIntegerValue(expr->getType(), llvm::APInt(8, 0, true)), expr, std::to_string(expr_number_tmp));
         else if (ctx->uop->getText() == "+")
             val = expr;
         else if (ctx->uop->getText() == "~")
-            val = builder.CreateNeg(expr, std::to_string(expr_number_tmp));
+            val = builder.CreateNot(expr, std::to_string(expr_number_tmp));
         else if (ctx->uop->getText() == "!")
             val = builder.CreateNot(expr, std::to_string(expr_number_tmp));
     } else {
         if (ctx->IDENTIFIER()) {
             auto it = std::find_if(declared.begin(), declared.end(), [&ctx] (Decl const& d) { return static_cast<std::string>(d.second->getName()) == ctx->IDENTIFIER()->getText(); });
-            val = it->second;
+            val = builder.CreateLoad(it->second, std::to_string(expr_number_tmp));
         } else if (ctx->literal()) {
             auto findType = [] (SnowStarParser::LiteralContext* ct) -> std::string {
                 std::string val{ct->getText()};
