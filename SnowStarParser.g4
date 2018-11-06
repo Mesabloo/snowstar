@@ -5,13 +5,14 @@ options {
 }
 
 // global
-compilationUnit: statement+;
+compilationUnit: statement+
+               //| function
+               ;
 
 statement
          :       declare eol=';'?
          |       define eol=';'?
-         |       alias eol=';'?
-                 ;
+         |       alias eol=';'?;
 
 // variables
 

@@ -41,6 +41,9 @@ RBRACK:    ']';
 SEMI:      ';';
 COMMA:     ',';
 DOT:       '.';
+INLINE_COM:'§';
+BEGIN_COM: '(*';
+END_COM:   '*)';
 
 // Operators
 
@@ -67,7 +70,7 @@ BIN_XOR:    '^';
 // Whitespaces and comments
 
 WS:             [ \t\r\n\u000C]+ -> channel(HIDDEN);
-COMMENT:        '.:' .*? ':.'    -> channel(HIDDEN);
+COMMENT:        '(*' .*? '*)'    -> channel(HIDDEN);
 LINE_COMMENT:   '§' ~[\r\n]*     -> channel(HIDDEN);
 
 // Identifiers
