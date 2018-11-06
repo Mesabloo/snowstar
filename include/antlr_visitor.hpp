@@ -14,7 +14,7 @@
 
 class ANTLRVisitor : public SnowStarParserBaseVisitor {
     using Decl = SnowStarParser::TypeContext*;
-    using Var = std::tuple<std::string, Decl, std::pair<int, int>>;
+    using Var = std::tuple<std::string, Decl, bool, std::pair<int, int>>;
     using Alias = std::pair<std::string, Decl>;
     enum class ExprType {
         VOID,

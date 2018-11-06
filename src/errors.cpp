@@ -229,7 +229,7 @@ std::unique_ptr<Error> UndeclaredVariableError::from(std::string const& path, an
         code = std::string{ss.str()};
     }
     
-    return std::make_unique<RedeclaredVariableError>(prettify(path, line, character, first_character, "Undeclared variable `" + *(args.begin()+0) + "`.", code, in_fault));
+    return std::make_unique<UndeclaredVariableError>(prettify(path, line, character, first_character, "Undeclared variable `" + *(args.begin()+0) + "`.", code, in_fault));
 }
 std::unique_ptr<Error> UndeclaredVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
     int line = in_fault->getStart()->getLine(),
@@ -249,7 +249,48 @@ std::unique_ptr<Error> UndeclaredVariableError::from(std::string const& path, an
         code = std::string{ss.str()};
     }
 
-    return std::make_unique<RedeclaredVariableError>(prettify(path, line, character, first_character, "Undeclared variable `" + *(args.begin()+0) + "`.", code, in_fault));
+    return std::make_unique<UndeclaredVariableError>(prettify(path, line, character, first_character, "Undeclared variable `" + *(args.begin()+0) + "`.", code, in_fault));
+}
+
+std::unique_ptr<Error> UndefinedVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
+    int line = in_fault->getLine(),
+        character = in_fault->getCharPositionInLine(),
+        first_character = ctx->getStart()->getCharPositionInLine();
+    std::string code = ctx->getStart()->getInputStream()->getText(antlr4::misc::Interval{ctx->getStart()->getStartIndex(), ctx->getStop()->getStopIndex()}),
+                token = in_fault->getText();
+
+    auto token_beg = code.find(token, character-first_character);
+    if (token_beg != code.npos) {
+        std::stringstream ss;
+        ss << code.substr(0, token_beg)
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << termcolor::colorize
+        #endif 
+            << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
+        code = std::string{ss.str()};
+    }
+    
+    return std::make_unique<UndefinedVariableError>(prettify(path, line, character, first_character, "Variable `" + *(args.begin()+0) + "` referenced but not bound to a value.", code, in_fault));
+}
+std::unique_ptr<Error> UndefinedVariableError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
+    int line = in_fault->getStart()->getLine(),
+        character = in_fault->getStart()->getCharPositionInLine(),
+        first_character = ctx->getStart()->getCharPositionInLine();
+    std::string code = ctx->getStart()->getInputStream()->getText(antlr4::misc::Interval{ctx->getStart()->getStartIndex(), ctx->getStop()->getStopIndex()}),
+                token = ctx->getStart()->getInputStream()->getText(antlr4::misc::Interval{in_fault->getStart()->getStartIndex(), in_fault->getStop()->getStopIndex()});
+
+    auto token_beg = code.find(token, character-first_character);
+    if (token_beg != code.npos) {
+        std::stringstream ss;
+        ss << code.substr(0, token_beg)
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << termcolor::colorize
+        #endif 
+            << termcolor::red << code.substr(token_beg, token.size()) << termcolor::reset << code.substr(token_beg + token.size());
+        code = std::string{ss.str()};
+    }
+
+    return std::make_unique<UndefinedVariableError>(prettify(path, line, character, first_character, "Variable `" + *(args.begin()+0) + "` referenced but not bound to a value.", code, in_fault));
 }
 
 std::unique_ptr<Error> WrongTypedValueError::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
@@ -498,7 +539,7 @@ std::unique_ptr<Warning> ImplicitCastWarning::from(std::string const& path, antl
     return std::make_unique<ImplicitCastWarning>(prettify(path, line, character, first_character, "Implicit cast performed from type `" + *(args.begin()+0) + "` to type `" + *(args.begin()+1) + "`.", code, in_fault));
 }
 
-std::unique_ptr<Warning> FloatingPointWarning::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const args) {
+std::unique_ptr<Warning> FloatingPointWarning::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::Token* in_fault, std::initializer_list<std::string> const) {
     int line = in_fault->getLine(),
         character = in_fault->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();
@@ -518,7 +559,7 @@ std::unique_ptr<Warning> FloatingPointWarning::from(std::string const& path, ant
     
     return std::make_unique<FloatingPointWarning>(prettify(path, line, character, first_character, "Performing floating point comparison.", code, in_fault));
 }
-std::unique_ptr<Warning> FloatingPointWarning::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const args) {
+std::unique_ptr<Warning> FloatingPointWarning::from(std::string const& path, antlr4::ParserRuleContext* ctx, antlr4::ParserRuleContext* in_fault, std::initializer_list<std::string> const) {
     int line = in_fault->getStart()->getLine(),
         character = in_fault->getStart()->getCharPositionInLine(),
         first_character = ctx->getStart()->getCharPositionInLine();

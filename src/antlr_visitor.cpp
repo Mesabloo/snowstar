@@ -231,27 +231,31 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
                 // variable not declared
                 errors.errs.push_back(UndeclaredVariableError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), {ctx->IDENTIFIER()->getSymbol()->getText()}));
             } else {
-                auto type = std::get<1>(*it);
-                if (type->INTEGER16() || type->INTEGER32() || type->INTEGER64() || type->INTEGER8()) {
-                    if (type->INTEGER8())
-                        ret = ExprType::INT8;
-                    else if (type->INTEGER16())
-                        ret = ExprType::INT16;
-                    else if (type->INTEGER32())
-                        ret = ExprType::INT32;
-                    else
-                        ret = ExprType::INT64;
-                } else if (type->REAL16() || type->REAL32() || type->REAL64()) {
-                    if (type->REAL16()) {
-                        ret = ExprType::REAL16;
-                    } else if (type->REAL32()) {
-                        ret = ExprType::REAL32;
-                    } else
-                        ret = ExprType::REAL64;
-                } else if (type->CHAR()) {
-                    ret = ExprType::CHAR;
-                } else if (type->BOOLEAN()) {
-                    ret = ExprType::BOOL;
+                if (!std::get<2>(*it)) {
+                    errors.errs.push_back(UndefinedVariableError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), {ctx->IDENTIFIER()->getText()}));
+                } else {
+                    auto type = std::get<1>(*it);
+                    if (type->INTEGER16() || type->INTEGER32() || type->INTEGER64() || type->INTEGER8()) {
+                        if (type->INTEGER8())
+                            ret = ExprType::INT8;
+                        else if (type->INTEGER16())
+                            ret = ExprType::INT16;
+                        else if (type->INTEGER32())
+                            ret = ExprType::INT32;
+                        else
+                            ret = ExprType::INT64;
+                    } else if (type->REAL16() || type->REAL32() || type->REAL64()) {
+                        if (type->REAL16()) {
+                            ret = ExprType::REAL16;
+                        } else if (type->REAL32()) {
+                            ret = ExprType::REAL32;
+                        } else
+                            ret = ExprType::REAL64;
+                    } else if (type->CHAR()) {
+                        ret = ExprType::CHAR;
+                    } else if (type->BOOLEAN()) {
+                        ret = ExprType::BOOL;
+                    }
                 }
             }
         } else {
@@ -285,11 +289,10 @@ antlrcpp::Any ANTLRVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
         std::clog << termcolor::green << std::boolalpha << "   [i]   | >> " << ctx->IDENTIFIER()->getText() << " is already declared: " << (it != declared.end()) << std::noboolalpha << termcolor::reset << std::endl;
     #endif
     if (it != declared.end()) {
-        // throw an error here : redeclared variable
         #ifndef NDEBUG
             std::clog << termcolor::magenta << "   ...   | Variable " << ctx->IDENTIFIER()->getText() << " redeclared." << termcolor::reset << std::endl;
         #endif
-        errors.errs.push_back(RedeclaredVariableError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), {ctx->IDENTIFIER()->getText(), std::to_string(std::get<2>(*it).first), std::to_string(std::get<2>(*it).second+1)}));
+        errors.errs.push_back(RedeclaredVariableError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), {ctx->IDENTIFIER()->getText(), std::to_string(std::get<3>(*it).first), std::to_string(std::get<3>(*it).second+1)}));
         return nullptr;
     }
 
@@ -300,10 +303,10 @@ antlrcpp::Any ANTLRVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
             return nullptr;
         }
 
-        declared.push_back(std::make_tuple(ctx->IDENTIFIER()->getText(), it1->second, std::make_pair(ctx->IDENTIFIER()->getSymbol()->getLine(), ctx->IDENTIFIER()->getSymbol()->getCharPositionInLine())));
+        declared.push_back(std::make_tuple(ctx->IDENTIFIER()->getText(), it1->second, false, std::make_pair(ctx->IDENTIFIER()->getSymbol()->getLine(), ctx->IDENTIFIER()->getSymbol()->getCharPositionInLine())));
         return it1->second;
     } else
-        declared.push_back(std::make_tuple(ctx->IDENTIFIER()->getText(), ctx->type(), std::make_pair(ctx->IDENTIFIER()->getSymbol()->getLine(), ctx->IDENTIFIER()->getSymbol()->getCharPositionInLine())));
+        declared.push_back(std::make_tuple(ctx->IDENTIFIER()->getText(), ctx->type(), false, std::make_pair(ctx->IDENTIFIER()->getSymbol()->getLine(), ctx->IDENTIFIER()->getSymbol()->getCharPositionInLine())));
 
     return ctx->type();
 }
@@ -414,6 +417,10 @@ antlrcpp::Any ANTLRVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
             return antlrcpp::Any();
         }
     } */
+
+    auto const& it = std::find_if(declared.begin(), declared.end(), [&ctx] (Var const& v) { return std::get<0>(v) == ctx->declare()->IDENTIFIER()->getText(); });
+    auto& b = std::get<2>(*it);
+    b = true;
 
     return antlrcpp::Any();
 }
