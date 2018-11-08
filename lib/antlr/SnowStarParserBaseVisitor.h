@@ -19,7 +19,79 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitStatement(SnowStarParser::StatementContext *ctx) override {
+  virtual antlrcpp::Any visitDeclarationSeq(SnowStarParser::DeclarationSeqContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitVariableDeclaration(SnowStarParser::VariableDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitVariableName(SnowStarParser::VariableNameContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitVariableInitializer(SnowStarParser::VariableInitializerContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitUnitDeclaration(SnowStarParser::UnitDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitUnitName(SnowStarParser::UnitNameContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitBasicBlockDeclaration(SnowStarParser::BasicBlockDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitDtypeDeclaration(SnowStarParser::DtypeDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitDtypeName(SnowStarParser::DtypeNameContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitDtypeBlockDeclaration(SnowStarParser::DtypeBlockDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitFunctionDeclaration(SnowStarParser::FunctionDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitFunctionName(SnowStarParser::FunctionNameContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitFunctionParams(SnowStarParser::FunctionParamsContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitWithDeclaration(SnowStarParser::WithDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitWithName(SnowStarParser::WithNameContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitImportDeclaration(SnowStarParser::ImportDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitImportName(SnowStarParser::ImportNameContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitEmptyDeclaration(SnowStarParser::EmptyDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitStatementSeq(SnowStarParser::StatementSeqContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -27,31 +99,19 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitAssign(SnowStarParser::AssignContext *ctx) override {
+  virtual antlrcpp::Any visitPrimaryExpression(SnowStarParser::PrimaryExpressionContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext *ctx) override {
+  virtual antlrcpp::Any visitTheType(SnowStarParser::TheTypeContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitDeclare(SnowStarParser::DeclareContext *ctx) override {
+  virtual antlrcpp::Any visitBuiltinTypes(SnowStarParser::BuiltinTypesContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitDeclareNoID(SnowStarParser::DeclareNoIDContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitAlias(SnowStarParser::AliasContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitLiteral(SnowStarParser::LiteralContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual antlrcpp::Any visitType(SnowStarParser::TypeContext *ctx) override {
+  virtual antlrcpp::Any visitValue(SnowStarParser::ValueContext *ctx) override {
     return visitChildren(ctx);
   }
 

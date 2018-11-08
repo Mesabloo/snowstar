@@ -41,4 +41,13 @@ build/*
 build
 CMakeSettings.json
 dist/*.*
+dist/*
 dist
+
+lib/antlr4/*.*
+lib/antlr4/*
+lib/antlr4
+
+.antlr/*.*
+.antlr/*
+.antlr
