@@ -11,7 +11,15 @@ class ErrorListener : public antlr4::BaseErrorListener {
     std::wstringstream m_os;
     #endif
 
-    int lastError = -1;
+    inline std::vector<std::string> str_split(std::string const& str, char const separator) {
+        std::vector<std::string> vect;
+        std::istringstream f{str};
+        std::string s;
+        while (getline(f, s, separator)) {
+            vect.push_back(s);
+        }
+        return vect;
+    }
 
 public:
     ErrorListener() {}
@@ -23,13 +31,41 @@ public:
         std::function<std::wstring(std::wstring const, unsigned int)> spacer = [=] (std::wstring const s1, unsigned int n) -> std::wstring { std::wstring s; for (unsigned int tmp{0};tmp < n;++tmp) s+=s1; return s; };
         #endif
 
-        std::string code = msg;
         #ifndef NDEBUG
             std::cerr << "   !!!   | Error in grammar file: " << recog->getGrammarFileName() << std::endl;
         #endif
         
         auto lexer = static_cast<SnowStarLexer*>(recog);
         std::string file = std::filesystem::canonical(std::filesystem::path(lexer->getSourceName()));
+
+        auto split = str_split(msg, '\n');
+        std::string code = split[1];
+        if (code == "")
+            code = split[2];
+
+        int first_charac = std::stoi(split[4]);
+        
+        std::clog << "First char in line: " << first_charac << std::endl;
+        std::size_t pos = code.find(split[2], std::stoi(split[3])-1-first_charac);
+        if (pos != std::string::npos) {
+            std::clog << "Position: " << pos << std::endl;
+            std::stringstream ss;
+            ss
+            #if !defined(_WIN32) && !defined(_WIN64)
+                << termcolor::colorize
+            #endif
+                << termcolor::white
+                << code.substr(0, pos)
+                << termcolor::reset << termcolor::red
+                << code.substr(pos, split[2].size())
+                << termcolor::reset;
+            if (pos+split[2].size()+1 < code.size()) {
+                ss  << termcolor::white
+                    << code.substr(pos+split[2].size())
+                    << termcolor::reset;
+            }
+            code = ss.str();
+        }
         
         m_os
         #if !defined(_WIN32) && !defined(_WIN64)
@@ -39,36 +75,53 @@ public:
             << termcolor::on_red << termcolor::white
             << "Error"
             << termcolor::reset << termcolor::white
-            << ": " << msg << "\n"
+            << ": " << split[0] << "\n"
             << termcolor::grey
+        
         #if !defined(_WIN32) && !defined(_WIN64)
             << termcolor::bold
         #else
             << termcolor::reset << termcolor::white
         #endif
         #if !defined(_WIN32) && !defined(_WIN64)
-            << " ├─╼"
+            << " ╰┬╼ "
         #else
-            << L" ├─╼"
-        #endif
-            << termcolor::reset << termcolor::red
-            << " code"
-            << termcolor::reset << termcolor::white
-            << ": " << std::to_string(line+charPositionInLine) << "\n"
-            << termcolor::grey
-        #if !defined(_WIN32) && !defined(_WIN64)
-            << termcolor::bold
-        #else
-            << termcolor::reset << termcolor::white
-        #endif
-        #if !defined(_WIN32) && !defined(_WIN64)
-            << " ╰─╼ "
-        #else
-            << L" ╰─╼ "
+            << L" ╰┬╼ "
         #endif
             << termcolor::reset << termcolor::green
             << file << " @ line " << std::to_string(line) << ":" << std::to_string(charPositionInLine+1) << "\n"
+            << termcolor::reset << termcolor::grey
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << termcolor::bold
+        #else
+            << termcolor::reset << termcolor::white
+        #endif
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << "  │"
+        #else
+            << L"  │"
+        #endif
+            << spacer(" ", std::stoi(split[3])+3-first_charac)
+            << termcolor::reset << termcolor::red
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << spacer("⌄", split[2].size())
+        #else
+            << spacer(L"⌄", split[2].size())
+        #endif
+            << termcolor::grey
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << termcolor::bold
+        #else
+            << termcolor::reset << termcolor::white
+        #endif
+            << "\n"
+        #if !defined(_WIN32) && !defined(_WIN64)
+            << "  ╰──╼" << " "
+        #else
+            << L"  ╰──╼" << " "
+        #endif
             << termcolor::reset
+            << code
             << "\n";
     }
     
