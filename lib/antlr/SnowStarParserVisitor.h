@@ -47,6 +47,8 @@ public:
 
     virtual antlrcpp::Any visitFunctionParams(SnowStarParser::FunctionParamsContext *context) = 0;
 
+    virtual antlrcpp::Any visitParameterDeclaration(SnowStarParser::ParameterDeclarationContext *context) = 0;
+
     virtual antlrcpp::Any visitWithDeclaration(SnowStarParser::WithDeclarationContext *context) = 0;
 
     virtual antlrcpp::Any visitWithName(SnowStarParser::WithNameContext *context) = 0;

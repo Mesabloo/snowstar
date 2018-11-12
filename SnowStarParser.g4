@@ -13,16 +13,16 @@ compilationUnit
 /** Declarations */
 declarationSeq
               :              functionDeclaration       // type name (params*) {statements*} 
-              |              variableDeclaration SEMI  // type name (= value)?
+              |              variableDeclaration       // type name (= value)?
               |              unitDeclaration           // unit name {statements*}
               |              dtypeDeclaration          // dtype name {vars*}
-              |              withDeclaration SEMI      // with name = type
-              |              importDeclaration SEMI    // import file
+              |              withDeclaration           // with name = type
+              |              importDeclaration         // import file
               |              emptyDeclaration          // ;
               ;
 
 variableDeclaration
-                   :         theType variableName variableInitializer?
+                   :         theType variableName variableInitializer? SEMI
                    ;
 
 variableName
@@ -66,11 +66,15 @@ functionName
             ;
 
 functionParams
-              :              LPAREN (variableDeclaration (COMMA variableDeclaration)*)? RPAREN
+              :              LPAREN (parameterDeclaration (COMMA parameterDeclaration)*)? RPAREN
               ;          
 
+parameterDeclaration
+                    :        theType IDENTIFIER (ASSIGN value)?
+                    ;
+
 withDeclaration
-               :             WITH withName ASSIGN theType
+               :             WITH withName ASSIGN theType SEMI
                ;
             
 withName
@@ -78,7 +82,7 @@ withName
         ;
 
 importDeclaration
-                 :           IMPORT importName
+                 :           IMPORT importName SEMI
                  ;
 
 importName
@@ -92,9 +96,9 @@ emptyDeclaration
 
 /** Statement */
 statementSeq
-            :                variableDeclaration SEMI    // type name (= value),
-            |                withDeclaration SEMI        // with name = type
-            |                importDeclaration SEMI      // import file
+            :                variableDeclaration         // type name (= value),
+            |                withDeclaration             // with name = type
+            |                importDeclaration           // import file
             |                emptyDeclaration            // ;
             ;
 

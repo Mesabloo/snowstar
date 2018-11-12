@@ -31,11 +31,11 @@ public:
     RuleVariableName = 3, RuleVariableInitializer = 4, RuleUnitDeclaration = 5, 
     RuleUnitName = 6, RuleBasicBlockDeclaration = 7, RuleDtypeDeclaration = 8, 
     RuleDtypeName = 9, RuleDtypeBlockDeclaration = 10, RuleFunctionDeclaration = 11, 
-    RuleFunctionName = 12, RuleFunctionParams = 13, RuleWithDeclaration = 14, 
-    RuleWithName = 15, RuleImportDeclaration = 16, RuleImportName = 17, 
-    RuleEmptyDeclaration = 18, RuleStatementSeq = 19, RuleExpression = 20, 
-    RulePrimaryExpression = 21, RuleTheType = 22, RuleBuiltinTypes = 23, 
-    RuleValue = 24
+    RuleFunctionName = 12, RuleFunctionParams = 13, RuleParameterDeclaration = 14, 
+    RuleWithDeclaration = 15, RuleWithName = 16, RuleImportDeclaration = 17, 
+    RuleImportName = 18, RuleEmptyDeclaration = 19, RuleStatementSeq = 20, 
+    RuleExpression = 21, RulePrimaryExpression = 22, RuleTheType = 23, RuleBuiltinTypes = 24, 
+    RuleValue = 25
   };
 
   SnowStarParser(antlr4::TokenStream *input);
@@ -62,6 +62,7 @@ public:
   class FunctionDeclarationContext;
   class FunctionNameContext;
   class FunctionParamsContext;
+  class ParameterDeclarationContext;
   class WithDeclarationContext;
   class WithNameContext;
   class ImportDeclarationContext;
@@ -94,7 +95,6 @@ public:
     virtual size_t getRuleIndex() const override;
     FunctionDeclarationContext *functionDeclaration();
     VariableDeclarationContext *variableDeclaration();
-    antlr4::tree::TerminalNode *SEMI();
     UnitDeclarationContext *unitDeclaration();
     DtypeDeclarationContext *dtypeDeclaration();
     WithDeclarationContext *withDeclaration();
@@ -113,6 +113,7 @@ public:
     virtual size_t getRuleIndex() const override;
     TheTypeContext *theType();
     VariableNameContext *variableName();
+    antlr4::tree::TerminalNode *SEMI();
     VariableInitializerContext *variableInitializer();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -261,8 +262,8 @@ public:
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *LPAREN();
     antlr4::tree::TerminalNode *RPAREN();
-    std::vector<VariableDeclarationContext *> variableDeclaration();
-    VariableDeclarationContext* variableDeclaration(size_t i);
+    std::vector<ParameterDeclarationContext *> parameterDeclaration();
+    ParameterDeclarationContext* parameterDeclaration(size_t i);
     std::vector<antlr4::tree::TerminalNode *> COMMA();
     antlr4::tree::TerminalNode* COMMA(size_t i);
 
@@ -272,6 +273,21 @@ public:
 
   FunctionParamsContext* functionParams();
 
+  class  ParameterDeclarationContext : public antlr4::ParserRuleContext {
+  public:
+    ParameterDeclarationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    TheTypeContext *theType();
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *ASSIGN();
+    ValueContext *value();
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  ParameterDeclarationContext* parameterDeclaration();
+
   class  WithDeclarationContext : public antlr4::ParserRuleContext {
   public:
     WithDeclarationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -280,6 +296,7 @@ public:
     WithNameContext *withName();
     antlr4::tree::TerminalNode *ASSIGN();
     TheTypeContext *theType();
+    antlr4::tree::TerminalNode *SEMI();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
@@ -305,6 +322,7 @@ public:
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IMPORT();
     ImportNameContext *importName();
+    antlr4::tree::TerminalNode *SEMI();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
@@ -341,7 +359,6 @@ public:
     StatementSeqContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     VariableDeclarationContext *variableDeclaration();
-    antlr4::tree::TerminalNode *SEMI();
     WithDeclarationContext *withDeclaration();
     ImportDeclarationContext *importDeclaration();
     EmptyDeclarationContext *emptyDeclaration();

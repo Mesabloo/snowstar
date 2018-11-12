@@ -71,6 +71,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual antlrcpp::Any visitParameterDeclaration(SnowStarParser::ParameterDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual antlrcpp::Any visitWithDeclaration(SnowStarParser::WithDeclarationContext *ctx) override {
     return visitChildren(ctx);
   }
