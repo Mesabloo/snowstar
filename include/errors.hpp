@@ -24,183 +24,101 @@ namespace utils {
     }
 }
 
-class Error {
-public:
-    Error() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    Error(std::string const& msg) : m_msg{msg} {}
-#else
-    Error(std::wstring const& msg) : m_msg{msg} {}
-#endif
-
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const) = 0;
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const) = 0;
-
-#if !defined(_WIN32) && !defined(_WIN64)
-    std::string getError() const { return m_msg; }
+class Throwable {
 protected:
-    std::string m_msg;
-
+#   if !defined(_WIN32) && !defined(_WIN64)
     std::function<std::string(std::string const, unsigned int)> spacer = [=] (std::string const s1, unsigned int n) -> std::string { std::string s; for (unsigned int tmp{0};tmp < n;++tmp) s+=s1; return s; };
-    std::string prettify(std::string const&, int, int, int, std::string const&, std::string const&, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>);
-#else
-    std::wstring getError() const { return m_msg; }
-protected:
-    std::wstring m_msg;
-
+#   else
     std::function<std::wstring(std::wstring const, unsigned int)> spacer = [=] (std::wstring const s1, unsigned int n) -> std::wstring { std::wstring s; for (unsigned int tmp{0};tmp < n;++tmp) s+=s1; return s; };
-    std::wstring prettify(std::string const&, int, int, int, std::string const&, std::string const&, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>);
-#endif
-};
+#   endif
 
-struct RedeclaredVariableError : Error {
-    RedeclaredVariableError() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    RedeclaredVariableError(std::string const& msg) : Error{msg} {}
-#else
-    RedeclaredVariableError(std::wstring const& msg) : Error{msg} {}
-#endif
+    void printPrettify(std::string const&, int, int, int, std::string const&, std::string const&, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, bool);
+    void colorCode(std::string&, std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, bool);
+    void initWithTextError(std::string const&, std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, bool);
 
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
-};
-
-struct WrongTypedValueError : Error {
-    WrongTypedValueError() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    WrongTypedValueError(std::string const& msg) : Error{msg} {}
-#else
-    WringTypedValueError(std::wstring const& msg) : Error{msg} {}
-#endif
-
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
-};
-
-struct InvalidDeclaringTypeError : Error {
-    InvalidDeclaringTypeError() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    InvalidDeclaringTypeError(std::string const& msg) : Error{msg} {}
-#else
-    InvalidDeclaringTypeError(std::wstring const& msg) : Error{msg} {}
-#endif
-
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
-};
-
-struct InvalidComparisonTypeError : Error {
-    InvalidComparisonTypeError() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    InvalidComparisonTypeError(std::string const& msg) : Error{msg} {}
-#else
-    InvalidComparisonTypeError(std::wstring const& msg) : Error{msg} {}
-#endif
-
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
-};
-
-struct UndeclaredVariableError : Error {
-    UndeclaredVariableError() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    UndeclaredVariableError(std::string const& msg) : Error{msg} {}
-#else
-    UndeclaredVariableError(std::wstring const& msg) : Error{msg} {}
-#endif
-
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
-};
-
-struct UndefinedVariableError : Error {
-    UndefinedVariableError() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    UndefinedVariableError(std::string const& msg) : Error{msg} {}
-#else
-    UndefinedVariableError(std::wstring const& msg) : Error{msg} {}
-#endif
-
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
-};
-
-struct AlreadyExistingIDError: Error {
-    AlreadyExistingIDError() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    AlreadyExistingIDError(std::string const& msg) : Error{msg} {}
-#else
-    AlreadyExistingIDError(std::wstring const& msg) : Error{msg} {}
-#endif
-
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
-};
-
-struct UnknownIDError: Error {
-    UnknownIDError() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    UnknownIDError(std::string const& msg) : Error{msg} {}
-#else
-    UnknownIDError(std::wstring const& msg) : Error{msg} {}
-#endif
-
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
-    virtual std::unique_ptr<Error> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
-};
-
-class Warning {
 public:
-    Warning() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    Warning(std::string const& msg) : m_msg{msg} {}
-#else
-    Warning(std::wstring const& msg) : m_msg{msg} {}
-#endif
+    Throwable() = default;
+    virtual ~Throwable() = default;
 
-    virtual std::unique_ptr<Warning> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const) = 0;
-    virtual std::unique_ptr<Warning> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const) = 0;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const) = 0;
+};
 
-#if !defined(_WIN32) && !defined(_WIN64)
-    std::string getError() const { return m_msg; }
-protected:
-    std::string m_msg;
+/**
+ * Errors
+ */
 
-    std::function<std::string(std::string const, unsigned int)> spacer = [=] (std::string const s1, unsigned int n) -> std::string { std::string s; for (unsigned int tmp{0};tmp < n;++tmp) s+=s1; return s; };
-    std::string prettify(std::string const&, int, int, int, std::string const&, std::string const&, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>);
-#else
-    std::wstring getError() const { return m_msg; }
-protected:
-    std::wstring m_msg;
+struct RedeclaredVariableError : public Throwable {
+    RedeclaredVariableError() : Throwable() {}
+    virtual ~RedeclaredVariableError() override = default;
 
-    std::function<std::wstring(std::wstring const, unsigned int)> spacer = [=] (std::wstring const s1, unsigned int n) -> std::wstring { std::wstring s; for (unsigned int tmp{0};tmp < n;++tmp) s+=s1; return s; };
-    std::wstring prettify(std::string const&, int, int, int, std::string const&, std::string const&, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>);
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const) override;
+};
+
+struct WrongTypedValueError : public Throwable {
+    WrongTypedValueError() : Throwable() {}
+    virtual ~WrongTypedValueError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const) override;
+};
+
+struct InvalidDeclaringTypeError : public Throwable {
+    InvalidDeclaringTypeError() : Throwable() {}
+    virtual ~InvalidDeclaringTypeError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const) override;
+};
+
+struct InvalidComparisonTypeError : public Throwable {
+    InvalidComparisonTypeError() : Throwable() {}
+    virtual ~InvalidComparisonTypeError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const) override;
+};
+
+struct UndeclaredVariableError : public Throwable {
+    UndeclaredVariableError() : Throwable() {}
+    virtual ~UndeclaredVariableError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const) override;
+};
+
+struct UndefinedVariableError : public Throwable {
+    UndefinedVariableError() : Throwable() {}
+    virtual ~UndefinedVariableError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const) override;
+};
+
+struct AlreadyExistingIDError : public Throwable {
+    AlreadyExistingIDError() : Throwable() {}
+    virtual ~AlreadyExistingIDError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const) override;
+};
+
+struct UnknownIDError : public Throwable {
+    UnknownIDError() : Throwable() {}
+    virtual ~UnknownIDError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const) override;
+};
+
+/**
+ * Warnings
+ */
+
+struct ImplicitCastWarning : public Throwable {
+    ImplicitCastWarning() : Throwable() {}
+    virtual ~ImplicitCastWarning() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const) override;
+};
+
+struct FloatingPointWarning : public Throwable {
+    FloatingPointWarning() : Throwable() {}
+    virtual ~FloatingPointWarning() override = default;
     
-#endif
-};
-
-struct ImplicitCastWarning : Warning {
-    ImplicitCastWarning() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    ImplicitCastWarning(std::string const& msg) : Warning{msg} {}
-#else
-    ImplicitCastWarning(std::wstring const& msg) : Warning{msg} {}
-#endif
-
-    virtual std::unique_ptr<Warning> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
-    virtual std::unique_ptr<Warning> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
-};
-
-struct FloatingPointWarning : Warning {
-    FloatingPointWarning() = default;
-#if !defined(_WIN32) && !defined(_WIN64)
-    FloatingPointWarning(std::string const& msg) : Warning{msg} {}
-#else
-    FloatingPointWarning(std::wstring const& msg) : Warning{msg} {}
-#endif
-
-    virtual std::unique_ptr<Warning> from(std::string const&, antlr4::ParserRuleContext*, antlr4::ParserRuleContext*, std::initializer_list<std::string> const);
-    virtual std::unique_ptr<Warning> from(std::string const&, antlr4::ParserRuleContext*, antlr4::Token*, std::initializer_list<std::string> const);
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const) override;
 };
 
 #endif

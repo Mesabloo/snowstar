@@ -6,9 +6,9 @@
 
 class ErrorListener : public antlr4::BaseErrorListener {
     #if !defined(_WIN32) && !defined(_WIN64)
-    std::stringstream m_os;
+    std::ostream& m_os{std::cerr};
     #else
-    std::wstringstream m_os;
+    std::wostream& m_os{std::wcerr};
     #endif
 
     inline std::vector<std::string> str_split(std::string const& str, char const separator) {
@@ -45,10 +45,8 @@ public:
 
         int first_charac = std::stoi(split[4]);
         
-        std::clog << "First char in line: " << first_charac << std::endl;
         std::size_t pos = code.find(split[2], std::stoi(split[3])-1-first_charac);
         if (pos != std::string::npos) {
-            std::clog << "Position: " << pos << std::endl;
             std::stringstream ss;
             ss
             #if !defined(_WIN32) && !defined(_WIN64)
@@ -125,12 +123,8 @@ public:
             << "\n";
     }
     
-    void resetStuff() {
-        m_os.clear();
-    }
-    
     friend std::ostream& operator<<(std::ostream& os, ErrorListener const& errListener) {
-        os << errListener.m_os.str();
+        //os << errListener.m_os.str();
         return os;
     }
 };
