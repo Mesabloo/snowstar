@@ -6,12 +6,9 @@
 
 #include <filesystem>
 #include <unordered_set>
-#include <initializer_list>
 
 #include <termcolor/termcolor.hpp>
-#include <parser_errors.hpp>
-
-#define ERRORED (!errors.errs.empty() || !errors.warns.empty())
+#include <errors.hpp>
 
 namespace utils {
     bool str_startswith(std::string const& src, std::string const& prefix) {
@@ -19,18 +16,107 @@ namespace utils {
     }
 }
 
-ANTLRVisitor::ANTLRVisitor(std::string const& file) : file_name{file} {
-    std::filesystem::path path = std::filesystem::path{file_name};
-    file_name = std::filesystem::canonical(path);
+
+ANTLRVisitor::ANTLRVisitor(std::string const& file) : fileName{file} {
+    std::filesystem::path path = std::filesystem::path{fileName};
+    fileName = std::filesystem::canonical(path);
 
     #ifndef NDEBUG
-        std::clog << termcolor::green << "   [i]   | Current file path: " << file_name << termcolor::reset << std::endl;
+        std::clog << termcolor::green << "   [i]   | Current file path: " << fileName << termcolor::reset << std::endl;
     #endif
 }
 
 antlrcpp::Any ANTLRVisitor::visitCompilationUnit(SnowStarParser::CompilationUnitContext* ctx) {
+    #ifndef NDEBUG
+        std::clog << termcolor::yellow << "   /!\\   | Starting semantically analysing..." << termcolor::reset << std::endl;
+    #endif
+
     visitChildren(ctx);
 
+    return antlrcpp::Any();
+}
+
+antlrcpp::Any ANTLRVisitor::visitWithDeclaration(SnowStarParser::WithDeclarationContext* ctx) {
+    #ifndef NDEBUG
+        std::clog << termcolor::green << "   [i]   | Visiting an alias declaration: " << ctx->getText() << termcolor::reset << std::endl;
+    #endif
+
+    lineContext = ctx;
+
+    std::vector<Alias> definedAliases{};
+    for (auto const& scope : scopedAliases) {
+        for (auto const& alias : scope) {
+            definedAliases.push_back(alias);
+        }
+    }
+    auto it = std::find_if(definedAliases.begin(), definedAliases.end(), [&ctx] (Alias const& a) { return a.first == ctx->withName()->IDENTIFIER()->getText(); });
+
+    if (it == definedAliases.end()) {
+        if (ctx->theType()->IDENTIFIER()) {
+            auto alias_it = std::find_if(definedAliases.begin(), definedAliases.end(), [&ctx] (Alias const& a) { return a.first == ctx->theType()->IDENTIFIER()->getText(); });
+            std::string id{ctx->theType()->IDENTIFIER()->getText()};
+            while (alias_it != definedAliases.end() && alias_it->second->IDENTIFIER()) {
+                id = alias_it->second->IDENTIFIER()->getText();
+                alias_it = std::find_if(definedAliases.begin(), definedAliases.end(), [&alias_it] (Alias const& a) { return a.first == alias_it->second->IDENTIFIER()->getText(); });
+                #ifndef NDEBUG
+                if (alias_it != definedAliases.end()) {
+                    std::clog << termcolor::blue << "   :::   | Found alias with name `" << alias_it->second->getText() << "`." << termcolor::reset << std::endl;
+                } else {
+                    std::clog << termcolor::yellow << "   /!\\   | Could not find an alias with name `" << id << "`." << termcolor::reset << std::endl;
+                }
+                #endif
+            }
+            if (alias_it == definedAliases.end()) {
+                // The alias referenced does not exist.
+                UnknownIDError().print(fileName, ctx, lineContext, {id});
+                errored = true;
+            } else
+                scopedAliases[scopedAliases.size()-1].emplace_back(ctx->withName()->getText(), alias_it->second);
+        } else
+            scopedAliases[scopedAliases.size()-1].emplace_back(ctx->withName()->getText(), ctx->theType());
+    } else {
+        // Well the alias already exists, so we need to throw an error.
+        AlreadyExistingIDError().print(fileName, ctx, lineContext, {ctx->withName()->IDENTIFIER()->getText()});
+        errored = true;
+    }
+    
+    return antlrcpp::Any();
+}
+
+/*
+
+antlrcpp::Any ANTLRVisitor::visitFunction(SnowStarParser::FunctionContext* ctx) {
+    #ifndef NDEBUG
+        std::clog << termcolor::green << "   [i]   | Visiting a function declaration..." << termcolor::reset << std::endl;
+    #endif
+
+    visitBlock(ctx->block());
+
+    return antlrcpp::Any();
+}
+
+antlrcpp::Any ANTLRVisitor::visitBlock(SnowStarParser::BlockContext* ctx) {
+    #ifndef NDEBUG
+        std::clog << termcolor::green << "   [i]   | Visiting a block..." << termcolor::reset << std::endl;
+    #endif
+
+    visitChildren(ctx);
+    return antlrcpp::Any();
+}
+
+antlrcpp::Any ANTLRVisitor::visitTopLevelStatement(SnowStarParser::TopLevelStatementContext* ctx) {
+    #ifndef NDEBUG
+        std::clog << termcolor::green << "   [i]   | Visiting a top-level statement..." << termcolor::reset << std::endl;
+    #endif
+
+    current_stmt_context = ctx;
+
+    if (!ctx->eol) {
+        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->getStop(), {"`;` at the end of statement,", ctx->getStop()->getText()}));
+        return antlrcpp::Any();
+    }
+
+    visitChildren(ctx);
     return antlrcpp::Any();
 }
 
@@ -46,6 +132,11 @@ antlrcpp::Any ANTLRVisitor::visitStatement(SnowStarParser::StatementContext* ctx
             ctx->getStart()->getInputStream()->getText(antlr4::misc::Interval{ctx->getStart()->getStartIndex(), ctx->getStop()->getStopIndex()})
             << termcolor::reset << std::endl;
     #endif
+
+    if (ctx->error()) {
+        visitError(ctx->error());
+        return antlrcpp::Any();
+    }
 
     if (!ctx->eol) {
         errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->getStop(), {"`;` at the end of statement,", ctx->getStop()->getText()}));
@@ -81,12 +172,6 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
     };
 
     if (ctx->bop) {
-
-        if (ctx->expression().size() < 2 || !ctx->expression()[1]) {
-            errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->bop, {"expression", ctx->bop->getText()}));
-            return ret;
-        }
-
         ExprType lhs = visitExpression(ctx->expression()[0]).as<ExprType>(),
                  rhs = visitExpression(ctx->expression()[1]).as<ExprType>();
 
@@ -152,14 +237,14 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
                 }
             }
             if (int_real_op.find(ctx->bop->getText()) != int_real_op.end()) {
-                if ((lhs == ExprType::REAL64 || lhs == ExprType::REAL32 || lhs == ExprType::REAL16) || (rhs == ExprType::REAL64 || rhs == ExprType::REAL32 || rhs == ExprType::REAL16)) {
+                if ((lhs == ExprType::REAL64 || lhs == ExprType::REAL32 || lhs == ExprType::REAL16) && (rhs == ExprType::REAL64 || rhs == ExprType::REAL32 || rhs == ExprType::REAL16)) {
                     if (lhs == ExprType::REAL64 || rhs == ExprType::REAL64)
                         ret = ExprType::REAL64;
                     else if (lhs == ExprType::REAL32 || rhs == ExprType::REAL32)
                         ret = ExprType::REAL32;
                     else
                         ret = ExprType::REAL16;
-                } else if ((lhs == ExprType::INT64 || lhs == ExprType::INT32 || lhs == ExprType::INT16 || lhs == ExprType::INT8) || (rhs == ExprType::INT64 || rhs == ExprType::INT32 || rhs == ExprType::INT16 || rhs == ExprType::INT8)) {
+                } else if ((lhs == ExprType::INT64 || lhs == ExprType::INT32 || lhs == ExprType::INT16 || lhs == ExprType::INT8) && (rhs == ExprType::INT64 || rhs == ExprType::INT32 || rhs == ExprType::INT16 || rhs == ExprType::INT8)) {
                     if (lhs == ExprType::INT64 || rhs == ExprType::INT64) {
                         ret = ExprType::INT64;
                     } else if (lhs == ExprType::INT32 || rhs == ExprType::INT32) {
@@ -176,11 +261,6 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
             }
         }
     } else if (ctx->uop) {
-        if (ctx->expression().size() == 0 || !ctx->expression()[0]) {
-            errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->uop, {"expression", ctx->uop->getText()}));
-            return ret;
-        }
-
         ExprType expr = visitExpression(ctx->expression()[0]).as<ExprType>();
 
         if (expr != ExprType::VOID) {
@@ -228,7 +308,6 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
         } else if (ctx->IDENTIFIER()) {
             auto it = std::find_if(declared.begin(), declared.end(), [&ctx] (Var const& v) { return ctx->IDENTIFIER()->getText() == std::get<0>(v); });
             if (it == declared.end()) {
-                // variable not declared
                 errors.errs.push_back(UndeclaredVariableError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), {ctx->IDENTIFIER()->getSymbol()->getText()}));
             } else {
                 if (!std::get<2>(*it)) {
@@ -259,10 +338,6 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
                 }
             }
         } else {
-            if (ctx->expression().size() == 0 || !ctx->expression()[0]) {
-                return ret;
-            }
-
             ret = visitExpression(ctx->expression()[0]).as<ExprType>();
             if (ret == ExprType::VOID)
                 errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->lparen, {"expression", ctx->lparen->getText()}));
@@ -311,41 +386,16 @@ antlrcpp::Any ANTLRVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
     return ctx->type();
 }
 
-antlrcpp::Any ANTLRVisitor::visitDeclareNoID(SnowStarParser::DeclareNoIDContext*) {
-    return -1;
-}
-
 antlrcpp::Any ANTLRVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
     #ifndef NDEBUG
         std::clog << termcolor::green << "   [i]   | Visiting a definition..." << termcolor::reset << std::endl;
     #endif
 
-    antlrcpp::Any t;
-    if (ctx->declareNoID())
-        t = visitDeclareNoID(ctx->declareNoID());
-    else
-        t = visitDeclare(ctx->declare());
-
-    if (t.is<int>() || !ctx->declare()->IDENTIFIER()) {
-        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, (ctx->declare()?ctx->declare()->type()->getStart():ctx->declareNoID()->type()->getStart()), {"identifier in variable declaration", (ctx->declare()?ctx->declare()->type()->getStart()->getText():ctx->declareNoID()->type()->getStart()->getText())}));
-        return antlrcpp::Any();
-    }
-
-    if (!ctx->eop) {
-        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->declare()->IDENTIFIER()->getSymbol(), {"'=' token in variable declaration", ctx->declare()->IDENTIFIER()->getText()}));
-        return antlrcpp::Any();
-    }
-
-    if (!ctx->expression()) {
-        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->eop, {"value in variable declaration", ctx->eop->getText()}));
-        return antlrcpp::Any();
-    }
+    antlrcpp::Any t = visitDeclare(ctx->declare());
 
     if (!t.is<Decl>()) return antlrcpp::Any();
     Decl type = t.as<Decl>();
     if (type->VOID()) return antlrcpp::Any();
-
-    /*  */
 
     auto getType = [] (ExprType const e) -> std::string {
         switch (e) {
@@ -390,34 +440,6 @@ antlrcpp::Any ANTLRVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
         }
     }
 
-    /* {
-        if (type->BOOLEAN() && !ctx->expression()->literal()->BOOL_LITERAL()) {
-            // error: value is of wrong type
-            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()->getStart(), "bool~"+findStringType(ctx->expression()->literal())));
-            return antlrcpp::Any();
-        }
-        if (type->CHAR() && !ctx->expression()->literal()->CHAR_LITERAL()) {
-            // error: value is of wrong type
-            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), "char~"+findStringType(ctx->expression()->literal())));
-            return antlrcpp::Any();
-        }
-        if ((type->INTEGER8() || type->INTEGER16() || type->INTEGER32() || type->INTEGER64())) {
-            if (ctx->expression()->literal()->FLOAT_LITERAL()) {
-                // implicit cast
-                errors.warns.push_back(ImplicitCastWarning().from(file_name, current_stmt_context, ctx->expression(), findStringType(ctx->expression()->literal())+"~"+[&type]() -> std::string { return type->INTEGER8()?"int8":type->INTEGER16()?"int16":type->INTEGER32()?"int32":"int64"; }()));
-            } else if (!ctx->expression()->literal()->DECIMAL_LITERAL() && !ctx->expression()->literal()->HEX_LITERAL() && !ctx->expression()->literal()->BIN_LITERAL()) {
-                // error: value is of wrong type
-                errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), [&type]() -> std::string { return type->INTEGER8()?"int8":type->INTEGER16()?"int16":type->INTEGER32()?"int32":"int64"; }()+"~"+findStringType(ctx->expression()->literal())));
-                return antlrcpp::Any();
-            }
-            
-        }
-        if ((type->REAL32() || type->REAL64() || type->REAL16()) && !ctx->expression()->literal()->DECIMAL_LITERAL() && !ctx->expression()->literal()->FLOAT_LITERAL() && !ctx->expression()->literal()->HEX_LITERAL() && !ctx->expression()->literal()->BIN_LITERAL()) {
-            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), [&type]() -> std::string { return type->REAL32()?"real32":"real64"; }()+"~"+findStringType(ctx->expression()->literal())));
-            return antlrcpp::Any();
-        }
-    } */
-
     auto const& it = std::find_if(declared.begin(), declared.end(), [&ctx] (Var const& v) { return std::get<0>(v) == ctx->declare()->IDENTIFIER()->getText(); });
     auto& b = std::get<2>(*it);
     b = true;
@@ -431,7 +453,7 @@ antlrcpp::Any ANTLRVisitor::visitAlias(SnowStarParser::AliasContext* ctx) {
     #endif
 
     if (!ctx->IDENTIFIER()) {
-        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->with, {"identifier in type aliasing", ctx->with->getText()}));
+        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->WITH()->getSymbol(), {"identifier in type aliasing", ctx->WITH()->getText()}));
         return antlrcpp::Any();
     }
     if (!ctx->eop) {
@@ -481,3 +503,8 @@ antlrcpp::Any ANTLRVisitor::visitAlias(SnowStarParser::AliasContext* ctx) {
 
     return 0;
 }
+
+antlrcpp::Any ANTLRVisitor::visitError(SnowStarParser::ErrorContext* ctx) {
+    errors.errs.push_back(UnexpectedTokenError().from(file_name, current_stmt_context, ctx->err, {ctx->err->getText()}));
+    return antlrcpp::Any();
+} */

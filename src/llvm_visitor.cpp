@@ -8,8 +8,8 @@
 
 #include <llvm/Support/raw_ostream.h>
 
-LLVMVisitor::LLVMVisitor(llvm::Module& mod) : module{mod} {
-    llvm_types = {
+ LLVMVisitor::LLVMVisitor(llvm::Module& mod) : module{mod} {
+    llvmTypes = {
         {"bool", llvm::IntegerType::get(module.getContext(), 1)},
         {"char", llvm::Type::getInt8Ty(module.getContext())},
         {"int8", llvm::Type::getInt8Ty(module.getContext())},
@@ -23,17 +23,36 @@ LLVMVisitor::LLVMVisitor(llvm::Module& mod) : module{mod} {
 }
 
 antlrcpp::Any LLVMVisitor::visitCompilationUnit(SnowStarParser::CompilationUnitContext* ctx) {
-    llvm::FunctionType* type = llvm::FunctionType::get(llvm::IntegerType::get(module.getContext(), 32), false);
-    llvm::Function* main = llvm::Function::Create(type, llvm::Function::ExternalLinkage, "main", &module);
-    cur_block = llvm::BasicBlock::Create(module.getContext(), "entry", main, 0);
+    // llvm::FunctionType* type = llvm::FunctionType::get(llvm::IntegerType::get(module.getContext(), 32), false);
+    // llvm::Function* main = llvm::Function::Create(type, llvm::Function::ExternalLinkage, "main", &module);
+    // cur_block = llvm::BasicBlock::Create(module.getContext(), "entry", main, 0);
 
     visitChildren(ctx);
 
-    llvm::ConstantInt* i32_0 = llvm::ConstantInt::get(module.getContext(), llvm::APInt(32, 0));
-    llvm::ReturnInst::Create(module.getContext(), i32_0, cur_block);
+    // llvm::ConstantInt* i32_0 = llvm::ConstantInt::get(module.getContext(), llvm::APInt(32, 0));
+    // llvm::ReturnInst::Create(module.getContext(), i32_0, cur_block);
     return 0;
 }
 
+antlrcpp::Any LLVMVisitor::visitWithDeclaration(SnowStarParser::WithDeclarationContext* ctx) {
+    auto& type = llvmTypes[ctx->theType()->IDENTIFIER()->getText()];
+
+    llvmTypes[ctx->withName()->IDENTIFIER()->getText()] = type;
+
+    if (ctx->theType()->IDENTIFIER()) {
+        auto alias_it = std::find_if(aliases.begin(), aliases.end(), [&ctx] (Alias const& a) { return a.first == ctx->theType()->IDENTIFIER()->getText(); });
+        while (alias_it != aliases.end() && alias_it->second->IDENTIFIER()) {
+            alias_it = std::find_if(aliases.begin(), aliases.end(), [&alias_it] (Alias const& a) { return a.first == alias_it->second->getText(); });
+        }
+        
+        aliases.emplace_back(ctx->withName()->IDENTIFIER()->getText(), alias_it->second);
+    } else
+        aliases.emplace_back(ctx->withName()->IDENTIFIER()->getText(), ctx->theType());
+
+    return type;
+}
+
+/*
 antlrcpp::Any LLVMVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
     llvm::AllocaInst* val = new llvm::AllocaInst(
         llvm_types[ctx->type()->getText()], 
@@ -68,29 +87,6 @@ antlrcpp::Any LLVMVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
     return store;
 }
 
-antlrcpp::Any LLVMVisitor::visitAlias(SnowStarParser::AliasContext* ctx) {
-    auto& type = llvm_types[ctx->type()->getText()];
-
-    llvm_types[ctx->IDENTIFIER()->getText()] = type;
-
-    if (ctx->type()->IDENTIFIER()) {
-        auto alias_it = std::find_if(aliases.begin(), aliases.end(), [&ctx] (Alias const& a) { return a.first == ctx->type()->IDENTIFIER()->getText(); });
-        while (alias_it != aliases.end() && alias_it->second->IDENTIFIER()) {
-            alias_it = std::find_if(aliases.begin(), aliases.end(), [&alias_it] (Alias const& a) { return a.first == alias_it->second->getText(); });
-        }
-        
-        aliases.push_back(Alias(ctx->IDENTIFIER()->getText(), alias_it->second));
-    } else
-        aliases.push_back(Alias(ctx->IDENTIFIER()->getText(), ctx->type()));
-
-    return type;
-}
-
-
-antlrcpp::Any LLVMVisitor::visitStatement(SnowStarParser::StatementContext* ctx) {
-    visitChildren(ctx);
-    return 0;
-}
 antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ctx) {
 
     llvm::IRBuilder<> builder(cur_block);
@@ -210,4 +206,4 @@ antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ct
     expr_number_tmp++;
 
     return val;
-}
+} */

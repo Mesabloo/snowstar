@@ -6,13 +6,13 @@
 #include <SnowStarLexer.h>
 #include <SnowStarParser.h>
 
+#include <parser_error_handler.hpp>
 #include <antlr_visitor.hpp>
 #include <llvm_visitor.hpp>
 #include <error_listener.hpp>
 #include <termcolor/termcolor.hpp>
 #include <process.hpp>
 #include <argh.h>
-#include <pprinter.hpp>
 
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
@@ -107,34 +107,28 @@ int main(int argc, char** argv) {
     SnowStarParser parser(&tokens);
     ErrorListener parser_listener;
     parser.removeErrorListeners();
+    parser.addErrorListener(&lexer_listener);
+    auto error_handler = std::make_shared<ParserErrorHandler>();
+    parser.setErrorHandler(error_handler);
     antlr4::tree::ParseTree* tree = parser.compilationUnit();
+
+    if (parser.getNumberOfSyntaxErrors() > 0) {
+        std::clog << lexer_listener << std::endl;
+        return 1;
+    }
 
     #ifndef NDEBUG
         std::clog << '\n';
-    //    PrettyPrinter pprint(tree, std::clog);
+        // put a pretty printer
         std::clog << '\n';
     #endif
 
     ANTLRVisitor v{input_files[0]};
     v.visit(tree);
-    auto const& result = v.getErrorsAndWarnings();
-    std::cerr << termcolor::reset << std::endl;
-    for (auto& e : result.errs) {
-        #ifndef UNICODE
-        std::cerr << e->getError() << std::endl;
-        #else
-        std::wcerr << e->getError() << std::endl;
-        #endif
-    }
-    if (!result.errs.empty()) return 1;
-    for (auto& w : result.warns) {
-        #ifndef UNICODE
-        std::cerr << w->getError() << std::endl;
-        #else
-        std::wcerr << w->getError() << std::endl;
-        #endif
-    }
 
+    if (v.hasErrored())
+        return 2;
+    
     file_name_ll = input_files[0]+".ll";
 
     static llvm::LLVMContext ctx{};

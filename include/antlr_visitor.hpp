@@ -10,10 +10,8 @@
 
 #include <antlr4-runtime.h>
 
-#include <errors.hpp>
-
 class ANTLRVisitor : public SnowStarParserBaseVisitor {
-    using Decl = SnowStarParser::TypeContext*;
+/*     using Decl = SnowStarParser::TypeContext*;
     using Var = std::tuple<std::string, Decl, bool, std::pair<int, int>>;
     using Alias = std::pair<std::string, Decl>;
     enum class ExprType {
@@ -36,22 +34,27 @@ class ANTLRVisitor : public SnowStarParserBaseVisitor {
         std::vector<std::unique_ptr<Warning>> warns;
     } errors;
 
-    antlr4::ParserRuleContext* current_stmt_context;
+    antlr4::ParserRuleContext* current_stmt_context; */
 
-    std::string file_name;
+    using Alias = std::pair<std::string, SnowStarParser::TheTypeContext*>;
+    template<typename T>
+    using Scope = std::vector<T>;
+
+    std::vector<Scope<Alias>> scopedAliases{{}};
+
+    antlr4::ParserRuleContext* lineContext;
+
+    std::string fileName;
+
+    bool errored{false};
 
 public:
     ANTLRVisitor(std::string const&);
 
-    E& getErrorsAndWarnings() { return errors; }
+    constexpr bool hasErrored() { return errored; }
 
     virtual antlrcpp::Any visitCompilationUnit(SnowStarParser::CompilationUnitContext*) override;
-    virtual antlrcpp::Any visitStatement(SnowStarParser::StatementContext*) override;
-    virtual antlrcpp::Any visitExpression(SnowStarParser::ExpressionContext*) override;
-    virtual antlrcpp::Any visitDefine(SnowStarParser::DefineContext*) override;
-    virtual antlrcpp::Any visitDeclare(SnowStarParser::DeclareContext*) override;
-    virtual antlrcpp::Any visitDeclareNoID(SnowStarParser::DeclareNoIDContext*) override;
-    virtual antlrcpp::Any visitAlias(SnowStarParser::AliasContext*) override;
+    virtual antlrcpp::Any visitWithDeclaration(SnowStarParser::WithDeclarationContext*) override;
 };
 
 #endif
