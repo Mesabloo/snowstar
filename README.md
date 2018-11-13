@@ -59,9 +59,9 @@ import ioout;
 import array;
 
 int32 main(int8 argc, string argv) {
-    print("Hello, World!")
+    print("Hello, World!");
     % We print "Hello, World!" in the console.
-    return 0
+    return 0;
     % We return from the function, with an int32 value.
 }
 
