@@ -1,3 +1,21 @@
+/*
+ *  Snow* Compiler, a compiler made with ANTLR and LLVM for compiling Snow* source code
+ *  Copyright (C) 2018  Mesabloo
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <antlr_visitor.hpp>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -80,6 +98,27 @@ antlrcpp::Any ANTLRVisitor::visitWithDeclaration(SnowStarParser::WithDeclaration
         errored = true;
     }
     
+    return antlrcpp::Any();
+}
+
+antlrcpp::Any ANTLRVisitor::visitVariableDeclaration(SnowStarParser::VariableDeclarationContext* ctx) {
+    #ifndef NDEBUG
+        std::clog << termcolor::green << "   [i]   | Visiting a variable declaration: " << ctx->getText() << termcolor::reset << std::endl;
+    #endif
+
+    if (auto v = ctx->variableInitializer()) {
+        auto expr = visitVariableInitializer(v);
+
+        // additional type checking for value/expression
+    }
+
+    return antlrcpp::Any();
+}
+
+antlrcpp::Any ANTLRVisitor::visitVariableInitializer(SnowStarParser::VariableInitializerContext* ctx) {
+    #ifndef NDEBUG
+        std::clog << termcolor::green << "   [i]   | Visiting a variable initialization: " << ctx->getText() << termcolor::reset << std::endl;
+    #endif
     return antlrcpp::Any();
 }
 
@@ -445,66 +484,4 @@ antlrcpp::Any ANTLRVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
     b = true;
 
     return antlrcpp::Any();
-}
-
-antlrcpp::Any ANTLRVisitor::visitAlias(SnowStarParser::AliasContext* ctx) {
-    #ifndef NDEBUG
-        std::clog << termcolor::green << "   [i]   | Visiting an alias..." << termcolor::reset << std::endl;
-    #endif
-
-    if (!ctx->IDENTIFIER()) {
-        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->WITH()->getSymbol(), {"identifier in type aliasing", ctx->WITH()->getText()}));
-        return antlrcpp::Any();
-    }
-    if (!ctx->eop) {
-        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), {"`=` token in type aliasing", ctx->IDENTIFIER()->getSymbol()->getText()}));
-        return antlrcpp::Any();
-    }
-    if (!ctx->type()) {
-        // missing type;
-        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->eop, {"type in type aliasing", ctx->eop->getText()}));
-        return antlrcpp::Any();
-    }
-
-    auto decl_it = std::find_if(declared.begin(), declared.end(), [&ctx](Var const& v) { return std::get<0>(v) == ctx->IDENTIFIER()->getText(); });
-    auto alias_it = std::find_if(aliases.begin(), aliases.end(), [&ctx](Alias const& a) { return a.first == ctx->IDENTIFIER()->getText(); });
-    if (decl_it != declared.end() || alias_it != aliases.end()) {
-        // name already exists, we can't take it.
-        errors.errs.push_back(AlreadyExistingIDError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), {ctx->IDENTIFIER()->getText()}));
-        return antlrcpp::Any();
-    }
-
-    #ifndef NDEBUG
-        std::clog << termcolor::green << "   [i]   | Alias name is composed?=" << std::boolalpha << (ctx->type()->IDENTIFIER()) << std::noboolalpha << "." << termcolor::reset << std::endl;
-    #endif
-    if (ctx->type()->IDENTIFIER()) {
-        alias_it = std::find_if(aliases.begin(), aliases.end(), [&ctx] (Alias const& a) { return a.first == ctx->type()->IDENTIFIER()->getText(); });
-        while (alias_it != aliases.end() && alias_it->second->IDENTIFIER()) {
-            #ifndef NDEBUG
-                std::string id = alias_it->second->IDENTIFIER()->getText();
-            #endif  
-            alias_it = std::find_if(aliases.begin(), aliases.end(), [&alias_it] (Alias const& a) { return a.first == alias_it->second->IDENTIFIER()->getText(); });
-            #ifndef NDEBUG
-                if (alias_it != aliases.end()) {
-                    std::clog << termcolor::blue << "   :::   | Found alias with name `" << alias_it->second->getText() << "`." << termcolor::reset << std::endl;
-                } else {
-                    std::clog << termcolor::yellow << "   /!\\   | Could not find an alias with name `" << id << "`." << termcolor::reset << std::endl;
-                }
-            #endif
-        }
-        if (alias_it == aliases.end()) {
-            errors.errs.push_back(UnknownIDError().from(file_name, current_stmt_context, ctx->type()->IDENTIFIER()->getSymbol(), {ctx->type()->IDENTIFIER()->getText()}));
-            return nullptr;
-        }
-
-        aliases.push_back(std::make_pair(ctx->IDENTIFIER()->getText(), alias_it->second));
-    } else
-        aliases.push_back(std::make_pair(ctx->IDENTIFIER()->getText(), ctx->type()));
-
-    return 0;
-}
-
-antlrcpp::Any ANTLRVisitor::visitError(SnowStarParser::ErrorContext* ctx) {
-    errors.errs.push_back(UnexpectedTokenError().from(file_name, current_stmt_context, ctx->err, {ctx->err->getText()}));
-    return antlrcpp::Any();
-} */
+}*/
