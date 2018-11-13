@@ -6,17 +6,17 @@
 
 ## :information_source: Table of content
 
-1. [What is Snow* ?](#what_is_snowstar)
+1. [What is Snow* ?](#grey_question-what-is-snow-)
   
-2. [Me, Mesabloo](#behind_snowstar)
+2. [Me, Mesabloo](#desktop_computer-behind-snow-a-developer-mesabloo)
   
-3. [Free sample](#free_sample)
+3. [Free sample](#page_facing_up-what-about-a-free-sample-)
   
-4. [Thanks to](#thanks_to)
+4. [Thanks to](#eight_pointed_black_star-special-thanks-to)
   
-5. [Software used](#software)
+5. [Software used](#minidisc-pieces-of-software-used-with-their-licenses)
 
-## :grey_question: What is Snow* ? {#what_is_snowstar}
+## :grey_question: What is Snow* ?
 
 [![license](https://img.shields.io/cran/l/devtools.svg)](./LICENSE)
 
@@ -35,13 +35,13 @@ It was still an ASM-like, but more developped than the previous one. It containe
 * The fourth generation, [Snow*](https://mesabloo.github.io/snowstar-lang/about.html#snowstar2), an Object-Oriented programming language.<br>
 This generation is built with ANTLR and LLVM (later) to offer power and native compilation.
 
-## :desktop_computer: Behind Snow*, a developer, Mesabloo. {#behind_snowstar}
+## :desktop_computer: Behind Snow*, a developer, Mesabloo.
 
 I've been working on Snow* from the second generation until now since the beginning of June 2018. I wanted to create my own programming language since the beginning of October/November of 2017. ([RainDrop](https://mesabloo.github.io/snowstar-lang/about.html#raindrop) came to life around this time) Because I never really understood how they work, and because I wanted to compile RainDrop into ASM (the Assembly Language), it didn't go far enough to actually be considered a good "experience" (just a basic Lexer + a simple compiling process until the AST generation, where I got stuck).<br>
 After this, I switched from Java to C++ and completely changed the syntax of the language, creating my first "ASM-like" language.<br>
 And now, I changed it again, and I'm ready to go for it.
 
-## :page_facing_up: What about a free sample ? {#free_sample}
+## :page_facing_up: What about a free sample ?
 
 Samples can be found [here](https://mesabloo.github.io/snowstar-lang/about.html#sample-snowstar2) but I will post here a simple `Hello, World!` program made in Snow* 4th gen:
 
@@ -71,7 +71,7 @@ int32 main(int8 argc, string argv) {
 *)
 ```
 
-## :eight_pointed_black_star: Special thanks to {#thanks_to}
+## :eight_pointed_black_star: Special thanks to
 People from many Discord servers helping me when I need help. Links to them will be put down below.
 * __NaN - Not a Name__ : a francophone programming related Discord server, very nice and helpful:<br>
 [![Discord bagde](https://img.shields.io/badge/Discord-Join%20us!-blue.svg)](https://discord.gg/zcWp9sC)
@@ -81,7 +81,7 @@ People from many Discord servers helping me when I need help. Links to them will
 * My friends who put some hope in my project.
 * All the people who starred this repository so far. It's really pleasant.
 
-## :minidisc: Pieces of software used with their licenses {#software}
+## :minidisc: Pieces of software used with their licenses
 * [__ANTLR4__](https://github.com/antlr/antlr4), released under BSD-3 clause license, Copyright (c) 2012-2017 The ANTLR Project. All rights reserved
 * [__termcolor__](https://github.com/ikalnytskyi/termcolor), released under BSD license, Copyright (c) 2013 Ihor Kalnytskyi
 * [__LLVM__](https://github.com/llvm-mirror/llvm), released under Open Source license, Copyright (c) 2003-2018 University of Illinois at Urbana-Champaign.
