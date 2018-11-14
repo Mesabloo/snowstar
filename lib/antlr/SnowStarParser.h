@@ -12,18 +12,17 @@
 class  SnowStarParser : public antlr4::Parser {
 public:
   enum {
-    BOOL = 1, CHAR = 2, INT8 = 3, INT16 = 4, INT32 = 5, INT64 = 6, REAL16 = 7, 
-    REAL32 = 8, REAL64 = 9, VOID = 10, WITH = 11, RET = 12, EXTERNAL = 13, 
-    UNIT = 14, ALIGN_AS = 15, DTYPE = 16, IMPORT = 17, DEC_LITERAL = 18, 
-    HEX_LITERAL = 19, BIN_LITERAL = 20, OCT_LITERAL = 21, FLOAT_LITERAL = 22, 
-    BOOL_LITERAL = 23, CHAR_LITERAL = 24, STRING_LITERAL = 25, BEGIN_COM = 26, 
-    END_COM = 27, INLINE_COM = 28, LPAREN = 29, RPAREN = 30, LBRACE = 31, 
-    RBRACE = 32, LBRACK = 33, RBRACK = 34, SEMI = 35, COMMA = 36, DOT = 37, 
-    COLON = 38, COLONCOLON = 39, ASSIGN = 40, EQUALS = 41, NEQUALS = 42, 
-    GREATER = 43, LOWER = 44, GREATER_EQ = 45, LOWER_EQ = 46, LOGIC_OR = 47, 
-    LOGIC_AND = 48, LOGIC_NOT = 49, PLUS = 50, MINUS = 51, STAR = 52, SLASH = 53, 
-    BIN_NOT = 54, BIN_AND = 55, BIN_OR = 56, BIN_XOR = 57, WS = 58, COMMENT = 59, 
-    LINE_COMMENT = 60, IDENTIFIER = 61
+    BOOL = 1, CHR = 2, I8 = 3, I16 = 4, I32 = 5, I64 = 6, F32 = 7, F64 = 8, 
+    STR = 9, VOID = 10, WITH = 11, RET = 12, EXTERNAL = 13, UNIT = 14, ALIGN_AS = 15, 
+    DTYPE = 16, IMPORT = 17, DEC_LITERAL = 18, HEX_LITERAL = 19, BIN_LITERAL = 20, 
+    OCT_LITERAL = 21, FLOAT_LITERAL = 22, BOOL_LITERAL = 23, CHAR_LITERAL = 24, 
+    STRING_LITERAL = 25, BEGIN_COM = 26, END_COM = 27, INLINE_COM = 28, 
+    LPAREN = 29, RPAREN = 30, LBRACE = 31, RBRACE = 32, LBRACK = 33, RBRACK = 34, 
+    SEMI = 35, COMMA = 36, DOT = 37, COLON = 38, COLONCOLON = 39, ASSIGN = 40, 
+    EQUALS = 41, NEQUALS = 42, GREATER = 43, LOWER = 44, GREATER_EQ = 45, 
+    LOWER_EQ = 46, LOGIC_OR = 47, LOGIC_AND = 48, LOGIC_NOT = 49, PLUS = 50, 
+    MINUS = 51, STAR = 52, SLASH = 53, BIN_NOT = 54, BIN_AND = 55, BIN_OR = 56, 
+    BIN_XOR = 57, WS = 58, COMMENT = 59, LINE_COMMENT = 60, IDENTIFIER = 61
   };
 
   enum {
@@ -437,14 +436,14 @@ public:
     BuiltinTypesContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *BOOL();
-    antlr4::tree::TerminalNode *CHAR();
-    antlr4::tree::TerminalNode *INT8();
-    antlr4::tree::TerminalNode *INT16();
-    antlr4::tree::TerminalNode *INT32();
-    antlr4::tree::TerminalNode *INT64();
-    antlr4::tree::TerminalNode *REAL16();
-    antlr4::tree::TerminalNode *REAL32();
-    antlr4::tree::TerminalNode *REAL64();
+    antlr4::tree::TerminalNode *CHR();
+    antlr4::tree::TerminalNode *I8();
+    antlr4::tree::TerminalNode *I16();
+    antlr4::tree::TerminalNode *I32();
+    antlr4::tree::TerminalNode *I64();
+    antlr4::tree::TerminalNode *F32();
+    antlr4::tree::TerminalNode *F64();
+    antlr4::tree::TerminalNode *STR();
     antlr4::tree::TerminalNode *VOID();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -464,6 +463,7 @@ public:
     antlr4::tree::TerminalNode *HEX_LITERAL();
     antlr4::tree::TerminalNode *OCT_LITERAL();
     antlr4::tree::TerminalNode *FLOAT_LITERAL();
+    antlr4::tree::TerminalNode *STRING_LITERAL();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    

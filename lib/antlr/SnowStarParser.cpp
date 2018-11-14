@@ -76,14 +76,14 @@ SnowStarParser::CompilationUnitContext* SnowStarParser::compilationUnit() {
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & ((1ULL << SnowStarParser::BOOL)
-      | (1ULL << SnowStarParser::CHAR)
-      | (1ULL << SnowStarParser::INT8)
-      | (1ULL << SnowStarParser::INT16)
-      | (1ULL << SnowStarParser::INT32)
-      | (1ULL << SnowStarParser::INT64)
-      | (1ULL << SnowStarParser::REAL16)
-      | (1ULL << SnowStarParser::REAL32)
-      | (1ULL << SnowStarParser::REAL64)
+      | (1ULL << SnowStarParser::CHR)
+      | (1ULL << SnowStarParser::I8)
+      | (1ULL << SnowStarParser::I16)
+      | (1ULL << SnowStarParser::I32)
+      | (1ULL << SnowStarParser::I64)
+      | (1ULL << SnowStarParser::F32)
+      | (1ULL << SnowStarParser::F64)
+      | (1ULL << SnowStarParser::STR)
       | (1ULL << SnowStarParser::VOID)
       | (1ULL << SnowStarParser::WITH)
       | (1ULL << SnowStarParser::UNIT)
@@ -542,14 +542,14 @@ SnowStarParser::BasicBlockDeclarationContext* SnowStarParser::basicBlockDeclarat
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & ((1ULL << SnowStarParser::BOOL)
-      | (1ULL << SnowStarParser::CHAR)
-      | (1ULL << SnowStarParser::INT8)
-      | (1ULL << SnowStarParser::INT16)
-      | (1ULL << SnowStarParser::INT32)
-      | (1ULL << SnowStarParser::INT64)
-      | (1ULL << SnowStarParser::REAL16)
-      | (1ULL << SnowStarParser::REAL32)
-      | (1ULL << SnowStarParser::REAL64)
+      | (1ULL << SnowStarParser::CHR)
+      | (1ULL << SnowStarParser::I8)
+      | (1ULL << SnowStarParser::I16)
+      | (1ULL << SnowStarParser::I32)
+      | (1ULL << SnowStarParser::I64)
+      | (1ULL << SnowStarParser::F32)
+      | (1ULL << SnowStarParser::F64)
+      | (1ULL << SnowStarParser::STR)
       | (1ULL << SnowStarParser::VOID)
       | (1ULL << SnowStarParser::WITH)
       | (1ULL << SnowStarParser::IMPORT)
@@ -725,14 +725,14 @@ SnowStarParser::DtypeBlockDeclarationContext* SnowStarParser::dtypeBlockDeclarat
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & ((1ULL << SnowStarParser::BOOL)
-      | (1ULL << SnowStarParser::CHAR)
-      | (1ULL << SnowStarParser::INT8)
-      | (1ULL << SnowStarParser::INT16)
-      | (1ULL << SnowStarParser::INT32)
-      | (1ULL << SnowStarParser::INT64)
-      | (1ULL << SnowStarParser::REAL16)
-      | (1ULL << SnowStarParser::REAL32)
-      | (1ULL << SnowStarParser::REAL64)
+      | (1ULL << SnowStarParser::CHR)
+      | (1ULL << SnowStarParser::I8)
+      | (1ULL << SnowStarParser::I16)
+      | (1ULL << SnowStarParser::I32)
+      | (1ULL << SnowStarParser::I64)
+      | (1ULL << SnowStarParser::F32)
+      | (1ULL << SnowStarParser::F64)
+      | (1ULL << SnowStarParser::STR)
       | (1ULL << SnowStarParser::VOID)
       | (1ULL << SnowStarParser::IDENTIFIER))) != 0)) {
       setState(103);
@@ -920,14 +920,14 @@ SnowStarParser::FunctionParamsContext* SnowStarParser::functionParams() {
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & ((1ULL << SnowStarParser::BOOL)
-      | (1ULL << SnowStarParser::CHAR)
-      | (1ULL << SnowStarParser::INT8)
-      | (1ULL << SnowStarParser::INT16)
-      | (1ULL << SnowStarParser::INT32)
-      | (1ULL << SnowStarParser::INT64)
-      | (1ULL << SnowStarParser::REAL16)
-      | (1ULL << SnowStarParser::REAL32)
-      | (1ULL << SnowStarParser::REAL64)
+      | (1ULL << SnowStarParser::CHR)
+      | (1ULL << SnowStarParser::I8)
+      | (1ULL << SnowStarParser::I16)
+      | (1ULL << SnowStarParser::I32)
+      | (1ULL << SnowStarParser::I64)
+      | (1ULL << SnowStarParser::F32)
+      | (1ULL << SnowStarParser::F64)
+      | (1ULL << SnowStarParser::STR)
       | (1ULL << SnowStarParser::VOID)
       | (1ULL << SnowStarParser::IDENTIFIER))) != 0)) {
       setState(119);
@@ -1329,14 +1329,14 @@ SnowStarParser::StatementSeqContext* SnowStarParser::statementSeq() {
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case SnowStarParser::BOOL:
-      case SnowStarParser::CHAR:
-      case SnowStarParser::INT8:
-      case SnowStarParser::INT16:
-      case SnowStarParser::INT32:
-      case SnowStarParser::INT64:
-      case SnowStarParser::REAL16:
-      case SnowStarParser::REAL32:
-      case SnowStarParser::REAL64:
+      case SnowStarParser::CHR:
+      case SnowStarParser::I8:
+      case SnowStarParser::I16:
+      case SnowStarParser::I32:
+      case SnowStarParser::I64:
+      case SnowStarParser::F32:
+      case SnowStarParser::F64:
+      case SnowStarParser::STR:
       case SnowStarParser::VOID:
       case SnowStarParser::IDENTIFIER: {
         enterOuterAlt(_localctx, 1);
@@ -1787,7 +1787,8 @@ SnowStarParser::PrimaryExpressionContext* SnowStarParser::primaryExpression() {
       case SnowStarParser::OCT_LITERAL:
       case SnowStarParser::FLOAT_LITERAL:
       case SnowStarParser::BOOL_LITERAL:
-      case SnowStarParser::CHAR_LITERAL: {
+      case SnowStarParser::CHAR_LITERAL:
+      case SnowStarParser::STRING_LITERAL: {
         enterOuterAlt(_localctx, 3);
         setState(198);
         value();
@@ -1846,14 +1847,14 @@ SnowStarParser::TheTypeContext* SnowStarParser::theType() {
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case SnowStarParser::BOOL:
-      case SnowStarParser::CHAR:
-      case SnowStarParser::INT8:
-      case SnowStarParser::INT16:
-      case SnowStarParser::INT32:
-      case SnowStarParser::INT64:
-      case SnowStarParser::REAL16:
-      case SnowStarParser::REAL32:
-      case SnowStarParser::REAL64:
+      case SnowStarParser::CHR:
+      case SnowStarParser::I8:
+      case SnowStarParser::I16:
+      case SnowStarParser::I32:
+      case SnowStarParser::I64:
+      case SnowStarParser::F32:
+      case SnowStarParser::F64:
+      case SnowStarParser::STR:
       case SnowStarParser::VOID: {
         enterOuterAlt(_localctx, 1);
         setState(201);
@@ -1892,36 +1893,36 @@ tree::TerminalNode* SnowStarParser::BuiltinTypesContext::BOOL() {
   return getToken(SnowStarParser::BOOL, 0);
 }
 
-tree::TerminalNode* SnowStarParser::BuiltinTypesContext::CHAR() {
-  return getToken(SnowStarParser::CHAR, 0);
+tree::TerminalNode* SnowStarParser::BuiltinTypesContext::CHR() {
+  return getToken(SnowStarParser::CHR, 0);
 }
 
-tree::TerminalNode* SnowStarParser::BuiltinTypesContext::INT8() {
-  return getToken(SnowStarParser::INT8, 0);
+tree::TerminalNode* SnowStarParser::BuiltinTypesContext::I8() {
+  return getToken(SnowStarParser::I8, 0);
 }
 
-tree::TerminalNode* SnowStarParser::BuiltinTypesContext::INT16() {
-  return getToken(SnowStarParser::INT16, 0);
+tree::TerminalNode* SnowStarParser::BuiltinTypesContext::I16() {
+  return getToken(SnowStarParser::I16, 0);
 }
 
-tree::TerminalNode* SnowStarParser::BuiltinTypesContext::INT32() {
-  return getToken(SnowStarParser::INT32, 0);
+tree::TerminalNode* SnowStarParser::BuiltinTypesContext::I32() {
+  return getToken(SnowStarParser::I32, 0);
 }
 
-tree::TerminalNode* SnowStarParser::BuiltinTypesContext::INT64() {
-  return getToken(SnowStarParser::INT64, 0);
+tree::TerminalNode* SnowStarParser::BuiltinTypesContext::I64() {
+  return getToken(SnowStarParser::I64, 0);
 }
 
-tree::TerminalNode* SnowStarParser::BuiltinTypesContext::REAL16() {
-  return getToken(SnowStarParser::REAL16, 0);
+tree::TerminalNode* SnowStarParser::BuiltinTypesContext::F32() {
+  return getToken(SnowStarParser::F32, 0);
 }
 
-tree::TerminalNode* SnowStarParser::BuiltinTypesContext::REAL32() {
-  return getToken(SnowStarParser::REAL32, 0);
+tree::TerminalNode* SnowStarParser::BuiltinTypesContext::F64() {
+  return getToken(SnowStarParser::F64, 0);
 }
 
-tree::TerminalNode* SnowStarParser::BuiltinTypesContext::REAL64() {
-  return getToken(SnowStarParser::REAL64, 0);
+tree::TerminalNode* SnowStarParser::BuiltinTypesContext::STR() {
+  return getToken(SnowStarParser::STR, 0);
 }
 
 tree::TerminalNode* SnowStarParser::BuiltinTypesContext::VOID() {
@@ -1954,14 +1955,14 @@ SnowStarParser::BuiltinTypesContext* SnowStarParser::builtinTypes() {
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & ((1ULL << SnowStarParser::BOOL)
-      | (1ULL << SnowStarParser::CHAR)
-      | (1ULL << SnowStarParser::INT8)
-      | (1ULL << SnowStarParser::INT16)
-      | (1ULL << SnowStarParser::INT32)
-      | (1ULL << SnowStarParser::INT64)
-      | (1ULL << SnowStarParser::REAL16)
-      | (1ULL << SnowStarParser::REAL32)
-      | (1ULL << SnowStarParser::REAL64)
+      | (1ULL << SnowStarParser::CHR)
+      | (1ULL << SnowStarParser::I8)
+      | (1ULL << SnowStarParser::I16)
+      | (1ULL << SnowStarParser::I32)
+      | (1ULL << SnowStarParser::I64)
+      | (1ULL << SnowStarParser::F32)
+      | (1ULL << SnowStarParser::F64)
+      | (1ULL << SnowStarParser::STR)
       | (1ULL << SnowStarParser::VOID))) != 0))) {
     _errHandler->recoverInline(this);
     }
@@ -2014,6 +2015,10 @@ tree::TerminalNode* SnowStarParser::ValueContext::FLOAT_LITERAL() {
   return getToken(SnowStarParser::FLOAT_LITERAL, 0);
 }
 
+tree::TerminalNode* SnowStarParser::ValueContext::STRING_LITERAL() {
+  return getToken(SnowStarParser::STRING_LITERAL, 0);
+}
+
 
 size_t SnowStarParser::ValueContext::getRuleIndex() const {
   return SnowStarParser::RuleValue;
@@ -2045,7 +2050,8 @@ SnowStarParser::ValueContext* SnowStarParser::value() {
       | (1ULL << SnowStarParser::OCT_LITERAL)
       | (1ULL << SnowStarParser::FLOAT_LITERAL)
       | (1ULL << SnowStarParser::BOOL_LITERAL)
-      | (1ULL << SnowStarParser::CHAR_LITERAL))) != 0))) {
+      | (1ULL << SnowStarParser::CHAR_LITERAL)
+      | (1ULL << SnowStarParser::STRING_LITERAL))) != 0))) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -2106,25 +2112,24 @@ std::vector<std::string> SnowStarParser::_ruleNames = {
 };
 
 std::vector<std::string> SnowStarParser::_literalNames = {
-  "", "'bool'", "'char'", "'int8'", "'int16'", "'int32'", "'int64'", "'real16'", 
-  "'real32'", "'real64'", "'void'", "'with'", "'return'", "'external'", 
-  "'unit'", "'align'", "'dtype'", "'import'", "", "", "", "", "", "", "", 
-  "", "'(*'", "'*)'", "'%'", "'('", "')'", "'{'", "'}'", "'['", "']'", "';'", 
-  "','", "'.'", "':'", "'::'", "'='", "'=='", "'!='", "'>'", "'<'", "'>='", 
-  "'<='", "'||'", "'&&'", "'!'", "'+'", "'-'", "'*'", "'/'", "'~'", "'&'", 
-  "'|'", "'^'"
+  "", "'bool'", "'chr'", "'i8'", "'i16'", "'i32'", "'i64'", "'f32'", "'f64'", 
+  "'str'", "'void'", "'with'", "'return'", "'external'", "'unit'", "'align'", 
+  "'dtype'", "'import'", "", "", "", "", "", "", "", "", "'(*'", "'*)'", 
+  "'%'", "'('", "')'", "'{'", "'}'", "'['", "']'", "';'", "','", "'.'", 
+  "':'", "'::'", "'='", "'=='", "'!='", "'>'", "'<'", "'>='", "'<='", "'||'", 
+  "'&&'", "'!'", "'+'", "'-'", "'*'", "'/'", "'~'", "'&'", "'|'", "'^'"
 };
 
 std::vector<std::string> SnowStarParser::_symbolicNames = {
-  "", "BOOL", "CHAR", "INT8", "INT16", "INT32", "INT64", "REAL16", "REAL32", 
-  "REAL64", "VOID", "WITH", "RET", "EXTERNAL", "UNIT", "ALIGN_AS", "DTYPE", 
-  "IMPORT", "DEC_LITERAL", "HEX_LITERAL", "BIN_LITERAL", "OCT_LITERAL", 
-  "FLOAT_LITERAL", "BOOL_LITERAL", "CHAR_LITERAL", "STRING_LITERAL", "BEGIN_COM", 
-  "END_COM", "INLINE_COM", "LPAREN", "RPAREN", "LBRACE", "RBRACE", "LBRACK", 
-  "RBRACK", "SEMI", "COMMA", "DOT", "COLON", "COLONCOLON", "ASSIGN", "EQUALS", 
-  "NEQUALS", "GREATER", "LOWER", "GREATER_EQ", "LOWER_EQ", "LOGIC_OR", "LOGIC_AND", 
-  "LOGIC_NOT", "PLUS", "MINUS", "STAR", "SLASH", "BIN_NOT", "BIN_AND", "BIN_OR", 
-  "BIN_XOR", "WS", "COMMENT", "LINE_COMMENT", "IDENTIFIER"
+  "", "BOOL", "CHR", "I8", "I16", "I32", "I64", "F32", "F64", "STR", "VOID", 
+  "WITH", "RET", "EXTERNAL", "UNIT", "ALIGN_AS", "DTYPE", "IMPORT", "DEC_LITERAL", 
+  "HEX_LITERAL", "BIN_LITERAL", "OCT_LITERAL", "FLOAT_LITERAL", "BOOL_LITERAL", 
+  "CHAR_LITERAL", "STRING_LITERAL", "BEGIN_COM", "END_COM", "INLINE_COM", 
+  "LPAREN", "RPAREN", "LBRACE", "RBRACE", "LBRACK", "RBRACK", "SEMI", "COMMA", 
+  "DOT", "COLON", "COLONCOLON", "ASSIGN", "EQUALS", "NEQUALS", "GREATER", 
+  "LOWER", "GREATER_EQ", "LOWER_EQ", "LOGIC_OR", "LOGIC_AND", "LOGIC_NOT", 
+  "PLUS", "MINUS", "STAR", "SLASH", "BIN_NOT", "BIN_AND", "BIN_OR", "BIN_XOR", 
+  "WS", "COMMENT", "LINE_COMMENT", "IDENTIFIER"
 };
 
 dfa::Vocabulary SnowStarParser::_vocabulary(_literalNames, _symbolicNames);
@@ -2185,7 +2190,7 @@ SnowStarParser::Initializer::Initializer() {
     0x34, 0x2, 0xb, 0x4, 0x2, 0x33, 0x35, 0x38, 0x38, 0x3, 0x2, 0x36, 0x37, 
     0x3, 0x2, 0x34, 0x35, 0x3, 0x2, 0x2d, 0x30, 0x3, 0x2, 0x2b, 0x2c, 0x3, 
     0x2, 0x39, 0x3b, 0x3, 0x2, 0x31, 0x32, 0x3, 0x2, 0x3, 0xc, 0x3, 0x2, 
-    0x14, 0x1a, 0x2, 0xd4, 0x2, 0x39, 0x3, 0x2, 0x2, 0x2, 0x4, 0x45, 0x3, 
+    0x14, 0x1b, 0x2, 0xd4, 0x2, 0x39, 0x3, 0x2, 0x2, 0x2, 0x4, 0x45, 0x3, 
     0x2, 0x2, 0x2, 0x6, 0x47, 0x3, 0x2, 0x2, 0x2, 0x8, 0x4e, 0x3, 0x2, 0x2, 
     0x2, 0xa, 0x50, 0x3, 0x2, 0x2, 0x2, 0xc, 0x53, 0x3, 0x2, 0x2, 0x2, 0xe, 
     0x57, 0x3, 0x2, 0x2, 0x2, 0x10, 0x59, 0x3, 0x2, 0x2, 0x2, 0x12, 0x62, 

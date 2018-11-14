@@ -148,14 +148,14 @@ theType
 
 builtinTypes
             :                BOOL
-            |                CHAR
-            |                INT8
-            |                INT16
-            |                INT32
-            |                INT64
-            |                REAL16
-            |                REAL32
-            |                REAL64
+            |                CHR
+            |                I8
+            |                I16
+            |                I32
+            |                I64
+            |                F32
+            |                F64
+            |                STR
             |                VOID
             ;
 
@@ -167,4 +167,5 @@ value
      |                       HEX_LITERAL
      |                       OCT_LITERAL
      |                       FLOAT_LITERAL
+     |                       STRING_LITERAL
      ;

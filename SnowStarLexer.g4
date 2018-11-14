@@ -23,30 +23,30 @@ lexer grammar SnowStarLexer;
 BOOL
     :                         'bool'
     ;
-CHAR
-    :                         'char'
-    ;
-INT8
-    :                         'int8'
-    ;
-INT16
-     :                        'int16'
-     ;
-INT32
-     :                        'int32'
-     ;
-INT64
-     :                        'int64'
-     ;
-REAL16
-      :                       'real16'
-      ;
-REAL32
-      :                       'real32'
-      ;
-REAL64
-      :                       'real64'
-      ;
+CHR
+   :                          'chr'
+   ;
+I8
+  :                           'i8'
+  ;
+I16
+   :                          'i16'
+   ;
+I32
+   :                          'i32'
+   ;
+I64
+   :                          'i64'
+   ;
+F32
+   :                          'f32'
+   ;
+F64
+   :                          'f64'
+   ;
+STR
+   :                          'str'
+   ;
 VOID
     :                         'void'
     ;

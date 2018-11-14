@@ -43,26 +43,26 @@ And now, I changed it again, and I'm ready to go for it.
 
 ## :page_facing_up: What about a free sample ?
 
-Samples can be found [here](https://mesabloo.github.io/snowstar-lang/about.html#sample-snowstar2) but I will post here a simple `Hello, World!` program made in Snow* 4th gen:
+Samples can be found [here](https://mesabloo.github.io/snowstar-lang/about.html#sample-snowstar2) but I will post here a simple `Hello, World!` program made in Snow*:
 
 ```
 (*
-    Declaration of the main method. The parameters of it are unrequired, you may write it without.
-
-    @param `argc` is of type int8 ;
-    @param `argv` is of type string ;
-    @return int32
-*)
+ *  Declaration of the main method. The parameters of it are unrequired, you may write it without.
+ *
+ *  @param `argc` is of type i8 ;
+ *  @param `argv` is of type array<str> ;
+ *  @return i32
+ *)
 
 % So that we can use `print()`.
-import ioout;
+import stdout;
 import array;
 
-int32 main(int8 argc, string argv) {
+i32 main(i8 argc, arary<str> argv) {
     print("Hello, World!");
     % We print "Hello, World!" in the console.
     return 0;
-    % We return from the function, with an int32 value.
+    % We return from the function, with an i32 value.
 }
 
 (*
