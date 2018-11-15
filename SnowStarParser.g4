@@ -123,14 +123,14 @@ statementSeq
 /** Expressions */
 expression
           :                  primaryExpression
-          |                  (PLUS | LOGIC_NOT | BIN_NOT | MINUS) expression
+          |                  unary=(PLUS | LOGIC_NOT | BIN_NOT | MINUS) expression
           |                  LPAREN theType RPAREN expression
-          |                  expression (STAR | SLASH) expression
-          |                  expression (PLUS | MINUS) expression
-          |                  expression (GREATER | LOWER | GREATER_EQ | LOWER_EQ) expression
-          |                  expression (EQUALS | NEQUALS) expression
-          |                  expression (BIN_XOR | BIN_AND | BIN_OR) expression
-          |                  expression (LOGIC_AND | LOGIC_OR) expression
+          |                  expression binary=(STAR | SLASH) expression
+          |                  expression binary=(PLUS | MINUS) expression
+          |                  expression binary=(GREATER | LOWER | GREATER_EQ | LOWER_EQ) expression
+          |                  expression binary=(EQUALS | NEQUALS) expression
+          |                  expression binary=(BIN_XOR | BIN_AND | BIN_OR) expression
+          |                  expression binary=(LOGIC_AND | LOGIC_OR) expression
           ;
 
 primaryExpression
@@ -150,9 +150,13 @@ builtinTypes
             :                BOOL
             |                CHR
             |                I8
+            |                UI8
             |                I16
+            |                UI16
             |                I32
+            |                UI32
             |                I64
+            |                UI64
             |                F32
             |                F64
             |                STR
