@@ -58,7 +58,7 @@ Samples can be found [here](https://mesabloo.github.io/snowstar-lang/about.html#
 import stdout;
 import array;
 
-i32 main(i8 argc, arary<str> argv) {
+i32 main(i8 argc, array<str> argv) {
     print("Hello, World!");
     % We print "Hello, World!" in the console.
     return 0;

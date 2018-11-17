@@ -31,11 +31,11 @@ compilationUnit
 /** Declarations */
 declarationSeq
               :              functionDeclaration       // type name (params*) {statements*} 
-              |              variableDeclaration       // type name (= value)?
+              |              variableDeclaration       // type name (= value)?;
               |              unitDeclaration           // unit name {statements*}
               |              dtypeDeclaration          // dtype name {vars*}
-              |              withDeclaration           // with name = type
-              |              importDeclaration         // import file
+              |              withDeclaration           // with name = type;
+              |              importDeclaration         // import file;
               |              emptyDeclaration          // ;
               ;
 
@@ -114,9 +114,9 @@ emptyDeclaration
 
 /** Statement */
 statementSeq
-            :                variableDeclaration         // type name (= value),
-            |                withDeclaration             // with name = type
-            |                importDeclaration           // import file
+            :                variableDeclaration         // type name (= value);
+            |                withDeclaration             // with name = type;
+            |                importDeclaration           // import file;
             |                emptyDeclaration            // ;
             ;
 
