@@ -29,7 +29,7 @@
 #include <errors.hpp>
 
 namespace utils {
-    bool str_startswith(std::string const& src, std::string const& prefix) {
+    inline bool str_startswith(std::string const& src, std::string const& prefix) {
         return src.size() >= prefix.size() && src.substr(0, prefix.size()) == prefix;
     }
 }
@@ -86,7 +86,7 @@ antlrcpp::Any ANTLRVisitor::visitWithDeclaration(SnowStarParser::WithDeclaration
             }
             if (alias_it == definedAliases.end()) {
                 // The alias referenced does not exist.
-                UnknownIDError().print(fileName, ctx, lineContext, {id});
+                UnknownIDError().print(fileName, ctx, lineContext, {id}, {});
                 errored = true;
             } else
                 scopedAliases[scopedAliases.size()-1].emplace_back(ctx->withName()->getText(), alias_it->second);
@@ -94,7 +94,7 @@ antlrcpp::Any ANTLRVisitor::visitWithDeclaration(SnowStarParser::WithDeclaration
             scopedAliases[scopedAliases.size()-1].emplace_back(ctx->withName()->getText(), ctx->theType());
     } else {
         // Well the alias already exists, so we need to throw an error.
-        AlreadyExistingIDError().print(fileName, ctx, lineContext, {ctx->withName()->IDENTIFIER()->getText()});
+        AlreadyExistingIDError().print(fileName, ctx, lineContext, {ctx->withName()->IDENTIFIER()->getText()}, {});
         errored = true;
     }
     
@@ -106,10 +106,68 @@ antlrcpp::Any ANTLRVisitor::visitVariableDeclaration(SnowStarParser::VariableDec
         std::clog << termcolor::green << "   [i]   | Visiting a variable declaration: " << ctx->getText() << termcolor::reset << std::endl;
     #endif
 
-    if (auto v = ctx->variableInitializer()) {
-        auto expr = visitVariableInitializer(v);
+    lineContext = ctx;
 
-        // additional type checking for value/expression
+    if (ctx->theType()->builtinTypes() && ctx->theType()->builtinTypes()->VOID()) {
+        InvalidDeclaringTypeError().print(fileName, lineContext, ctx->theType()->builtinTypes()->VOID()->getSymbol(), {"void"}, {});
+        return ctx->theType();
+    }
+
+    std::vector<Declaration> declaredVariables{};
+    for (auto const& scope : scopedDeclarations) {
+        for (auto const& decl : scope) {
+            declaredVariables.push_back(decl);
+        }
+    }
+    
+    auto it = std::find_if(declaredVariables.begin(), declaredVariables.end(), [&ctx] (Declaration const& var) { return std::get<0>(var) == ctx->variableName()->IDENTIFIER()->getText(); });
+    #ifndef NDEBUG
+        std::clog << termcolor::green << std::boolalpha << "   [i]   | >> " << ctx->variableName()->IDENTIFIER()->getText() << " is already declared: " << (it != declaredVariables.end()) << std::noboolalpha << termcolor::reset << std::endl;
+    #endif
+    if (it != declaredVariables.end()) {
+        #ifndef NDEBUG
+            std::clog << termcolor::magenta << "   ...   | Variable " << ctx->variableName()->IDENTIFIER()->getText() << " redeclared." << termcolor::reset << std::endl;
+        #endif
+        RedeclaredVariableError().print(fileName, lineContext, ctx->variableName()->IDENTIFIER()->getSymbol(), {ctx->variableName()->IDENTIFIER()->getText(), std::to_string(std::get<3>(*it).first), std::to_string(std::get<3>(*it).second+1)}, {});
+        errored = true;
+    } else {
+        auto type = ctx->theType();
+        Declaration* d = nullptr;
+
+        if (ctx->theType()->IDENTIFIER()) {
+            std::vector<Alias> definedAliases{};
+            for (auto const& scope : scopedAliases) {
+                for (auto const& alias : scope) {
+                    definedAliases.push_back(alias);
+                }
+            }
+
+            auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&ctx] (Alias const& alias) { return std::get<0>(alias) == ctx->theType()->IDENTIFIER()->getText(); });
+            if (it1 == definedAliases.end()) {
+                InvalidDeclaringTypeError().print(fileName, lineContext, ctx->theType()->IDENTIFIER()->getSymbol(), {ctx->theType()->getText()}, {});
+                errored = true;
+            } else {
+                d = &scopedDeclarations.rbegin()->emplace_back(ctx->variableName()->IDENTIFIER()->getText(), it1->second, false, std::make_pair(ctx->variableName()->IDENTIFIER()->getSymbol()->getLine(), ctx->variableName()->IDENTIFIER()->getSymbol()->getCharPositionInLine()));
+                type = it1->second;
+            }
+        } else
+            d = &scopedDeclarations.rbegin()->emplace_back(ctx->variableName()->IDENTIFIER()->getText(), ctx->theType(), false, std::make_pair(ctx->variableName()->IDENTIFIER()->getSymbol()->getLine(), ctx->variableName()->IDENTIFIER()->getSymbol()->getCharPositionInLine()));
+
+        if (auto v = ctx->variableInitializer()) {
+            auto expr = visitVariableInitializer(v).as<ExprType>();
+
+            // additional type checking for value/expression
+            if (expr == ExprType::VOID) {
+                // error: invalid type (shouldn't be possible, unless casted)
+            } else {
+                if (expr != toType(type->builtinTypes())) {
+                    WrongTypedValueError().print(fileName, lineContext, ctx->variableInitializer()->expression(), {getType(toType(ctx->theType()->builtinTypes())), getType(expr), "in variable initialization"}, {});
+                    errored = true;
+                }
+            }
+
+            std::get<2>(*d) = true;
+        }
     }
 
     return antlrcpp::Any();
@@ -119,7 +177,223 @@ antlrcpp::Any ANTLRVisitor::visitVariableInitializer(SnowStarParser::VariableIni
     #ifndef NDEBUG
         std::clog << termcolor::green << "   [i]   | Visiting a variable initialization: " << ctx->getText() << termcolor::reset << std::endl;
     #endif
-    return antlrcpp::Any();
+
+    ExprType type = visitExpression(ctx->expression());
+
+    return type;
+}
+
+antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* ctx) {
+    ExprType type = ExprType::VOID;
+
+    if (auto expr = ctx->primaryExpression()) {
+        if (auto id = expr->IDENTIFIER()) {
+            // a variable
+            std::vector<Declaration> declaredVariables{};
+            for (auto const& scope : scopedDeclarations) {
+                for (auto const& decl : scope) {
+                    declaredVariables.push_back(decl);
+                }
+            }
+
+            auto it = std::find_if(declaredVariables.begin(), declaredVariables.end(), [&id] (Declaration const& d) { return std::get<0>(d) == id->getText(); });
+            if (it == declaredVariables.end()) {
+                errored = true;
+                UndeclaredVariableError().print(fileName, lineContext, id->getSymbol(), {id->getText()}, {});
+            } else {
+                if (!std::get<2>(*it)) {
+                    UndefinedVariableError().print(fileName, lineContext, id->getSymbol(), {id->getText()}, {});
+                    errored = true;
+                    type = toType(std::get<1>(*it)->builtinTypes());
+                } else {
+                    type = toType(std::get<1>(*it)->builtinTypes());
+                }
+            }
+        } else if (auto val = expr->value()) {
+            // a value
+            auto findType = [this, &ctx] (SnowStarParser::ValueContext* ct) -> ExprType {
+                std::string val{ct->getText()};
+                if (ct->BOOL_LITERAL()) return ExprType::BOOL;
+                if (ct->CHAR_LITERAL()) return ExprType::CHR;
+                if (ct->FLOAT_LITERAL()) {
+                    try {
+                        double d = std::stod(val);
+                        if (d > std::numeric_limits<float>::max() || d < std::numeric_limits<float>::min()) return ExprType::F64;
+                        else return ExprType::F32;
+                    } catch (std::out_of_range& oor) {
+                        LiteralOverflowError().print(fileName, lineContext, ctx, {val, "f64"}, {});
+                        errored = true;
+                        return ExprType::VOID;
+                    }
+                }
+                if (ct->DEC_LITERAL()) {
+                    try {
+                        uint64_t i = std::stoull(val);
+                        if (i <= std::numeric_limits<uint8_t>::max() && i >= std::numeric_limits<uint8_t>::min()) return ExprType::UI8;
+                        else if (i <= std::numeric_limits<uint16_t>::max() && i >= std::numeric_limits<uint16_t>::min()) return ExprType::UI16;
+                        else if (i <= std::numeric_limits<uint32_t>::max() && i >= std::numeric_limits<uint32_t>::min()) return ExprType::UI32;
+                        else return ExprType::UI64;
+                    } catch (std::out_of_range& oor) {
+                        LiteralOverflowError().print(fileName, lineContext, ctx, {val, "ui64"}, {});
+                        errored = true;
+                        return ExprType::VOID;
+                    }
+                }
+                if (ct->STRING_LITERAL()) {
+                    return ExprType::STR;
+                }
+                return ExprType::VOID;
+            };
+            type = findType(expr->value());
+        } else {
+            type = visitExpression(expr->expression());
+            // an expression between ()
+        }
+    } else {
+        // operations
+        if (auto type2 = ctx->theType()) {
+            // cast
+        } else if (auto unexpr = ctx->unary) {
+            // unary expressions
+            auto expr = visitExpression(ctx->expression()[0]).as<ExprType>();
+
+            if (unexpr->getText() == "~") {
+                if (expr == ExprType::BOOL || expr == ExprType::CHR || expr == ExprType::STR) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an integral type", "`"+getType(expr)+"`"}, {});
+                    errored = true;
+                } else if (expr == ExprType::F32 || expr == ExprType::F64) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an integral type", "`"+getType(expr)+"`"}, {"casting to an integral type"});
+                    errored = true;
+                } else {
+                    type = expr;
+                }
+            } else if (unexpr->getText() == "!") {
+                if (expr != ExprType::BOOL) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"`bool` type", "`"+getType(expr)+"`"}, {"`true`", "`false`"});
+                    errored = true;
+                } else
+                    type = ExprType::BOOL;
+            } else if (unexpr->getText() == "-") {
+                if (expr == ExprType::F32 || expr == ExprType::F64) {
+                    type = expr;
+                } else if (expr == ExprType::STR || expr == ExprType::CHR || expr == ExprType::BOOL) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`"+getType(expr)+"`"}, {});
+                    errored = true;
+                } else if (expr == ExprType::UI8) {
+                    type = ExprType::I8;
+                } else if (expr == ExprType::UI16) {
+                    type = ExprType::I16;
+                } else if (expr == ExprType::UI32) {
+                    type = ExprType::I32;
+                } else if (expr == ExprType::UI64) {
+                    type = ExprType::I64;
+                } else {
+                    type = expr;
+                }
+            } else if (unexpr->getText() == "+") {
+                if (expr == ExprType::F32 || expr == ExprType::F64) {
+                    type = expr;
+                } else if (expr == ExprType::BOOL || expr == ExprType::CHR || expr == ExprType::STR) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`"+getType(expr)+"`"}, {});
+                    errored = true;
+                } else if (expr == ExprType::UI8) {
+                    type = ExprType::I8;
+                } else if (expr == ExprType::UI16) {
+                    type = ExprType::I16;
+                } else if (expr == ExprType::UI32) {
+                    type = ExprType::I32;
+                } else if (expr == ExprType::UI64) {
+                    type = ExprType::I64;
+                } else {
+                    type = expr;
+                }
+            } else {
+
+            }
+        } else if (auto binexpr = ctx->binary) {
+            // binary expressions
+
+            auto expr0 = visitExpression(ctx->expression()[0]).as<ExprType>(),
+                 expr1 = visitExpression(ctx->expression()[1]).as<ExprType>();
+
+            if (binexpr->getText() == "*" || binexpr->getText() == "/" || binexpr->getText() == "+" || binexpr->getText() == "-") {
+                if (expr0 == ExprType::CHR || expr0 == ExprType::BOOL) {
+                    if (binexpr->getText() == "+")
+                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic or `str` type", "`"+getType(expr0)+"`"}, {});
+                    else
+                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`"+getType(expr0)+"`"}, {});
+                    errored = true;
+                } else if (expr1 == ExprType::CHR || expr1 == ExprType::BOOL) {
+                    if (binexpr->getText() == "+")
+                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an arithmetic or `str` type", "`"+getType(expr1)+"`"}, {});
+                    else
+                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an arithmetic type", "`"+getType(expr1)+"`"}, {});
+                    errored = true;
+                } else if (expr0 == ExprType::STR && binexpr->getText() != "+") {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`str`"}, {"casting"});
+                    errored = true;
+                } else if (expr1 == ExprType::STR && binexpr->getText() != "+") {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an arithmetic type", "`str`"}, {"casting"});
+                    errored = true;
+                } else {
+                    if (expr0 != expr1) {
+                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"` type", "`"+getType(expr1)+"`"}, {"casting"});
+                        errored = true;
+                    } else {
+                        type = expr0;
+                    }
+                }
+            } else if (binexpr->getText() == ">" || binexpr->getText() == ">=" || binexpr->getText() == "<" || binexpr->getText() == "<=") {
+                if (expr0 == ExprType::BOOL || expr0 == ExprType::STR) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an ordered type", "`"+getType(expr0)+"`"}, {});
+                    errored = true;
+                } else if (expr1 == ExprType::BOOL || expr1 == ExprType::STR) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an ordered type", "`"+getType(expr1)+"`"}, {});
+                    errored = true;
+                } else if (expr0 != expr1) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"` type", "`"+getType(expr1)+"`"}, {"casting"});
+                    errored = true;
+                } else {
+                    type = ExprType::BOOL;
+                }
+            } else if (binexpr->getText() == "==" || binexpr->getText() == "!=") {
+                if (expr0 != expr1) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"`", "`"+getType(expr1)+"`"}, {});
+                    errored = true;
+                } else if ((expr0 == ExprType::F32 && expr1 == ExprType::F32) || (expr0 == ExprType::F64 && expr1 == ExprType::F64)) {
+                    FloatingPointWarning().print(fileName, lineContext, ctx, {}, {});
+                    type = ExprType::BOOL;
+                } else {
+                    type = ExprType::BOOL;
+                }
+            } else if (binexpr->getText() == "|" || binexpr->getText() == "&" || binexpr->getText() == "^") {
+                if (expr0 == ExprType::CHR || expr0 == ExprType::BOOL || expr0 == ExprType::STR) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an integral type", "`"+getType(expr0)+"`"}, {});
+                    errored = true;
+                } else if (expr1 == ExprType::CHR || expr1 == ExprType::BOOL || expr1 == ExprType::STR) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an integral type", "`"+getType(expr1)+"`"}, {});
+                    errored = true;
+                } else if (expr0 != expr1) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"` type", "`"+getType(expr1)+"`"}, {});
+                    errored = true;
+                } else {
+                    type = expr0;
+                }
+            } else if (binexpr->getText() == "&&" || binexpr->getText() == "||") {
+                if (expr0 != ExprType::BOOL) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"`bool` type", "`"+getType(expr0)+"`"}, {});
+                    errored = true;
+                } else if (expr1 != ExprType::BOOL) {
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`bool` type", "`"+getType(expr1)+"`"}, {});
+                    errored = true;
+                } else {
+                    type = ExprType::BOOL;
+                }
+            }
+        }
+    }
+
+    return type;
 }
 
 /*
@@ -138,49 +412,6 @@ antlrcpp::Any ANTLRVisitor::visitBlock(SnowStarParser::BlockContext* ctx) {
     #ifndef NDEBUG
         std::clog << termcolor::green << "   [i]   | Visiting a block..." << termcolor::reset << std::endl;
     #endif
-
-    visitChildren(ctx);
-    return antlrcpp::Any();
-}
-
-antlrcpp::Any ANTLRVisitor::visitTopLevelStatement(SnowStarParser::TopLevelStatementContext* ctx) {
-    #ifndef NDEBUG
-        std::clog << termcolor::green << "   [i]   | Visiting a top-level statement..." << termcolor::reset << std::endl;
-    #endif
-
-    current_stmt_context = ctx;
-
-    if (!ctx->eol) {
-        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->getStop(), {"`;` at the end of statement,", ctx->getStop()->getText()}));
-        return antlrcpp::Any();
-    }
-
-    visitChildren(ctx);
-    return antlrcpp::Any();
-}
-
-antlrcpp::Any ANTLRVisitor::visitStatement(SnowStarParser::StatementContext* ctx) {
-    #ifndef NDEBUG
-        std::clog << termcolor::green << "   [i]   | Visiting a statement..." << termcolor::reset << std::endl;
-    #endif
-
-    current_stmt_context = ctx;
-
-    #ifndef NDEBUG
-        std::clog << termcolor::magenta << "   ...   | Current line: " <<
-            ctx->getStart()->getInputStream()->getText(antlr4::misc::Interval{ctx->getStart()->getStartIndex(), ctx->getStop()->getStopIndex()})
-            << termcolor::reset << std::endl;
-    #endif
-
-    if (ctx->error()) {
-        visitError(ctx->error());
-        return antlrcpp::Any();
-    }
-
-    if (!ctx->eol) {
-        errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->getStop(), {"`;` at the end of statement,", ctx->getStop()->getText()}));
-        return antlrcpp::Any();
-    }
 
     visitChildren(ctx);
     return antlrcpp::Any();

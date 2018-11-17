@@ -1,7 +1,7 @@
 import array;
 
 i32 main () {
-    i8 x;
+    i8 x = +0;
     i8 y = +3++x;
 
     i8 a = +1;
@@ -18,9 +18,9 @@ i32 main () {
     bool l = 1<=2;
     bool m = 1==2;
     bool n = 1!=2;
-    i8 o = 1&2;
-    i8 p = 1|2;
-    i8 q = 1^2;
+    ui8 o = 1&2;
+    ui8 p = 1|2;
+    ui8 q = 1^2;
     bool r = m&&true;
     bool s = false||r;
 

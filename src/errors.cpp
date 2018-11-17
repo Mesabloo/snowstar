@@ -203,7 +203,7 @@ void RedeclaredVariableError::print(std::string const& path, antlr4::ParserRuleC
 }
 
 void UndeclaredVariableError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
-    this->initWithTextError("Undeclared variable `" + *(args.begin()+0) + "`.", path, ctx, inFault, false, alts);
+    this->initWithTextError("Variable `" + *(args.begin()+0) + "` referenced but not declared.", path, ctx, inFault, false, alts);
 }
 
 void UndefinedVariableError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {

@@ -31,15 +31,19 @@
 class ANTLRVisitor : public SnowStarParserBaseVisitor {
     enum class ExprType {
         VOID,
-        INT8,
-        INT16,
-        INT32,
-        INT64,
-        REAL16,
-        REAL32,
-        REAL64,
-        CHAR,
-        BOOL
+        I8,
+        UI8,
+        I16,
+        UI16,
+        I32,
+        UI32,
+        I64,
+        UI64,
+        F32,
+        F64,
+        CHR,
+        BOOL,
+        STR
     };
 
     using Alias = std::pair<std::string, SnowStarParser::TheTypeContext*>;
@@ -69,7 +73,46 @@ public:
     virtual antlrcpp::Any visitVariableDeclaration(SnowStarParser::VariableDeclarationContext*) override;
         // returns antlrcpp::Any
     virtual antlrcpp::Any visitVariableInitializer(SnowStarParser::VariableInitializerContext*) override;
-        // returns VarInit
+        // returns ExprType
+    virtual antlrcpp::Any visitExpression(SnowStarParser::ExpressionContext*) override;
+
+protected:
+    std::function<std::string(ExprType const)> getType = [] (ExprType const e) -> std::string {
+        switch (e) {
+            case ExprType::BOOL: return "bool";
+            case ExprType::CHR: return "chr";
+            case ExprType::I8: return "i8";
+            case ExprType::UI8: return "ui8";
+            case ExprType::I16: return "i16";
+            case ExprType::UI16: return "ui16";
+            case ExprType::I32: return "i32";
+            case ExprType::UI32: return "ui32";
+            case ExprType::I64: return "i64";
+            case ExprType::UI64: return "ui64";
+            case ExprType::F32: return "f32";
+            case ExprType::F64: return "f64";
+            case ExprType::STR: return "str";
+            case ExprType::VOID: return "void";
+            default: return "";
+        }
+    };
+
+    std::function<ExprType(SnowStarParser::BuiltinTypesContext* const)> toType = [] (SnowStarParser::BuiltinTypesContext* const type) -> ExprType {
+        if (type->BOOL()) return ExprType::BOOL;
+        if (type->CHR()) return ExprType::CHR;
+        if (type->I8()) return ExprType::I8;
+        if (type->UI8()) return ExprType::UI8;
+        if (type->I16()) return ExprType::I16;
+        if (type->UI16()) return ExprType::UI16;
+        if (type->I32()) return ExprType::I32;
+        if (type->UI32()) return ExprType::UI32;
+        if (type->I64()) return ExprType::I64;
+        if (type->UI64()) return ExprType::UI64;
+        if (type->F32()) return ExprType::F32;
+        if (type->F64()) return ExprType::F64;
+        if (type->STR()) return ExprType::STR;
+        return ExprType::VOID;
+    };
 };
 
 #endif
