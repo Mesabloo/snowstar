@@ -18,14 +18,14 @@
 
 #include <errors.hpp>
 
-void Throwable::printPrettify(std::string const& file, int line, int charac, int firstCharac, std::string const& msg, std::string const& code, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> tk, bool isWarning) {
+void Throwable::printPrettify(std::string const& file, int line, int charac, int firstCharac, std::string const& msg, std::string const& code, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> tk, bool isWarning, bool hasAlts) {
     #if !defined(_WIN32) && !defined(_WIN64)
     std::ostream& ss{std::cerr};
     #else
     std::wostream& ss{std::wcerr};
     #endif
     
-    ss
+    ss  << "\n"
     #if !defined(_WIN32) && !defined(_WIN64)
         << termcolor::colorize
         << termcolor::bold
@@ -92,18 +92,23 @@ void Throwable::printPrettify(std::string const& file, int line, int charac, int
     #else
         << termcolor::reset << termcolor::white
     #endif
-        << "\n"
+        << "\n";
     #if !defined(_WIN32) && !defined(_WIN64)
-        << "  ╰──╼" << " "
+    if (!hasAlts)
+        ss  << "  ╰──╼" << " ";
+    else
+        ss  << "  ├──╼" << " ";
     #else
-        << L"  ╰──╼" << " "
+    if (!hasAlts)
+        ss  << L"  ╰──╼" << " ";
+    else
+        ss  << L"  ├──╼" << " ";
     #endif
-        << termcolor::reset
-        << code
-        << std::endl;
+    ss  
+        << termcolor::reset;
 }
 
-void Throwable::colorCode(std::string& code, std::string const& tokens, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, bool isWarning) {
+void Throwable::colorCode(std::string const& code, std::string const& tokens, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, bool isWarning) {
     int character;
 
     if (std::holds_alternative<antlr4::Token*>(inFault))
@@ -114,7 +119,7 @@ void Throwable::colorCode(std::string& code, std::string const& tokens, antlr4::
 
     auto tokenBeg = code.find(tokens, character-firstCharacter);
     if (tokenBeg != code.npos) {
-        std::stringstream ss;
+        std::ostream& ss{std::cerr};
         ss << code.substr(0, tokenBeg)
         #if !defined(_WIN32) && !defined(_WIN64)
             << termcolor::colorize
@@ -125,11 +130,46 @@ void Throwable::colorCode(std::string& code, std::string const& tokens, antlr4::
         else
             ss  << termcolor::yellow;
         ss  << code.substr(tokenBeg, tokens.size()) << termcolor::reset << code.substr(tokenBeg + tokens.size());
-        code = std::string{ss.str()};
     }
 }
 
-void Throwable::initWithTextError(std::string const& error, std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, bool isWarning) {
+void Throwable::suggest(std::initializer_list<std::string> alts) {
+    if (alts.size() == 0) return;
+
+    #if !defined(_WIN32) && !defined(_WIN64)
+    std::ostream& ss{std::cerr};
+    #else
+    std::wostream& ss{std::wcerr};
+    #endif
+
+    ss
+        << termcolor::grey
+        << "\n"
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << termcolor::bold
+    #else
+        << termcolor::reset << termcolor::white
+    #endif
+    #if !defined(_WIN32) && !defined(_WIN64)
+        << "  │" << "\n"
+        << "  ╰──╼╸" << " "
+    #else
+        << L"  │" << "\n"
+        << L"  ╰──╼╸" << " "
+    #endif
+        << termcolor::reset << termcolor::blue
+        << "Try: ";
+    if (alts.size() == 1)
+        ss  << *(alts.begin() + 0) << ".";
+    else {
+        for (int i{0};i < alts.size()-2;++i) {
+            ss  << *(alts.begin() + i) << ", ";
+        }
+        ss  << *(alts.begin() + alts.size()-2) << " or " << *(alts.begin() + alts.size()-1) << ".\n";
+    }
+}
+
+void Throwable::initWithTextError(std::string const& error, std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, bool isWarning, std::initializer_list<std::string> alternatives) {
     int line, character, firstCharacter = ctx->getStart()->getCharPositionInLine();
     std::string code = ctx->getStart()->getInputStream()->getText(antlr4::misc::Interval{ctx->getStart()->getStartIndex(), ctx->getStop()->getStopIndex()}), token;
     if (std::holds_alternative<antlr4::ParserRuleContext*>(inFault)) {
@@ -143,48 +183,65 @@ void Throwable::initWithTextError(std::string const& error, std::string const& p
         character = tk->getCharPositionInLine();
         token = tk->getText();
     }
+    
+    this->printPrettify(path, line, character, firstCharacter, error, code, inFault, isWarning, alternatives.size() > 0);
 
     this->colorCode(code, token, ctx, inFault, isWarning);
-    
-    this->printPrettify(path, line, character, firstCharacter, error, code, inFault, isWarning);
+
+    if (alternatives.size() > 0)
+        this->suggest(alternatives);
+
+    #if !defined (_WIN32) && !defined(_WIN64)
+    std::cerr << std::endl;
+    #else
+    std::wcerr << std::endl;
+    #endif
 }
 
-void RedeclaredVariableError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args) {
-    this->initWithTextError("Redeclared variable `" + *(args.begin()+0) + "`, previously declared at line " + *(args.begin()+1) + ":" + *(args.begin()+2) + ".", path, ctx, inFault, false);
+void RedeclaredVariableError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Redeclared variable `" + *(args.begin()+0) + "`, previously declared at line " + *(args.begin()+1) + ":" + *(args.begin()+2) + ".", path, ctx, inFault, false, alts);
 }
 
-void UndeclaredVariableError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args) {
-    this->initWithTextError("Undeclared variable `" + *(args.begin()+0) + "`.", path, ctx, inFault, false);
+void UndeclaredVariableError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Undeclared variable `" + *(args.begin()+0) + "`.", path, ctx, inFault, false, alts);
 }
 
-void UndefinedVariableError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args) {
-    this->initWithTextError("Variable `" + *(args.begin()+0) + "` referenced but not bound to a value.", path, ctx, inFault, false);
+void UndefinedVariableError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Variable `" + *(args.begin()+0) + "` referenced but not bound to a value.", path, ctx, inFault, false, alts);
 }
 
-void WrongTypedValueError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args) {
-    this->initWithTextError("Inconsistent types. Expected `" + *(args.begin()+0) + "`, found `" + *(args.begin()+1) + "` " + *(args.begin()+2) + ".", path, ctx, inFault, false);
+void WrongTypedValueError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Inconsistent types. Expected `" + *(args.begin()+0) + "`, found `" + *(args.begin()+1) + "` " + *(args.begin()+2) + ".", path, ctx, inFault, false, alts);
 }
 
-void InvalidDeclaringTypeError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args) {
-    this->initWithTextError("Invalid variable declaration type `" + *(args.begin()+0) + "`.", path, ctx, inFault, false);
+void InvalidDeclaringTypeError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Unknown variable declaration type `" + *(args.begin()+0) + "`.", path, ctx, inFault, false, alts);
 }
 
-void InvalidComparisonTypeError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args) {
-    this->initWithTextError("Invalid comparison type `" + *(args.begin()+0) + "`.", path, ctx, inFault, false);
+void InvalidComparisonTypeError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Invalid comparison type `" + *(args.begin()+0) + "`.", path, ctx, inFault, false, alts);
 }
 
-void AlreadyExistingIDError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args) {
-    this->initWithTextError("Name `" + *(args.begin()+0) + "` already taken.", path, ctx, inFault, false);
+void AlreadyExistingIDError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Name `" + *(args.begin()+0) + "` already taken.", path, ctx, inFault, false, alts);
 }
 
-void UnknownIDError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args) {
-    this->initWithTextError("Unknown name `" + *(args.begin()+0) + "`.", path, ctx, inFault, false);
+void UnknownIDError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Unknown name `" + *(args.begin()+0) + "`.", path, ctx, inFault, false, alts);
 }
 
-void ImplicitCastWarning::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args) {
-    this->initWithTextError("Implicit cast performed from type `" + *(args.begin()+0) + "` to type `" + *(args.begin()+1) + "`.", path, ctx, inFault, true);
+void LiteralOverflowError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Number `" + *(args.begin()+0) + "` overflows a `" + *(args.begin()+1) + "` variable.", path, ctx, inFault, false, alts);
 }
 
-void FloatingPointWarning::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args) {
-    this->initWithTextError("Performing floating point comparison.", path, ctx, inFault, true);
+void ExpressionTypeError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Expression must have " + *(args.begin() + 0) + ", not " + *(args.begin() + 1) + ".", path, ctx, inFault, false, alts);
+}
+
+void ImplicitCastWarning::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Implicit cast performed from type `" + *(args.begin()+0) + "` to type `" + *(args.begin()+1) + "`.", path, ctx, inFault, true, alts);
+}
+
+void FloatingPointWarning::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts) {
+    this->initWithTextError("Performing floating point comparison.", path, ctx, inFault, true, alts);
 }
