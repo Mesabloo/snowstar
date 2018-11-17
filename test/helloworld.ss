@@ -1,10 +1,10 @@
-import io;
+import stdout;
 import string;
 
-int32 main() {
-    string str = "hello, world!";
-    % `"hello, world"` returns an `array<char>` 
-    print(string::to_char_array(str));
-    % We cannot print a "user-defined" `dtype` (in this case `string`)
+i32 main() {
+    str hw = "hello, world!";
+    hw = string::capitalize(hw);
+    % This transforms `hello, world!` into `Hello, World!` 
+    print(hw);
     return 0;
 }
