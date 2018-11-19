@@ -1,11 +1,12 @@
 import array;
 
 i32 main () {
-    i8 x = +0;
-    i8 y = +3++x;
+
+    str string = "hello";
 
     i8 a = +1;
     i8 b = -2;
+%    i8 u = b;
     i8 c = ~((((((((((((((((((b))))))))))))))))));
     bool d = !true;
     ui8 e = 1*2;
@@ -24,5 +25,5 @@ i32 main () {
     bool r = m&&true;
     bool s = false||r;
 
-    bool t = 1.0==1.0;
+    bool t = 1.0==1.0; 
 }

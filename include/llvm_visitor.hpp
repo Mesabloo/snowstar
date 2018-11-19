@@ -20,6 +20,7 @@
 #define LLVM_VISITOR_HPP
 
 #include <iostream>
+#include <utility>
 
 #include <SnowStarParserBaseVisitor.h>
 
@@ -32,24 +33,31 @@
 #include <termcolor/termcolor.hpp>
 
 class LLVMVisitor : public SnowStarParserBaseVisitor {
-    // using Decl = std::pair<SnowStarParser::TypeContext*, llvm::AllocaInst*>;
+    using Decl = std::tuple<SnowStarParser::TheTypeContext*, llvm::Value*, std::string>;
     using Alias = std::pair<std::string, SnowStarParser::TheTypeContext*>;
+    using ExprType = std::tuple<llvm::Value*, llvm::Type*, bool>;
+                                                        // ^^^^ is the type signed or not
+    using Func = std::tuple<llvm::Function*, llvm::BasicBlock*>;
 
     llvm::Module& module;
-    llvm::BasicBlock* curBlock;
+    llvm::BasicBlock* curBlock{nullptr};
 
     std::map<std::string, llvm::Type*> llvmTypes;
 
     std::vector<Alias> aliases{};
-    // std::vector<Decl> declared{};
+    std::vector<Decl> declared{};
+    std::vector<Func> functions{};
 
-    // int expr_number_tmp{0};
+    int expr_number_tmp{0};
 
 public:
     LLVMVisitor(llvm::Module&);
 
     virtual antlrcpp::Any visitCompilationUnit(SnowStarParser::CompilationUnitContext*) override;
     virtual antlrcpp::Any visitWithDeclaration(SnowStarParser::WithDeclarationContext*) override;
+    virtual antlrcpp::Any visitVariableDeclaration(SnowStarParser::VariableDeclarationContext*) override;
+    virtual antlrcpp::Any visitVariableInitializer(SnowStarParser::VariableInitializerContext*) override;
+    virtual antlrcpp::Any visitExpression(SnowStarParser::ExpressionContext*) override;
 };
 
 #endif

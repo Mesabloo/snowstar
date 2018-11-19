@@ -28,15 +28,19 @@
 
  LLVMVisitor::LLVMVisitor(llvm::Module& mod) : module{mod} {
     llvmTypes = {
-        {"bool", llvm::IntegerType::get(module.getContext(), 1)},
-        {"char", llvm::Type::getInt8Ty(module.getContext())},
-        {"int8", llvm::Type::getInt8Ty(module.getContext())},
-        {"int16", llvm::Type::getInt16Ty(module.getContext())},
-        {"int32", llvm::Type::getInt32Ty(module.getContext())},
-        {"int64", llvm::Type::getInt64Ty(module.getContext())},
-        {"real16", llvm::Type::getHalfTy(module.getContext())},
-        {"real32", llvm::Type::getFloatTy(module.getContext())},
-        {"real64", llvm::Type::getDoubleTy(module.getContext())}
+        {"bool", llvm::Type::getInt1Ty(module.getContext())},
+        {"chr", llvm::Type::getInt8Ty(module.getContext())},
+        {"i8", llvm::Type::getInt8Ty(module.getContext())},
+        {"ui8", llvm::Type::getInt8Ty(module.getContext())},
+        {"i16", llvm::Type::getInt16Ty(module.getContext())},
+        {"ui16", llvm::Type::getInt16Ty(module.getContext())},
+        {"i32", llvm::Type::getInt32Ty(module.getContext())},
+        {"ui32", llvm::Type::getInt32Ty(module.getContext())},
+        {"i64", llvm::Type::getInt64Ty(module.getContext())},
+        {"ui64", llvm::Type::getInt64Ty(module.getContext())},
+        {"f32", llvm::Type::getFloatTy(module.getContext())},
+        {"f64", llvm::Type::getDoubleTy(module.getContext())},
+        {"str", llvm::ArrayType::get(llvm::Type::getInt8Ty(module.getContext()), 0)}
     };
 }
 
@@ -45,7 +49,17 @@ antlrcpp::Any LLVMVisitor::visitCompilationUnit(SnowStarParser::CompilationUnitC
     // llvm::Function* main = llvm::Function::Create(type, llvm::Function::ExternalLinkage, "main", &module);
     // cur_block = llvm::BasicBlock::Create(module.getContext(), "entry", main, 0);
 
+    curBlock = llvm::BasicBlock::Create(module.getContext());
+
+    llvm::FunctionType* type = llvm::FunctionType::get(llvm::Type::getVoidTy(module.getContext()), false);
+    llvm::Function* global_init = llvm::Function::Create(type, llvm::Function::InternalLinkage, "__ss_GLOBAL_var_init", module);
+    global_init->setSection(".text.startup");
+    llvm::BasicBlock* global_block = llvm::BasicBlock::Create(module.getContext(), "entry", global_init);
+    functions.emplace_back(global_init, global_block);
+
     visitChildren(ctx);
+
+    llvm::ReturnInst::Create(module.getContext(), nullptr, std::get<1>(functions[0]));
 
     // llvm::ConstantInt* i32_0 = llvm::ConstantInt::get(module.getContext(), llvm::APInt(32, 0));
     // llvm::ReturnInst::Create(module.getContext(), i32_0, cur_block);
@@ -68,6 +82,270 @@ antlrcpp::Any LLVMVisitor::visitWithDeclaration(SnowStarParser::WithDeclarationC
         aliases.emplace_back(ctx->withName()->IDENTIFIER()->getText(), ctx->theType());
 
     return type;
+}
+
+antlrcpp::Any LLVMVisitor::visitVariableDeclaration(SnowStarParser::VariableDeclarationContext* ctx) {
+    llvm::Type* type = llvmTypes[ctx->theType()->getText()];
+    ExprType val;
+    llvm::Value* value = nullptr;
+    if (auto init = ctx->variableInitializer()) {
+        val = visitVariableInitializer(init).as<ExprType>();
+        value = std::get<0>(val);
+    }
+    if (!curBlock->getParent()) {
+        // global variable
+
+        #ifndef NDEBUG
+            value->dump();
+        #endif
+
+        llvm::GlobalVariable* gb = new llvm::GlobalVariable(module, std::get<1>(val), false, llvm::GlobalValue::LinkageTypes::InternalLinkage, llvm::Constant::getNullValue(std::get<1>(val)), ctx->variableName()->IDENTIFIER()->getText());
+        new llvm::StoreInst(value, gb, std::get<1>(functions[0]));
+        value = gb;
+    } else {
+        // local variable
+        llvm::AllocaInst* inst = new llvm::AllocaInst(type, 0, ctx->variableName()->IDENTIFIER()->getText(), curBlock);
+        if (ctx->variableInitializer()) 
+            new llvm::StoreInst(value, inst, curBlock);
+        value = inst;
+    }
+    if (ctx->theType()->IDENTIFIER()) {
+        declared.emplace_back(std::find_if(aliases.begin(), aliases.end(), [&ctx](Alias const& a) { return a.first == ctx->theType()->IDENTIFIER()->getText(); })->second, value, ctx->variableName()->IDENTIFIER()->getText());
+    } else
+        declared.emplace_back(ctx->theType(), value, ctx->variableName()->IDENTIFIER()->getText());
+    
+    return antlrcpp::Any();
+}
+
+antlrcpp::Any LLVMVisitor::visitVariableInitializer(SnowStarParser::VariableInitializerContext* ctx) {
+    ExprType inst = visitExpression(ctx->expression());
+    return inst;
+}
+
+antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ctx) {
+    llvm::Value* inst = nullptr;
+    llvm::Type* type = nullptr;
+    bool isSigned = true;
+    llvm::IRBuilder<llvm::ConstantFolder> builder(!curBlock->getParent()?std::get<1>(functions[0]):curBlock);
+
+    if (auto pexpr = ctx->primaryExpression()) {
+        if (auto id = pexpr->IDENTIFIER()) {
+            #ifndef NDEBUG
+                std::clog << termcolor::cyan << "   ___   | Variable:" << id->getText() << termcolor::reset << std::endl;
+            #endif
+            auto it = std::find_if(declared.rbegin(), declared.rend(), [&id] (Decl const& d) { return std::get<2>(d) == id->getText(); });
+            inst = builder.CreateLoad(std::get<1>(*it), std::to_string(expr_number_tmp));
+            type = inst->getType();
+            auto theType = std::get<0>(*it)->builtinTypes();
+            if (theType && theType->UI8() || theType->UI16() || theType->UI32() || theType->UI64())
+                isSigned = false;
+            expr_number_tmp++;
+        } else if (auto lit = pexpr->value()) {
+            #ifndef NDEBUG
+                std::clog << termcolor::cyan << "   ___   | Literal:" << lit->getText() << termcolor::reset << std::endl;
+            #endif
+
+            if (lit->BOOL_LITERAL()) {
+                inst = llvm::Constant::getIntegerValue(llvmTypes["bool"], llvm::APInt{1, lit->getText()=="true"?1:0, false});
+                type = llvmTypes["bool"];
+            } else if (lit->CHAR_LITERAL()) {
+                inst = llvm::Constant::getIntegerValue(llvmTypes["chr"], llvm::APInt{8, lit->getText()[1], false});
+                type = llvmTypes["chr"];
+            } else if (lit->DEC_LITERAL() || lit->BIN_LITERAL() || lit->HEX_LITERAL() || lit->OCT_LITERAL()) {
+                std::uint64_t val = std::strtoull(lit->getText().c_str(), nullptr, lit->DEC_LITERAL()?10:lit->BIN_LITERAL()?2:lit->OCT_LITERAL()?8:16);
+                if (val <= std::numeric_limits<std::uint8_t>::max()) {
+                    inst = llvm::Constant::getIntegerValue(llvmTypes["ui8"], llvm::APInt{8, val, false});
+                    type = llvmTypes["ui8"];
+                    isSigned = false;
+                } else if (val <= std::numeric_limits<std::uint16_t>::max()) {
+                    inst = llvm::Constant::getIntegerValue(llvmTypes["ui16"], llvm::APInt{16, val, false});
+                    type = llvmTypes["ui16"];
+                    isSigned = false;
+                } else if (val <= std::numeric_limits<std::uint32_t>::max()) {
+                    inst = llvm::Constant::getIntegerValue(llvmTypes["ui32"], llvm::APInt{32, val, false});
+                    type = llvmTypes["ui32"];
+                    isSigned = false;
+                } else {
+                    inst = llvm::Constant::getIntegerValue(llvmTypes["ui64"], llvm::APInt{64, val, false});
+                    type = llvmTypes["ui64"];
+                    isSigned = false;
+                }
+            } else if (lit->FLOAT_LITERAL()) {
+                double val = std::stod(lit->FLOAT_LITERAL()->getText());
+                if (val >= std::numeric_limits<std::float_t>::min() && val <= std::numeric_limits<std::float_t>::max()) {
+                    inst = llvm::ConstantFP::get(llvmTypes["f32"], val);
+                    type = llvmTypes["f32"];
+                } else {
+                    inst = llvm::ConstantFP::get(llvmTypes["f64"], val);
+                    type = llvmTypes["f64"];
+                }
+            } else if (lit->STRING_LITERAL()) {
+                inst = llvm::ConstantDataArray::getString(module.getContext(), lit->STRING_LITERAL()->getText().substr(1, lit->STRING_LITERAL()->getText().size()-2));
+                type = inst->getType();
+            }
+        } else {
+            ExprType expr = visitExpression(pexpr->expression());
+            inst = std::get<0>(expr);
+            type = std::get<1>(expr);
+            isSigned = std::get<2>(expr);
+        }
+    } else {
+        if (auto type2 = ctx->theType()) {
+
+        } else if (auto unexpr = ctx->unary) {
+            ExprType expr = visitExpression(ctx->expression()[0]);
+            if (unexpr->getText() == "+") {
+                inst = std::get<0>(expr);
+                type = std::get<1>(expr);
+            } else if (unexpr->getText() == "-") {
+                if (std::get<1>(expr)->isFloatingPointTy()) {
+                    inst = builder.CreateFSub(llvm::ConstantFP::get(module.getContext(), llvm::APFloat{0.0}), std::get<0>(expr), std::to_string(expr_number_tmp));
+                    type = std::get<1>(expr);
+                } else {
+                    inst = builder.CreateSub(llvm::Constant::getIntegerValue(llvmTypes["i8"], llvm::APInt{8, 0, false}), std::get<0>(expr), std::to_string(expr_number_tmp));
+                    type = std::get<1>(expr);
+                }
+            } else if (unexpr->getText() == "~") {
+                inst = builder.CreateNot(std::get<0>(expr), std::to_string(expr_number_tmp));
+                type = std::get<1>(expr);
+            } else if (unexpr->getText() == "!") {
+                inst = builder.CreateNot(std::get<0>(expr), std::to_string(expr_number_tmp));
+                type = llvmTypes["bool"];
+            }
+            expr_number_tmp++;
+        } else if (auto binexpr = ctx->binary) {
+            ExprType expr0 = visitExpression(ctx->expression()[0]),
+                     expr1 = visitExpression(ctx->expression()[1]);
+
+            if (binexpr->getText() == "+") {
+                if (std::get<1>(expr0)->isArrayTy()) {
+                    // string
+                    //inst = builder.CreateCall(/* concat, {std::get<0>(expr0), std::get<0>(expr1)}, std::to_string(expr_number_tmp)*/);
+                    type = std::get<1>(expr0);
+                } else if (std::get<1>(expr0)->isFloatingPointTy()) {
+                    // float
+                    inst = builder.CreateFAdd(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = std::get<1>(expr0);
+                } else {
+                    // number
+                    inst = builder.CreateAdd(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = std::get<1>(expr0);
+                }
+            } else if (binexpr->getText() == "*") {
+                if (std::get<1>(expr0)->isFloatingPointTy()) {
+                    inst = builder.CreateFMul(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = std::get<1>(expr0);
+                } else {
+                    inst = builder.CreateMul(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = std::get<1>(expr0);
+                }
+            } else if (binexpr->getText() == "/") {
+                if (std::get<1>(expr0)->isFloatingPointTy()) {
+                    inst = builder.CreateFDiv(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = std::get<1>(expr0);
+                } else {
+                    inst = builder.CreateSDiv(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = std::get<1>(expr0);
+                }
+            } else if (binexpr->getText() == "-") {
+                if (std::get<1>(expr0)->isFloatingPointTy()) {
+                    inst = builder.CreateFSub(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = std::get<1>(expr0);
+                } else {
+                    inst = builder.CreateSub(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = std::get<1>(expr0);
+                }
+            } else if (binexpr->getText() == ">") {
+                if (std::get<1>(expr0)->isFloatingPointTy()) {
+                    inst = builder.CreateFCmpOGT(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = llvmTypes["bool"];
+                } else {
+                    if (std::get<2>(expr0)) {
+                        // we perform operation as unsigned
+                        inst = builder.CreateICmpSGT(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    } else {
+                        inst = builder.CreateICmpUGT(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    }
+                    type = llvmTypes["bool"];
+                }
+            } else if (binexpr->getText() == "<") {
+                if (std::get<1>(expr0)->isFloatingPointTy()) {
+                    inst = builder.CreateFCmpOLT(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = llvmTypes["bool"];
+                } else {
+                    if (std::get<2>(expr0)) {
+                        // we perform operation as unsigned
+                        inst = builder.CreateICmpSLT(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    } else {
+                        inst = builder.CreateICmpULT(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    }
+                    type = llvmTypes["bool"];
+                }
+            } else if (binexpr->getText() == "<=") {
+                if (std::get<1>(expr0)->isFloatingPointTy()) {
+                    inst = builder.CreateFCmpOLE(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = llvmTypes["bool"];
+                } else {
+                    if (std::get<2>(expr0)) {
+                        // we perform operation as unsigned
+                        inst = builder.CreateICmpSLE(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    } else {
+                        inst = builder.CreateICmpULE(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    }
+                    type = llvmTypes["bool"];
+                }
+            } else if (binexpr->getText() == ">=") {
+                if (std::get<1>(expr0)->isFloatingPointTy()) {
+                    inst = builder.CreateFCmpOGE(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = llvmTypes["bool"];
+                } else {
+                    if (std::get<2>(expr0)) {
+                        // we perform operation as unsigned
+                        inst = builder.CreateICmpSGE(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    } else {
+                        inst = builder.CreateICmpUGE(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    }
+                    type = llvmTypes["bool"];
+                }
+            } else if (binexpr->getText() == "==") {
+                if (std::get<1>(expr0)->isFloatingPointTy()) {
+                    inst = builder.CreateFCmpOEQ(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = llvmTypes["bool"];
+                } else {
+                    inst = builder.CreateICmpEQ(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = llvmTypes["bool"];
+                }
+            } else if (binexpr->getText() == "!=") {
+                if (std::get<1>(expr0)->isFloatingPointTy()) {
+                    inst = builder.CreateFCmpONE(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = llvmTypes["bool"];
+                } else {
+                    inst = builder.CreateICmpNE(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    type = llvmTypes["bool"];
+                }
+            } else if (binexpr->getText() == "^") {
+                inst = builder.CreateXor(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                type = std::get<1>(expr0);
+                isSigned = std::get<2>(expr0);
+            } else if (binexpr->getText() == "|") {
+                inst = builder.CreateAnd(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                type = std::get<1>(expr0);
+                isSigned = std::get<2>(expr0);
+            } else if (binexpr->getText() == "&") {
+                inst = builder.CreateOr(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                type = std::get<1>(expr0);
+                isSigned = std::get<2>(expr0);
+            } else if (binexpr->getText() == "||") {
+                inst = builder.CreateOr(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                type = llvmTypes["bool"];
+            } else if (binexpr->getText() == "&&") {
+                inst = builder.CreateAnd(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                type = llvmTypes["bool"];
+            }
+            expr_number_tmp++;
+        }
+    }
+    return std::make_tuple(inst, type, isSigned);
 }
 
 /*

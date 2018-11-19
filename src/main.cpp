@@ -151,6 +151,7 @@ int main(int argc, char** argv) {
 
     static llvm::LLVMContext ctx{};
     llvm::Module mod = llvm::Module(file_name_ll, ctx);
+    mod.setSourceFileName(input_files[0]);
     std::string targetTriple = llvm::sys::getDefaultTargetTriple(),
                 err;
 
