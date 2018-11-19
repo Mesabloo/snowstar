@@ -1,12 +1,16 @@
-# Snow*, a programming language based on the Assembly language's way of functioning.
+# Snow*, a programming language based on Assembly
 
-## What is Snow* ?
+## What is Snow*?
 
-Snow* is a programming language based on the Assembly language syntax, and also its way of functioning.
+Snow* is a programming language inspired by the syntax and style of Assembly.
 
-## How does it work ?
+## How does it work?
 
-Snow*'s environment contains 3 segments: `mem` which is the basic memory holder, limited to 256 values; `temp` which is a special segment, holding until 32 values, but whose content changes on each `call`; `param` which is a [stack](https://en.wikipedia.org/wiki/Stack_(abstract_data_type)) containing values used in `sys`tem calls, for example, or which can be used in your own `call`s. <br>
+Snow*'s environment contains 3 segments:
+- `mem` which is the basic memory holder, limited to 256 values
+- `temp` which is a special segment, holding until 32 values, but whose content changes on each `call`
+- `param` which is a [stack](https://en.wikipedia.org/wiki/Stack_(abstract_data_type)) containing values used in `sys`tem calls, for example, or which can be used in your own `call`s.
+
 Easy ways to manage them are `store`, `push`, `free` and `pop`. 
 
 Example:
@@ -29,12 +33,13 @@ main: % Main entry point, absolutely needed
     % Don't forget this line, else your program will never stop
 ```
 
-## Is there a way to learn the language ?
+## How to learn?
 
-Yes, there is one. A website is hosted on github [here](https://mesabloo.github.io/snowstar-lang). You will find every information you need (docs, tutorials, examples) there. If you have any question/request, feel free to ask them to me. <br>
-You will find me known as `Меѕаblоо#5674` on [Discord](https://www.discordapp.com) (please copy/paste, do not try to rewrite it).
+You can check out the [GitHub website](https://mesabloo.github.io/snowstar-lang). You will find all the information you need including documentation, tutorials, and examples.
 
-## Just a free sample.
+If you have any questions or concerns, feel free to contact me on Discord. My tag is `Mesabloo#5674`.
+
+## Example
 
 ```
 main: % Still needed
@@ -119,20 +124,9 @@ lower:
     jmp repeat
     % We go to repeat: because the number has not been found
 ```
-The indentation is not necessary. You can get rid of it. It just makes it a bit more clear what "block" is what.
+Please note that indentation is not required.
 
-## No more questions ?
-
-If you want to ask me some questions, you can ask them directly to me on [Discord](https://www.discordapp.com). I will asnwer them with no problem. <br>
-If you want some features added, feel free to suggest them to me, or to someone who already talked to me before. <br><br>
-
-## Languages used:
+## Languages used
 - C++ = VM/Compiler (`.cpp`)
 - Snow* = examples/tests (`.sssc`)
 - IcyWater = Snow* bytecode (`.iwsc`)
-<br><br>
-
-## Credits to:
-- People who are helping me whenever I need help
-- People who have faith in me
-- People who are encouraging me programming/making this language
