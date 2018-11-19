@@ -13,7 +13,16 @@ Snow*'s environment contains 3 segments:
 
 Easy ways to manage them are `store`, `push`, `free` and `pop`. 
 
-Example:
+## How to learn?
+
+You can check out the [GitHub website](https://mesabloo.github.io/snowstar-lang). You will find all the information you need including documentation, tutorials, and examples.
+
+If you have any questions or concerns, feel free to contact me on Discord. My tag is `Mesabloo#5674`.
+
+## Example
+
+### Hello World
+
 ```
 main: % Main entry point, absolutely needed
 
@@ -33,13 +42,7 @@ main: % Main entry point, absolutely needed
     % Don't forget this line, else your program will never stop
 ```
 
-## How to learn?
-
-You can check out the [GitHub website](https://mesabloo.github.io/snowstar-lang). You will find all the information you need including documentation, tutorials, and examples.
-
-If you have any questions or concerns, feel free to contact me on Discord. My tag is `Mesabloo#5674`.
-
-## Example
+### Guess-a-number game
 
 ```
 main: % Still needed
