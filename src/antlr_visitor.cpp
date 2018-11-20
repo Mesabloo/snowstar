@@ -146,6 +146,7 @@ antlrcpp::Any ANTLRVisitor::visitVariableDeclaration(SnowStarParser::VariableDec
             if (it1 == definedAliases.end()) {
                 InvalidDeclaringTypeError().print(fileName, lineContext, ctx->theType()->IDENTIFIER()->getSymbol(), {ctx->theType()->getText()}, {});
                 errored = true;
+                return antlrcpp::Any();
             } else {
                 d = &scopedDeclarations.rbegin()->emplace_back(ctx->variableName()->IDENTIFIER()->getText(), it1->second, false, std::make_pair(ctx->variableName()->IDENTIFIER()->getSymbol()->getLine(), ctx->variableName()->IDENTIFIER()->getSymbol()->getCharPositionInLine()));
                 type = it1->second;
