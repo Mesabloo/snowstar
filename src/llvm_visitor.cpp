@@ -228,7 +228,10 @@ antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ct
                     type = std::get<1>(expr0);
                 } else {
                     // number
-                    inst = builder.CreateAdd(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    if (!std::get<2>(expr0))
+                        inst = builder.CreateNSWAdd(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    else
+                        inst = builder.CreateNUWAdd(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
                     type = std::get<1>(expr0);
                 }
             } else if (binexpr->getText() == "*") {
@@ -236,7 +239,10 @@ antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ct
                     inst = builder.CreateFMul(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
                     type = std::get<1>(expr0);
                 } else {
-                    inst = builder.CreateMul(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    if (!std::get<2>(expr0))
+                        inst = builder.CreateNSWMul(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    else
+                        inst = builder.CreateNUWMul(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
                     type = std::get<1>(expr0);
                 }
             } else if (binexpr->getText() == "/") {
@@ -244,7 +250,10 @@ antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ct
                     inst = builder.CreateFDiv(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
                     type = std::get<1>(expr0);
                 } else {
-                    inst = builder.CreateSDiv(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    if (std::get<2>(expr0))
+                        inst = builder.CreateSDiv(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    else
+                        inst = builder.CreateUDiv(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
                     type = std::get<1>(expr0);
                 }
             } else if (binexpr->getText() == "-") {
@@ -252,7 +261,10 @@ antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ct
                     inst = builder.CreateFSub(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
                     type = std::get<1>(expr0);
                 } else {
-                    inst = builder.CreateSub(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    if (!std::get<2>(expr0))
+                        inst = builder.CreateNSWSub(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
+                    else
+                        inst = builder.CreateNUWSub(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
                     type = std::get<1>(expr0);
                 }
             } else if (binexpr->getText() == ">") {
@@ -287,7 +299,7 @@ antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ct
                     type = llvmTypes["bool"];
                 } else {
                     if (std::get<2>(expr0)) {
-                        // we perform operation as unsigned
+                        // we perform operation as signed
                         inst = builder.CreateICmpSLE(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
                     } else {
                         inst = builder.CreateICmpULE(std::get<0>(expr0), std::get<0>(expr1), std::to_string(expr_number_tmp));
