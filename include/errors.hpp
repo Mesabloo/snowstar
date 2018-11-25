@@ -28,6 +28,7 @@
 
 #include <antlr4-runtime.h>
 
+#include <SnowStarParser.h>
 #include <termcolor/termcolor.hpp>
 
 namespace utils {
@@ -50,16 +51,27 @@ protected:
     std::function<std::wstring(std::wstring const, unsigned int)> spacer = [=] (std::wstring const s1, unsigned int n) -> std::wstring { std::wstring s; for (unsigned int tmp{0};tmp < n;++tmp) s+=s1; return s; };
 #   endif
 
-    void printPrettify(std::string const&, int, int, int, std::string const&, std::string const&, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, bool, bool);
+    using Function = std::tuple<std::string, SnowStarParser::TheTypeContext*, std::vector<SnowStarParser::TheTypeContext*>>;
+                   /*           ^^^^^^^^^^^ function name
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function return type
+                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function argument types
+                   */
+    using FunctionContext = std::pair<Function, std::pair<int, int>>;
+                          /*          ^^^^^^^^ the function
+                                                ^^^^^^^^^^^^^^^^^^^ function line and char position
+                          */
+
+    void printPrettify(std::string const&, int, int, int, std::string const&, std::string const&, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, bool, std::initializer_list<std::string>, std::vector<FunctionContext> const&);
     void colorCode(std::string const&, std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, bool);
     void suggest(std::initializer_list<std::string>);
-    void initWithTextError(std::string const&, std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, bool, std::initializer_list<std::string>);
+    void initWithTextError(std::string const&, std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, bool, std::initializer_list<std::string>, std::vector<FunctionContext> const&);
+    void contextualize(std::vector<FunctionContext> const&);
 
 public:
     Throwable() = default;
     virtual ~Throwable() = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) = 0;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) = 0;
 };
 
 /**
@@ -70,70 +82,105 @@ struct RedeclaredVariableError : public Throwable {
     RedeclaredVariableError() : Throwable() {}
     virtual ~RedeclaredVariableError() override = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 struct WrongTypedValueError : public Throwable {
     WrongTypedValueError() : Throwable() {}
     virtual ~WrongTypedValueError() override = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 struct InvalidDeclaringTypeError : public Throwable {
     InvalidDeclaringTypeError() : Throwable() {}
     virtual ~InvalidDeclaringTypeError() override = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 struct InvalidComparisonTypeError : public Throwable {
     InvalidComparisonTypeError() : Throwable() {}
     virtual ~InvalidComparisonTypeError() override = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 struct UndeclaredVariableError : public Throwable {
     UndeclaredVariableError() : Throwable() {}
     virtual ~UndeclaredVariableError() override = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 struct UndefinedVariableError : public Throwable {
     UndefinedVariableError() : Throwable() {}
     virtual ~UndefinedVariableError() override = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 struct AlreadyExistingIDError : public Throwable {
     AlreadyExistingIDError() : Throwable() {}
     virtual ~AlreadyExistingIDError() override = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 struct UnknownIDError : public Throwable {
     UnknownIDError() : Throwable() {}
     virtual ~UnknownIDError() override = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 struct LiteralOverflowError : public Throwable {
     LiteralOverflowError() : Throwable() {}
     virtual ~LiteralOverflowError() override = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 struct ExpressionTypeError : public Throwable {
     ExpressionTypeError() : Throwable() {}
     virtual ~ExpressionTypeError() override = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
+};
+
+struct ParameterTypeMismatchError : public Throwable {
+    ParameterTypeMismatchError() : Throwable() {}
+    virtual ~ParameterTypeMismatchError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
+};
+
+struct MissingParameterTypeError : public Throwable {
+    MissingParameterTypeError() : Throwable() {}
+    virtual ~MissingParameterTypeError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
+};
+
+struct MissingParameterError : public Throwable {
+    MissingParameterError() : Throwable() {}
+    virtual ~MissingParameterError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
+};
+
+struct UndefinedGlobalError : public Throwable {
+    UndefinedGlobalError() : Throwable() {}
+    virtual ~UndefinedGlobalError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
+};
+
+struct MisplacedStatementError : public Throwable {
+    MisplacedStatementError() : Throwable() {}
+    virtual ~MisplacedStatementError() override = default;
+
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 /**
@@ -144,14 +191,14 @@ struct ImplicitCastWarning : public Throwable {
     ImplicitCastWarning() : Throwable() {}
     virtual ~ImplicitCastWarning() override = default;
 
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 struct FloatingPointWarning : public Throwable {
     FloatingPointWarning() : Throwable() {}
     virtual ~FloatingPointWarning() override = default;
     
-    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const) override;
+    virtual void print(std::string const&, antlr4::ParserRuleContext*, std::variant<antlr4::Token*, antlr4::ParserRuleContext*>, std::initializer_list<std::string> const, std::initializer_list<std::string> const, std::vector<FunctionContext> const&) override;
 };
 
 #endif
