@@ -129,7 +129,7 @@ END_COM
        :                      '*)'
        ;
 INLINE_COM
-          :                   '%'
+          :                   '//'
           ;
 LPAREN
       :                       '('
@@ -167,6 +167,9 @@ COLONCOLON
 
 // Operators
 
+TO_ARROW
+        :                     '=>'
+        ;
 ASSIGN
       :                       '='
       ;

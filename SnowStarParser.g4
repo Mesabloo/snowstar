@@ -76,7 +76,15 @@ dtypeBlockDeclaration
                      ;
 
 functionDeclaration
-                   :         theType functionName functionParams basicBlockDeclaration
+                   :         functionHeader TO_ARROW basicBlockDeclaration SEMI
+                   ;
+
+functionHeader
+              :              theType functionParamsTypes functionName ASSIGN functionParams
+              ;
+
+functionParamsTypes
+                   :         LPAREN (theType (COMMA theType)*)? RPAREN
                    ;
 
 functionName
@@ -107,6 +115,10 @@ importName
           :                  IDENTIFIER
           ;
 
+returnDeclaration
+                 :           RET expression? SEMI
+                 ;
+
 emptyDeclaration
                 :            SEMI
                 ;
@@ -117,6 +129,7 @@ statementSeq
             :                variableDeclaration         // type name (= value);
             |                withDeclaration             // with name = type;
             |                importDeclaration           // import file;
+            |                returnDeclaration           // return value;
             |                emptyDeclaration            // ;
             ;
 

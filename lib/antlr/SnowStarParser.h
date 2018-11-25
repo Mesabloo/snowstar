@@ -19,11 +19,11 @@ public:
     FLOAT_LITERAL = 26, BOOL_LITERAL = 27, CHAR_LITERAL = 28, STRING_LITERAL = 29, 
     BEGIN_COM = 30, END_COM = 31, INLINE_COM = 32, LPAREN = 33, RPAREN = 34, 
     LBRACE = 35, RBRACE = 36, LBRACK = 37, RBRACK = 38, SEMI = 39, COMMA = 40, 
-    DOT = 41, COLON = 42, COLONCOLON = 43, ASSIGN = 44, EQUALS = 45, NEQUALS = 46, 
-    GREATER = 47, LOWER = 48, GREATER_EQ = 49, LOWER_EQ = 50, LOGIC_OR = 51, 
-    LOGIC_AND = 52, LOGIC_NOT = 53, PLUS = 54, MINUS = 55, STAR = 56, SLASH = 57, 
-    BIN_NOT = 58, BIN_AND = 59, BIN_OR = 60, BIN_XOR = 61, WS = 62, COMMENT = 63, 
-    LINE_COMMENT = 64, IDENTIFIER = 65
+    DOT = 41, COLON = 42, COLONCOLON = 43, TO_ARROW = 44, ASSIGN = 45, EQUALS = 46, 
+    NEQUALS = 47, GREATER = 48, LOWER = 49, GREATER_EQ = 50, LOWER_EQ = 51, 
+    LOGIC_OR = 52, LOGIC_AND = 53, LOGIC_NOT = 54, PLUS = 55, MINUS = 56, 
+    STAR = 57, SLASH = 58, BIN_NOT = 59, BIN_AND = 60, BIN_OR = 61, BIN_XOR = 62, 
+    WS = 63, COMMENT = 64, LINE_COMMENT = 65, IDENTIFIER = 66
   };
 
   enum {
@@ -31,11 +31,12 @@ public:
     RuleVariableName = 3, RuleVariableInitializer = 4, RuleUnitDeclaration = 5, 
     RuleUnitName = 6, RuleBasicBlockDeclaration = 7, RuleDtypeDeclaration = 8, 
     RuleDtypeName = 9, RuleDtypeBlockDeclaration = 10, RuleFunctionDeclaration = 11, 
-    RuleFunctionName = 12, RuleFunctionParams = 13, RuleParameterDeclaration = 14, 
-    RuleWithDeclaration = 15, RuleWithName = 16, RuleImportDeclaration = 17, 
-    RuleImportName = 18, RuleEmptyDeclaration = 19, RuleStatementSeq = 20, 
-    RuleExpression = 21, RulePrimaryExpression = 22, RuleTheType = 23, RuleBuiltinTypes = 24, 
-    RuleValue = 25
+    RuleFunctionHeader = 12, RuleFunctionParamsTypes = 13, RuleFunctionName = 14, 
+    RuleFunctionParams = 15, RuleParameterDeclaration = 16, RuleWithDeclaration = 17, 
+    RuleWithName = 18, RuleImportDeclaration = 19, RuleImportName = 20, 
+    RuleReturnDeclaration = 21, RuleEmptyDeclaration = 22, RuleStatementSeq = 23, 
+    RuleExpression = 24, RulePrimaryExpression = 25, RuleTheType = 26, RuleBuiltinTypes = 27, 
+    RuleValue = 28
   };
 
   SnowStarParser(antlr4::TokenStream *input);
@@ -60,6 +61,8 @@ public:
   class DtypeNameContext;
   class DtypeBlockDeclarationContext;
   class FunctionDeclarationContext;
+  class FunctionHeaderContext;
+  class FunctionParamsTypesContext;
   class FunctionNameContext;
   class FunctionParamsContext;
   class ParameterDeclarationContext;
@@ -67,6 +70,7 @@ public:
   class WithNameContext;
   class ImportDeclarationContext;
   class ImportNameContext;
+  class ReturnDeclarationContext;
   class EmptyDeclarationContext;
   class StatementSeqContext;
   class ExpressionContext;
@@ -233,16 +237,49 @@ public:
   public:
     FunctionDeclarationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    TheTypeContext *theType();
-    FunctionNameContext *functionName();
-    FunctionParamsContext *functionParams();
+    FunctionHeaderContext *functionHeader();
+    antlr4::tree::TerminalNode *TO_ARROW();
     BasicBlockDeclarationContext *basicBlockDeclaration();
+    antlr4::tree::TerminalNode *SEMI();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
   };
 
   FunctionDeclarationContext* functionDeclaration();
+
+  class  FunctionHeaderContext : public antlr4::ParserRuleContext {
+  public:
+    FunctionHeaderContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    TheTypeContext *theType();
+    FunctionParamsTypesContext *functionParamsTypes();
+    FunctionNameContext *functionName();
+    antlr4::tree::TerminalNode *ASSIGN();
+    FunctionParamsContext *functionParams();
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  FunctionHeaderContext* functionHeader();
+
+  class  FunctionParamsTypesContext : public antlr4::ParserRuleContext {
+  public:
+    FunctionParamsTypesContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *LPAREN();
+    antlr4::tree::TerminalNode *RPAREN();
+    std::vector<TheTypeContext *> theType();
+    TheTypeContext* theType(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> COMMA();
+    antlr4::tree::TerminalNode* COMMA(size_t i);
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  FunctionParamsTypesContext* functionParamsTypes();
 
   class  FunctionNameContext : public antlr4::ParserRuleContext {
   public:
@@ -342,6 +379,20 @@ public:
 
   ImportNameContext* importName();
 
+  class  ReturnDeclarationContext : public antlr4::ParserRuleContext {
+  public:
+    ReturnDeclarationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *RET();
+    antlr4::tree::TerminalNode *SEMI();
+    ExpressionContext *expression();
+
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  ReturnDeclarationContext* returnDeclaration();
+
   class  EmptyDeclarationContext : public antlr4::ParserRuleContext {
   public:
     EmptyDeclarationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -361,6 +412,7 @@ public:
     VariableDeclarationContext *variableDeclaration();
     WithDeclarationContext *withDeclaration();
     ImportDeclarationContext *importDeclaration();
+    ReturnDeclarationContext *returnDeclaration();
     EmptyDeclarationContext *emptyDeclaration();
 
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

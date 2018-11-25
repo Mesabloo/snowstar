@@ -63,6 +63,14 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual antlrcpp::Any visitFunctionHeader(SnowStarParser::FunctionHeaderContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitFunctionParamsTypes(SnowStarParser::FunctionParamsTypesContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual antlrcpp::Any visitFunctionName(SnowStarParser::FunctionNameContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -88,6 +96,10 @@ public:
   }
 
   virtual antlrcpp::Any visitImportName(SnowStarParser::ImportNameContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual antlrcpp::Any visitReturnDeclaration(SnowStarParser::ReturnDeclarationContext *ctx) override {
     return visitChildren(ctx);
   }
 

@@ -43,6 +43,10 @@ public:
 
     virtual antlrcpp::Any visitFunctionDeclaration(SnowStarParser::FunctionDeclarationContext *context) = 0;
 
+    virtual antlrcpp::Any visitFunctionHeader(SnowStarParser::FunctionHeaderContext *context) = 0;
+
+    virtual antlrcpp::Any visitFunctionParamsTypes(SnowStarParser::FunctionParamsTypesContext *context) = 0;
+
     virtual antlrcpp::Any visitFunctionName(SnowStarParser::FunctionNameContext *context) = 0;
 
     virtual antlrcpp::Any visitFunctionParams(SnowStarParser::FunctionParamsContext *context) = 0;
@@ -56,6 +60,8 @@ public:
     virtual antlrcpp::Any visitImportDeclaration(SnowStarParser::ImportDeclarationContext *context) = 0;
 
     virtual antlrcpp::Any visitImportName(SnowStarParser::ImportNameContext *context) = 0;
+
+    virtual antlrcpp::Any visitReturnDeclaration(SnowStarParser::ReturnDeclarationContext *context) = 0;
 
     virtual antlrcpp::Any visitEmptyDeclaration(SnowStarParser::EmptyDeclarationContext *context) = 0;
 

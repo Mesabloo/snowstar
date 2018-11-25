@@ -1,8 +1,8 @@
 # Snow*
 
-[![forthebadge](https://forthebadge.com/images/badges/made-with-c-plus-plus.svg)](https://forthebadge.com)  [![forthebadge](https://forthebadge.com/images/badges/built-with-love.svg)](https://forthebadge.com)
+<img src="https://mesabloo.github.io/snowstar-lang/icons/snowstar.png" alt="Snow* icon" align="right" title="Snow* icon made my Mesabloo" height="128px" width="128px"/>
 
-<img src="https://mesabloo.github.io/snowstar-lang/icons/snowstar_64x64.png" alt="Snow* icon" align="right" title="Snow* icon made my Mesabloo"/>
+[![madewithcpp](https://forthebadge.com/images/badges/made-with-c-plus-plus.svg)]()  [![builtwithheart](https://forthebadge.com/images/badges/built-with-love.svg)]()
 
 ## :information_source: Table of content
 
@@ -32,8 +32,8 @@ It was the real first programming language made here from nothing. The VM was sl
 * The third generation was the first called [Snow*](https://mesabloo.github.io/snowstar-lang/about.html#snowstar1).<br>
 It was still an ASM-like, but more developped than the previous one. It contained more instructions, the VM was faster, the compiler more efficient.
 
-* The fourth generation, [Snow*](https://mesabloo.github.io/snowstar-lang/about.html#snowstar2), an Object-Oriented programming language.<br>
-This generation is built with ANTLR and LLVM (later) to offer power and native compilation.
+* The fourth generation, [Snow*](https://mesabloo.github.io/snowstar-lang/about.html#snowstar2), a procedural programming language.<br>
+This generation is built with ANTLR and LLVM to offer power and native compilation.
 
 ## :desktop_computer: Behind Snow*, a developer, Mesabloo.
 
@@ -58,12 +58,13 @@ Samples can be found [here](https://mesabloo.github.io/snowstar-lang/about.html#
 import stdout;
 import array;
 
-i32 main(i8 argc, array<str> argv) {
-    print("Hello, World!");
-    % We print "Hello, World!" in the console.
-    return 0;
-    % We return from the function, with an i32 value.
-}
+i32(i8, array<str>) main =
+    (i8 argc, array<str> argv) => {
+        print("Hello, World!");
+        % We print "Hello, World!" in the console.
+        return 0;
+        % We return from the function, with an i32 value.
+    };
 
 (*
     This sample is not yet compilable.
