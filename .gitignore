@@ -55,3 +55,6 @@ lib/antlr4
 test/ir_test/*.*
 test/ir_test/*
 test/ir_test
+test/*.*
+test/*
+test
