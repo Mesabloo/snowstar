@@ -86,7 +86,7 @@ antlrcpp::Any ANTLRVisitor::visitWithDeclaration(SnowStarParser::WithDeclaration
             }
             if (alias_it == definedAliases.end()) {
                 // The alias referenced does not exist.
-                UnknownIDError().print(fileName, ctx, lineContext, {id}, {});
+                UnknownIDError().print(fileName, ctx, lineContext, {id}, {}, functionContext);
                 errored = true;
             } else
                 scopedAliases[scopedAliases.size()-1].emplace_back(ctx->withName()->getText(), alias_it->second);
@@ -94,7 +94,7 @@ antlrcpp::Any ANTLRVisitor::visitWithDeclaration(SnowStarParser::WithDeclaration
             scopedAliases[scopedAliases.size()-1].emplace_back(ctx->withName()->getText(), ctx->theType());
     } else {
         // Well the alias already exists, so we need to throw an error.
-        AlreadyExistingIDError().print(fileName, ctx, lineContext, {ctx->withName()->IDENTIFIER()->getText()}, {});
+        AlreadyExistingIDError().print(fileName, ctx, lineContext, {ctx->withName()->IDENTIFIER()->getText()}, {}, functionContext);
         errored = true;
     }
     
@@ -109,7 +109,7 @@ antlrcpp::Any ANTLRVisitor::visitVariableDeclaration(SnowStarParser::VariableDec
     lineContext = ctx;
 
     if (ctx->theType()->builtinTypes() && ctx->theType()->builtinTypes()->VOID()) {
-        InvalidDeclaringTypeError().print(fileName, lineContext, ctx->theType()->builtinTypes()->VOID()->getSymbol(), {"void"}, {});
+        InvalidDeclaringTypeError().print(fileName, lineContext, ctx->theType()->builtinTypes()->VOID()->getSymbol(), {"void"}, {}, functionContext);
         return ctx->theType();
     }
 
@@ -128,13 +128,13 @@ antlrcpp::Any ANTLRVisitor::visitVariableDeclaration(SnowStarParser::VariableDec
         #ifndef NDEBUG
             std::clog << termcolor::magenta << "   ...   | Variable " << ctx->variableName()->IDENTIFIER()->getText() << " redeclared." << termcolor::reset << std::endl;
         #endif
-        RedeclaredVariableError().print(fileName, lineContext, ctx->variableName()->IDENTIFIER()->getSymbol(), {ctx->variableName()->IDENTIFIER()->getText(), std::to_string(std::get<3>(*it).first), std::to_string(std::get<3>(*it).second+1)}, {});
+        RedeclaredVariableError().print(fileName, lineContext, ctx->variableName()->IDENTIFIER()->getSymbol(), {ctx->variableName()->IDENTIFIER()->getText(), std::to_string(std::get<3>(*it).first), std::to_string(std::get<3>(*it).second+1)}, {"changing the name"}, functionContext);
         errored = true;
     } else {
         auto type = ctx->theType();
         Declaration* d = nullptr;
 
-        if (ctx->theType()->IDENTIFIER()) {
+        if (type->IDENTIFIER()) {
             std::vector<Alias> definedAliases{};
             for (auto const& scope : scopedAliases) {
                 for (auto const& alias : scope) {
@@ -142,9 +142,9 @@ antlrcpp::Any ANTLRVisitor::visitVariableDeclaration(SnowStarParser::VariableDec
                 }
             }
 
-            auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&ctx] (Alias const& alias) { return std::get<0>(alias) == ctx->theType()->IDENTIFIER()->getText(); });
+            auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&type] (Alias const& alias) { return std::get<0>(alias) == type->IDENTIFIER()->getText(); });
             if (it1 == definedAliases.end()) {
-                InvalidDeclaringTypeError().print(fileName, lineContext, ctx->theType()->IDENTIFIER()->getSymbol(), {ctx->theType()->getText()}, {});
+                InvalidDeclaringTypeError().print(fileName, lineContext, type->IDENTIFIER()->getSymbol(), {type->getText()}, {}, functionContext);
                 errored = true;
                 return antlrcpp::Any();
             } else {
@@ -162,12 +162,16 @@ antlrcpp::Any ANTLRVisitor::visitVariableDeclaration(SnowStarParser::VariableDec
                 // error: invalid type (shouldn't be possible, unless casted)
             } else {
                 if (expr != toType(type->builtinTypes())) {
-                    WrongTypedValueError().print(fileName, lineContext, ctx->variableInitializer()->expression(), {getType(toType(ctx->theType()->builtinTypes())), getType(expr), "in variable initialization"}, {});
+                    WrongTypedValueError().print(fileName, lineContext, ctx->variableInitializer()->expression(), {getType(toType(ctx->theType()->builtinTypes())), getType(expr), "in variable initialization"}, {}, functionContext);
                     errored = true;
                 }
             }
 
             std::get<2>(*d) = true;
+        } else if (functionContext.size() == 0) {
+            UndefinedGlobalError().print(fileName, lineContext, ctx->variableName(), {ctx->variableName()->IDENTIFIER()->getText()}, {}, functionContext);
+            errored = true;
+            scopedDeclarations.rbegin()->pop_back();
         }
     }
 
@@ -200,10 +204,10 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
             auto it = std::find_if(declaredVariables.begin(), declaredVariables.end(), [&id] (Declaration const& d) { return std::get<0>(d) == id->getText(); });
             if (it == declaredVariables.end()) {
                 errored = true;
-                UndeclaredVariableError().print(fileName, lineContext, id->getSymbol(), {id->getText()}, {});
+                UndeclaredVariableError().print(fileName, lineContext, id->getSymbol(), {id->getText()}, {}, functionContext);
             } else {
                 if (!std::get<2>(*it)) {
-                    UndefinedVariableError().print(fileName, lineContext, id->getSymbol(), {id->getText()}, {});
+                    UndefinedVariableError().print(fileName, lineContext, id->getSymbol(), {id->getText()}, {}, functionContext);
                     errored = true;
                     type = toType(std::get<1>(*it)->builtinTypes());
                 } else {
@@ -222,7 +226,7 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
                         if (d > std::numeric_limits<float>::max() || d < std::numeric_limits<float>::min()) return ExprType::F64;
                         else return ExprType::F32;
                     } catch (std::out_of_range& oor) {
-                        LiteralOverflowError().print(fileName, lineContext, ctx, {val, "f64"}, {});
+                        LiteralOverflowError().print(fileName, lineContext, ctx, {val, "f64"}, {}, functionContext);
                         errored = true;
                         return ExprType::VOID;
                     }
@@ -235,7 +239,7 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
                         else if (i <= std::numeric_limits<uint32_t>::max() && i >= std::numeric_limits<uint32_t>::min()) return ExprType::UI32;
                         else return ExprType::UI64;
                     } catch (std::out_of_range& oor) {
-                        LiteralOverflowError().print(fileName, lineContext, ctx, {val, "ui64"}, {});
+                        LiteralOverflowError().print(fileName, lineContext, ctx, {val, "ui64"}, {}, functionContext);
                         errored = true;
                         return ExprType::VOID;
                     }
@@ -260,17 +264,17 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
 
             if (unexpr->getText() == "~") {
                 if (expr == ExprType::BOOL || expr == ExprType::CHR || expr == ExprType::STR) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an integral type", "`"+getType(expr)+"`"}, {});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an integral type", "`"+getType(expr)+"`"}, {}, functionContext);
                     errored = true;
                 } else if (expr == ExprType::F32 || expr == ExprType::F64) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an integral type", "`"+getType(expr)+"`"}, {"casting to an integral type"});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an integral type", "`"+getType(expr)+"`"}, {"casting to an integral type"}, functionContext);
                     errored = true;
                 } else {
                     type = expr;
                 }
             } else if (unexpr->getText() == "!") {
                 if (expr != ExprType::BOOL) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"`bool` type", "`"+getType(expr)+"`"}, {"`true`", "`false`"});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"`bool` type", "`"+getType(expr)+"`"}, {"`true`", "`false`"}, functionContext);
                     errored = true;
                 } else
                     type = ExprType::BOOL;
@@ -278,7 +282,7 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
                 if (expr == ExprType::F32 || expr == ExprType::F64) {
                     type = expr;
                 } else if (expr == ExprType::STR || expr == ExprType::CHR || expr == ExprType::BOOL) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`"+getType(expr)+"`"}, {});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`"+getType(expr)+"`"}, {}, functionContext);
                     errored = true;
                 } else if (expr == ExprType::UI8) {
                     type = ExprType::I8;
@@ -295,7 +299,7 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
                 if (expr == ExprType::F32 || expr == ExprType::F64) {
                     type = expr;
                 } else if (expr == ExprType::BOOL || expr == ExprType::CHR || expr == ExprType::STR) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`"+getType(expr)+"`"}, {});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`"+getType(expr)+"`"}, {}, functionContext);
                     errored = true;
                 } else if (expr == ExprType::UI8) {
                     type = ExprType::I8;
@@ -320,25 +324,25 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
             if (binexpr->getText() == "*" || binexpr->getText() == "/" || binexpr->getText() == "+" || binexpr->getText() == "-") {
                 if (expr0 == ExprType::CHR || expr0 == ExprType::BOOL) {
                     if (binexpr->getText() == "+")
-                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic or `str` type", "`"+getType(expr0)+"`"}, {});
+                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic or `str` type", "`"+getType(expr0)+"`"}, {}, functionContext);
                     else
-                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`"+getType(expr0)+"`"}, {});
+                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`"+getType(expr0)+"`"}, {}, functionContext);
                     errored = true;
                 } else if (expr1 == ExprType::CHR || expr1 == ExprType::BOOL) {
                     if (binexpr->getText() == "+")
-                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an arithmetic or `str` type", "`"+getType(expr1)+"`"}, {});
+                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an arithmetic or `str` type", "`"+getType(expr1)+"`"}, {}, functionContext);
                     else
-                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an arithmetic type", "`"+getType(expr1)+"`"}, {});
+                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an arithmetic type", "`"+getType(expr1)+"`"}, {}, functionContext);
                     errored = true;
                 } else if (expr0 == ExprType::STR && binexpr->getText() != "+") {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`str`"}, {"casting"});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an arithmetic type", "`str`"}, {"casting"}, functionContext);
                     errored = true;
                 } else if (expr1 == ExprType::STR && binexpr->getText() != "+") {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an arithmetic type", "`str`"}, {"casting"});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an arithmetic type", "`str`"}, {"casting"}, functionContext);
                     errored = true;
                 } else {
                     if (expr0 != expr1) {
-                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"` type", "`"+getType(expr1)+"`"}, {"casting"});
+                        ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"` type", "`"+getType(expr1)+"`"}, {"casting"}, functionContext);
                         errored = true;
                     } else {
                         type = expr0;
@@ -346,46 +350,46 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
                 }
             } else if (binexpr->getText() == ">" || binexpr->getText() == ">=" || binexpr->getText() == "<" || binexpr->getText() == "<=") {
                 if (expr0 == ExprType::BOOL || expr0 == ExprType::STR) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an ordered type", "`"+getType(expr0)+"`"}, {});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an ordered type", "`"+getType(expr0)+"`"}, {}, functionContext);
                     errored = true;
                 } else if (expr1 == ExprType::BOOL || expr1 == ExprType::STR) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an ordered type", "`"+getType(expr1)+"`"}, {});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an ordered type", "`"+getType(expr1)+"`"}, {}, functionContext);
                     errored = true;
                 } else if (expr0 != expr1) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"` type", "`"+getType(expr1)+"`"}, {"casting"});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"` type", "`"+getType(expr1)+"`"}, {"casting"}, functionContext);
                     errored = true;
                 } else {
                     type = ExprType::BOOL;
                 }
             } else if (binexpr->getText() == "==" || binexpr->getText() == "!=") {
                 if (expr0 != expr1) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"`", "`"+getType(expr1)+"`"}, {});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"`", "`"+getType(expr1)+"`"}, {}, functionContext);
                     errored = true;
                 } else if ((expr0 == ExprType::F32 && expr1 == ExprType::F32) || (expr0 == ExprType::F64 && expr1 == ExprType::F64)) {
-                    FloatingPointWarning().print(fileName, lineContext, ctx, {}, {});
+                    FloatingPointWarning().print(fileName, lineContext, ctx, {}, {}, functionContext);
                     type = ExprType::BOOL;
                 } else {
                     type = ExprType::BOOL;
                 }
             } else if (binexpr->getText() == "|" || binexpr->getText() == "&" || binexpr->getText() == "^") {
                 if (expr0 == ExprType::CHR || expr0 == ExprType::BOOL || expr0 == ExprType::STR) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an integral type", "`"+getType(expr0)+"`"}, {});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"an integral type", "`"+getType(expr0)+"`"}, {}, functionContext);
                     errored = true;
                 } else if (expr1 == ExprType::CHR || expr1 == ExprType::BOOL || expr1 == ExprType::STR) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an integral type", "`"+getType(expr1)+"`"}, {});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"an integral type", "`"+getType(expr1)+"`"}, {}, functionContext);
                     errored = true;
                 } else if (expr0 != expr1) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"` type", "`"+getType(expr1)+"`"}, {});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`"+getType(expr0)+"` type", "`"+getType(expr1)+"`"}, {}, functionContext);
                     errored = true;
                 } else {
                     type = expr0;
                 }
             } else if (binexpr->getText() == "&&" || binexpr->getText() == "||") {
                 if (expr0 != ExprType::BOOL) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"`bool` type", "`"+getType(expr0)+"`"}, {});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[0], {"`bool` type", "`"+getType(expr0)+"`"}, {}, functionContext);
                     errored = true;
                 } else if (expr1 != ExprType::BOOL) {
-                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`bool` type", "`"+getType(expr1)+"`"}, {});
+                    ExpressionTypeError().print(fileName, lineContext, ctx->expression()[1], {"`bool` type", "`"+getType(expr1)+"`"}, {}, functionContext);
                     errored = true;
                 } else {
                     type = ExprType::BOOL;
@@ -395,6 +399,277 @@ antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* c
     }
 
     return type;
+}
+
+antlrcpp::Any ANTLRVisitor::visitFunctionDeclaration(SnowStarParser::FunctionDeclarationContext* ctx) {
+    #ifndef NDEBUG
+        std::clog << termcolor::green << "   [i]   | Visiting a function declaration: " << ctx->functionHeader()->getText() << termcolor::reset << std::endl;
+    #endif
+
+    scopedAliases.push_back({});
+    scopedDeclarations.push_back({});
+
+    auto functionDef = visitFunctionHeader(ctx->functionHeader()).as<Function>();
+    functions.push_back(functionDef);
+
+    functionContext.emplace_back(functionDef, std::make_pair(ctx->getStart()->getLine(), ctx->getStart()->getCharPositionInLine()));
+
+    visitBasicBlockDeclaration(ctx->basicBlockDeclaration());
+
+    scopedAliases.pop_back();
+    scopedDeclarations.pop_back();
+
+    functionContext.pop_back();
+
+    return antlrcpp::Any();
+}
+
+antlrcpp::Any ANTLRVisitor::visitFunctionHeader(SnowStarParser::FunctionHeaderContext* ctx) {
+    lineContext = ctx;
+
+    std::vector<Alias> definedAliases{};
+    for (auto const& scope : scopedAliases) {
+        for (auto const& alias : scope) {
+            definedAliases.push_back(alias);
+        }
+    }
+
+    SnowStarParser::TheTypeContext* returnType{ctx->theType()};
+    if (ctx->theType()->IDENTIFIER()) {
+        auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&returnType] (Alias const& alias) { return std::get<0>(alias) == returnType->IDENTIFIER()->getText(); });
+        if (it1 == definedAliases.end()) {
+            InvalidDeclaringTypeError().print(fileName, lineContext, returnType->IDENTIFIER()->getSymbol(), {returnType->getText()}, {}, functionContext);
+            errored = true;
+        } else
+            returnType = it1->second;
+    }
+
+    std::vector<SnowStarParser::TheTypeContext*> functionParametersTypes{ctx->functionParamsTypes()->theType()};
+    
+    auto functionParams = visitFunctionParams(ctx->functionParams()).as<std::vector<Declaration>>();
+
+    if (functionParametersTypes.size() > functionParams.size()) {
+        int i{0};
+        for (;i < functionParams.size();++i) {
+            auto type{functionParametersTypes[i]};
+
+            if (type->IDENTIFIER()) {
+                auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&type] (Alias const& alias) { return std::get<0>(alias) == type->IDENTIFIER()->getText(); });
+                if (it1 == definedAliases.end()) {
+                    InvalidDeclaringTypeError().print(fileName, lineContext, type->IDENTIFIER()->getSymbol(), {type->getText()}, {}, functionContext);
+                    errored = true;
+                    continue;
+                } else
+                    type = it1->second;
+            }
+            auto decl_type{std::get<1>(functionParams[i])};
+
+            ExprType e1 = toType(type->builtinTypes());
+            ExprType e2 = ExprType::VOID;
+            if (decl_type) {
+                if (decl_type->IDENTIFIER()) {
+                    auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&decl_type] (Alias const& alias) { return std::get<0>(alias) == decl_type->IDENTIFIER()->getText(); });
+                    if (it1 == definedAliases.end()) {
+                        InvalidDeclaringTypeError().print(fileName, lineContext, decl_type->IDENTIFIER()->getSymbol(), {decl_type->getText()}, {}, functionContext);
+                        errored = true;
+                        continue;
+                    } else
+                        e2 = toType(it1->second->builtinTypes());
+                } else
+                    e2 = toType(decl_type->builtinTypes());
+
+                if (e1 != e2) {
+                    ParameterTypeMismatchError().print(fileName, lineContext, decl_type, {getType(e1), getType(e2)}, {}, functionContext);
+                    errored = true;
+                }
+            } else
+                continue;
+        }
+        for (;i < functionParametersTypes.size();++i) {
+            if (functionParametersTypes[i]->IDENTIFIER()) {
+                auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&functionParametersTypes, i] (Alias const& alias) { return std::get<0>(alias) == functionParametersTypes[i]->IDENTIFIER()->getText(); });
+                if (it1 == definedAliases.end()) {
+                    InvalidDeclaringTypeError().print(fileName, lineContext, functionParametersTypes[i]->IDENTIFIER()->getSymbol(), {functionParametersTypes[i]->getText()}, {}, functionContext);
+                } else
+                    MissingParameterError().print(fileName, lineContext, ctx->functionParams()->RPAREN()->getSymbol(), {getType(toType(it1->second->builtinTypes()))}, {}, functionContext);
+            } else
+                MissingParameterError().print(fileName, lineContext, ctx->functionParams()->RPAREN()->getSymbol(), {getType(toType(functionParametersTypes[i]->builtinTypes()))}, {}, functionContext);
+            errored = true;
+        }
+    } else if (functionParametersTypes.size() < functionParams.size()) {
+        int i{0};
+        for (;i < functionParametersTypes.size();++i) {
+            auto type{functionParametersTypes[i]};
+
+            if (type->IDENTIFIER()) {
+                auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&type] (Alias const& alias) { return std::get<0>(alias) == type->IDENTIFIER()->getText(); });
+                if (it1 == definedAliases.end()) {
+                    InvalidDeclaringTypeError().print(fileName, lineContext, type->IDENTIFIER()->getSymbol(), {type->getText()}, {}, functionContext);
+                    errored = true;
+                    continue;
+                } else
+                    type = it1->second;
+            }
+            auto decl_type{std::get<1>(functionParams[i])};
+
+            ExprType e1 = toType(type->builtinTypes());
+            ExprType e2 = ExprType::VOID;
+            if (decl_type) {
+                if (decl_type->IDENTIFIER()) {
+                    auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&decl_type] (Alias const& alias) { return std::get<0>(alias) == decl_type->IDENTIFIER()->getText(); });
+                    if (it1 == definedAliases.end()) {
+                        InvalidDeclaringTypeError().print(fileName, lineContext, decl_type->IDENTIFIER()->getSymbol(), {decl_type->getText()}, {}, functionContext);
+                        errored = true;
+                        continue;
+                    } else
+                        e2 = toType(it1->second->builtinTypes());
+                } else
+                    e2 = toType(decl_type->builtinTypes());
+
+                if (e1 != e2) {
+                    ParameterTypeMismatchError().print(fileName, lineContext, decl_type, {getType(e1), getType(e2)}, {}, functionContext);
+                    errored = true;
+                }
+            } else
+                continue;
+        }
+        for (;i < functionParams.size();++i) {
+            if (std::get<1>(functionParams[i])->IDENTIFIER()) {
+                auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&functionParams, i] (Alias const& alias) { return std::get<0>(alias) == std::get<1>(functionParams[i])->IDENTIFIER()->getText(); });
+                if (it1 == definedAliases.end()) {
+                    InvalidDeclaringTypeError().print(fileName, lineContext, std::get<1>(functionParams[i])->IDENTIFIER()->getSymbol(), {std::get<1>(functionParams[i])->getText()}, {}, functionContext);
+                } else
+                    MissingParameterTypeError().print(fileName, lineContext, ctx->functionParams()->RPAREN()->getSymbol(), {getType(toType(it1->second->builtinTypes()))}, {}, functionContext);
+            } else
+                MissingParameterTypeError().print(fileName, lineContext, ctx->functionParams()->RPAREN()->getSymbol(), {getType(toType(std::get<1>(functionParams[i])->builtinTypes()))}, {}, functionContext);
+            errored = true;
+        }
+    } else {
+        for (int i{0};i < functionParametersTypes.size();++i) {
+            auto type{functionParametersTypes[i]};
+
+            if (type->IDENTIFIER()) {
+                auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&type] (Alias const& alias) { return std::get<0>(alias) == type->IDENTIFIER()->getText(); });
+                if (it1 == definedAliases.end()) {
+                    InvalidDeclaringTypeError().print(fileName, lineContext, type->IDENTIFIER()->getSymbol(), {type->getText()}, {}, functionContext);
+                    errored = true;
+                    continue;
+                } else
+                    type = it1->second;
+            }
+            auto decl_type{std::get<1>(functionParams[i])};
+
+            ExprType e1 = toType(type->builtinTypes());
+            ExprType e2 = ExprType::VOID;
+            if (decl_type) {
+                if (decl_type->IDENTIFIER()) {
+                    auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&decl_type] (Alias const& alias) { return std::get<0>(alias) == decl_type->IDENTIFIER()->getText(); });
+                    if (it1 == definedAliases.end()) {
+                        InvalidDeclaringTypeError().print(fileName, lineContext, decl_type->IDENTIFIER()->getSymbol(), {decl_type->getText()}, {}, functionContext);
+                        errored = true;
+                        continue;
+                    } else
+                        e2 = toType(it1->second->builtinTypes());
+                } else
+                    e2 = toType(decl_type->builtinTypes());
+
+                if (e1 != e2) {
+                    ParameterTypeMismatchError().print(fileName, lineContext, decl_type, {getType(e1), getType(e2)}, {}, functionContext);
+                    errored = true;
+                }
+            } else
+                continue;
+        }
+    }
+
+    return std::make_tuple(ctx->functionName()->getText(), returnType, functionParametersTypes);
+}
+
+antlrcpp::Any ANTLRVisitor::visitFunctionParams(SnowStarParser::FunctionParamsContext* ctx) {
+    std::vector<Declaration> params{};
+
+    std::vector<Declaration> declaredVariables{};
+    for (auto const& scope : scopedDeclarations) {
+        for (auto const& decl : scope) {
+            declaredVariables.push_back(decl);
+        }
+    }
+
+    for (auto var : ctx->parameterDeclaration()) {
+        auto it = std::find_if(declaredVariables.begin(), declaredVariables.end(), [&var] (Declaration const& d) { return std::get<0>(d) == var->IDENTIFIER()->getText(); });
+        if (it != declaredVariables.end()) {
+            // redeclared variable
+            RedeclaredVariableError().print(fileName, lineContext, var->IDENTIFIER()->getSymbol(), {var->IDENTIFIER()->getText(), std::to_string(std::get<3>(*it).first), std::to_string(std::get<3>(*it).second+1)}, {"changing the name"}, functionContext);
+            errored = true;
+            params.emplace_back("", nullptr, false, std::make_pair(0, 0));
+        } else {
+            auto type = var->theType();
+
+            if (type->IDENTIFIER()) {
+                std::vector<Alias> definedAliases{};
+                for (auto const& scope : scopedAliases) {
+                    for (auto const& alias : scope) {
+                        definedAliases.push_back(alias);
+                    }
+                }
+
+                auto it1 = std::find_if(definedAliases.begin(), definedAliases.end(), [&type] (Alias const& alias) { return std::get<0>(alias) == type->IDENTIFIER()->getText(); });
+                if (it1 == definedAliases.end()) {
+                    InvalidDeclaringTypeError().print(fileName, lineContext, type->IDENTIFIER()->getSymbol(), {type->getText()}, {}, functionContext);
+                    errored = true;
+                    params.emplace_back("", nullptr, false, std::make_pair(0, 0));
+                } else {
+                    params.emplace_back(scopedDeclarations.rbegin()->emplace_back(var->IDENTIFIER()->getText(), it1->second, false, std::make_pair(var->IDENTIFIER()->getSymbol()->getLine(), var->IDENTIFIER()->getSymbol()->getCharPositionInLine())));
+                    type = it1->second;
+                }
+            } else
+                params.emplace_back(scopedDeclarations.rbegin()->emplace_back(var->IDENTIFIER()->getText(), var->theType(), true, std::make_pair(var->IDENTIFIER()->getSymbol()->getLine(), var->IDENTIFIER()->getSymbol()->getCharPositionInLine())));
+        }
+    }
+
+    return params;
+}
+
+antlrcpp::Any ANTLRVisitor::visitBasicBlockDeclaration(SnowStarParser::BasicBlockDeclarationContext* ctx) {
+    #ifndef NDEBUG
+        std::clog << termcolor::green << "   [i]   | Visiting a function block: {}" << termcolor::reset << std::endl;
+    #endif
+
+    visitChildren(ctx);
+
+    return antlrcpp::Any();
+}
+
+antlrcpp::Any ANTLRVisitor::visitReturnDeclaration(SnowStarParser::ReturnDeclarationContext* ctx) {
+    #ifndef NDEBUG
+        std::clog << termcolor::green << "   [i]   | Visiting a return statement: " << ctx->getText() << termcolor::reset << std::endl;
+    #endif
+
+    lineContext = ctx;
+
+    auto it = functionContext.rbegin();
+    if (it == functionContext.rend()) {
+        MisplacedStatementError().print(fileName, lineContext, ctx, {"return", "a function scope"}, {}, functionContext);
+        errored = true;
+    } else {
+        ExprType expr = ExprType::VOID;
+        if (ctx->expression())
+            expr = visitExpression(ctx->expression()).as<ExprType>();
+        ExprType functionReturn = ExprType::VOID;
+        Function f = it->first;
+        if (!std::get<1>(f)->IDENTIFIER()) {
+            functionReturn = toType(std::get<1>(f)->builtinTypes());
+            if (functionReturn != expr) {
+                if (ctx->expression())
+                    WrongTypedValueError().print(fileName, lineContext, ctx->expression(), {getType(functionReturn), getType(expr), "in return statement"}, {}, functionContext);
+                else
+                    WrongTypedValueError().print(fileName, lineContext, ctx, {getType(functionReturn), getType(expr), "in return statement"}, {}, functionContext);
+                errored = true;
+            }
+        }
+    }
+
+    return antlrcpp::Any();
 }
 
 /*
@@ -415,305 +690,5 @@ antlrcpp::Any ANTLRVisitor::visitBlock(SnowStarParser::BlockContext* ctx) {
     #endif
 
     visitChildren(ctx);
-    return antlrcpp::Any();
-}
-
-antlrcpp::Any ANTLRVisitor::visitExpression(SnowStarParser::ExpressionContext* ctx) {
-    #ifndef NDEBUG
-        std::clog << termcolor::green << "   [i]   | Visiting an expression..." << termcolor::reset << std::endl;
-        std::clog << termcolor::magenta << "   ...   | " << ctx->getText() << termcolor::reset << std::endl;
-    #endif
-
-    ExprType ret{ExprType::VOID};
-
-    auto getType = [] (ExprType const e) -> std::string {
-        switch (e) {
-            case ExprType::BOOL: return "bool";
-            case ExprType::CHAR: return "char";
-            case ExprType::INT8: return "int8";
-            case ExprType::INT16: return "int16";
-            case ExprType::INT32: return "int32";
-            case ExprType::INT64: return "int64";
-            case ExprType::REAL16: return "real16";
-            case ExprType::REAL32: return "real32";
-            case ExprType::REAL64: return "real64";
-            case ExprType::VOID: return "void";
-            default: return "";
-        }
-    };
-
-    if (ctx->bop) {
-        ExprType lhs = visitExpression(ctx->expression()[0]).as<ExprType>(),
-                 rhs = visitExpression(ctx->expression()[1]).as<ExprType>();
-
-        if (lhs != ExprType::VOID && rhs != ExprType::VOID) {
-            std::unordered_set<std::string> bool_op{"||", "&&", "==", "!=", "<=", ">=", "<", ">"},
-                                            integer_op{"|", "&", "^"},
-                                            int_real_op{"+", "-", "*", "/"};
-            if (bool_op.find(ctx->bop->getText()) != bool_op.end()) {
-                if (ctx->bop->getText() == "||" || ctx->bop->getText() == "&&") {
-                    if (lhs != ExprType::BOOL || rhs != ExprType::BOOL) {
-                        bool lhs_typed = lhs == ExprType::BOOL;
-                        errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?1:0], {"bool", getType(lhs_typed?rhs:lhs), "in expression"}));
-                    }
-                } else {
-                    if (ctx->bop->getText() == "==" || ctx->bop->getText() == "!=") {
-                        if ((lhs == ExprType::REAL16 || lhs == ExprType::REAL32 || lhs == ExprType::REAL64) && (rhs == ExprType::REAL16 || rhs == ExprType::REAL32 || rhs == ExprType::REAL64)) {
-                            errors.warns.push_back(FloatingPointWarning().from(file_name, current_stmt_context, ctx->bop, {}));
-                        } else if ((lhs == ExprType::CHAR) ^ (rhs == ExprType::CHAR)) {
-                            bool lhs_typed = lhs == ExprType::CHAR;
-                            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
-                        } else if ((lhs == ExprType::BOOL) ^ (rhs == ExprType::BOOL)) {
-                            bool lhs_typed = lhs == ExprType::BOOL;
-                            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
-                        } else if ((lhs == ExprType::INT8 || lhs == ExprType::INT16 || lhs == ExprType::INT32 || lhs == ExprType::INT64) ^ (rhs == ExprType::INT8 || rhs == ExprType::INT16 || rhs == ExprType::INT32 || rhs == ExprType::INT64)) {
-                            bool lhs_typed = (lhs == ExprType::INT8 || lhs == ExprType::INT16 || lhs == ExprType::INT32 || lhs == ExprType::INT64);
-                            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
-                        } else if ((lhs == ExprType::REAL16 || lhs == ExprType::REAL32 || lhs == ExprType::REAL64) ^ (rhs == ExprType::REAL16 || rhs == ExprType::REAL32 || rhs == ExprType::REAL64)) {
-                            bool lhs_typed = (lhs == ExprType::REAL16 || lhs == ExprType::REAL32 || lhs == ExprType::REAL64);
-                            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
-                        }
-                    } else {
-                        if (lhs == ExprType::BOOL || rhs == ExprType::BOOL) {
-                            bool lhs_typed = lhs == ExprType::BOOL;
-                            errors.errs.push_back(InvalidComparisonTypeError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?lhs:rhs)}));
-                        } else if ((lhs == ExprType::CHAR) ^ (rhs == ExprType::CHAR)) {
-                            bool lhs_typed = lhs == ExprType::CHAR;
-                            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
-                        } else if ((lhs == ExprType::INT8 || lhs == ExprType::INT16 || lhs == ExprType::INT32 || lhs == ExprType::INT64) ^ (rhs == ExprType::INT8 || rhs == ExprType::INT16 || rhs == ExprType::INT32 || rhs == ExprType::INT64)) {
-                            bool lhs_typed = (lhs == ExprType::INT8 || lhs == ExprType::INT16 || lhs == ExprType::INT32 || lhs == ExprType::INT64);
-                            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
-                        } else if ((lhs == ExprType::REAL16 || lhs == ExprType::REAL32 || lhs == ExprType::REAL64) ^ (rhs == ExprType::REAL16 || rhs == ExprType::REAL32 || rhs == ExprType::REAL64)) {
-                            bool lhs_typed = (lhs == ExprType::REAL16 || lhs == ExprType::REAL32 || lhs == ExprType::REAL64);
-                            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[lhs_typed?0:1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
-                        }
-                    }
-                }
-                ret = ExprType::BOOL;
-            }
-            if (integer_op.find(ctx->bop->getText()) != integer_op.end()) {
-                if ((lhs == ExprType::INT8 || lhs == ExprType::INT16 || lhs == ExprType::INT32 || lhs == ExprType::INT64) && (rhs == ExprType::INT8 || rhs == ExprType::INT16 || rhs == ExprType::INT32 || rhs == ExprType::INT64)) {
-                    if (lhs == ExprType::INT64 || rhs == ExprType::INT64) {
-                        ret = ExprType::INT64;
-                    } else if (lhs == ExprType::INT32 || rhs == ExprType::INT32) {
-                        ret = ExprType::INT32;
-                    } else if (lhs == ExprType::INT16 || rhs == ExprType::INT16) {
-                        ret = ExprType::INT16;
-                    } else {
-                        ret = ExprType::INT8;
-                    }
-                } else {
-                    bool lhs_typed = (lhs != ExprType::INT8 && lhs != ExprType::INT16 && lhs != ExprType::INT32 && lhs != ExprType::INT64);
-                    errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, lhs_typed?ctx->expression()[0]:ctx->expression()[1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
-                }
-            }
-            if (int_real_op.find(ctx->bop->getText()) != int_real_op.end()) {
-                if ((lhs == ExprType::REAL64 || lhs == ExprType::REAL32 || lhs == ExprType::REAL16) && (rhs == ExprType::REAL64 || rhs == ExprType::REAL32 || rhs == ExprType::REAL16)) {
-                    if (lhs == ExprType::REAL64 || rhs == ExprType::REAL64)
-                        ret = ExprType::REAL64;
-                    else if (lhs == ExprType::REAL32 || rhs == ExprType::REAL32)
-                        ret = ExprType::REAL32;
-                    else
-                        ret = ExprType::REAL16;
-                } else if ((lhs == ExprType::INT64 || lhs == ExprType::INT32 || lhs == ExprType::INT16 || lhs == ExprType::INT8) && (rhs == ExprType::INT64 || rhs == ExprType::INT32 || rhs == ExprType::INT16 || rhs == ExprType::INT8)) {
-                    if (lhs == ExprType::INT64 || rhs == ExprType::INT64) {
-                        ret = ExprType::INT64;
-                    } else if (lhs == ExprType::INT32 || rhs == ExprType::INT32) {
-                        ret = ExprType::INT32;
-                    } else if (lhs == ExprType::INT16 || rhs == ExprType::INT16) {
-                        ret = ExprType::INT16;
-                    } else {
-                        ret = ExprType::INT8;
-                    }
-                } else {
-                    bool lhs_typed = (lhs != ExprType::REAL64 && lhs != ExprType::REAL32 && lhs != ExprType::REAL16 && lhs != ExprType::INT64 && lhs != ExprType::INT32 && lhs != ExprType::INT16 && lhs != ExprType::INT8);
-                    errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, lhs_typed?ctx->expression()[0]:ctx->expression()[1], {getType(lhs_typed?rhs:lhs), getType(lhs_typed?lhs:rhs), "in expression"}));
-                }
-            }
-        }
-    } else if (ctx->uop) {
-        ExprType expr = visitExpression(ctx->expression()[0]).as<ExprType>();
-
-        if (expr != ExprType::VOID) {
-            if (ctx->uop->getText() == "~") {
-                if (expr != ExprType::INT64 && expr != ExprType::INT32 && expr != ExprType::INT16 && expr != ExprType::INT8) {
-                    errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[0], {"int32", getType(expr), "in expression"}));
-                } else {
-                    ret = expr;
-                }
-            } else if (ctx->uop->getText() == "+" || ctx->uop->getText() == "-") {
-                if (expr != ExprType::INT64 && expr != ExprType::INT32 && expr != ExprType::INT16 && expr != ExprType::INT8 && expr != ExprType::REAL16 && expr != ExprType::REAL32 && expr != ExprType::REAL64) {
-                    errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[0], {"int32", getType(expr), "in expression"}));
-                } else {
-                    ret = expr;
-                }
-            } else {
-                if (expr != ExprType::BOOL) {
-                    errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression()[0], {"bool", getType(expr), "in expression"}));
-                }
-                ret = ExprType::BOOL;
-            }
-        }
-    } else {
-        if (ctx->literal()) {
-            auto findType = [] (SnowStarParser::LiteralContext* ct) -> ExprType {
-                std::string val{ct->getText()};
-                if (ct->BOOL_LITERAL()) return ExprType::BOOL;
-                if (ct->CHAR_LITERAL()) return ExprType::CHAR;
-                if (ct->FLOAT_LITERAL()) {
-                    double d = std::stod(val);
-                    if (d > std::numeric_limits<float>::max() || d < std::numeric_limits<float>::min()) return ExprType::REAL64;
-                    else if (d < std::numeric_limits<float>::max()/2) return ExprType::REAL16;
-                    else return ExprType::REAL32;
-                }
-                if (ct->DECIMAL_LITERAL()) {
-                    int64_t i = std::stoll(val);
-                    if (i < std::numeric_limits<int8_t>::max() && i > std::numeric_limits<int8_t>::min()) return ExprType::INT8;
-                    else if (i < std::numeric_limits<int16_t>::max() && i > std::numeric_limits<int16_t>::min()) return ExprType::INT16;
-                    else if (i < std::numeric_limits<int32_t>::max() && i > std::numeric_limits<int32_t>::min()) return ExprType::INT32;
-                    else return ExprType::INT32;
-                }
-                return ExprType::VOID;
-            };
-            ret = findType(ctx->literal());
-        } else if (ctx->IDENTIFIER()) {
-            auto it = std::find_if(declared.begin(), declared.end(), [&ctx] (Var const& v) { return ctx->IDENTIFIER()->getText() == std::get<0>(v); });
-            if (it == declared.end()) {
-                errors.errs.push_back(UndeclaredVariableError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), {ctx->IDENTIFIER()->getSymbol()->getText()}));
-            } else {
-                if (!std::get<2>(*it)) {
-                    errors.errs.push_back(UndefinedVariableError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), {ctx->IDENTIFIER()->getText()}));
-                } else {
-                    auto type = std::get<1>(*it);
-                    if (type->INTEGER16() || type->INTEGER32() || type->INTEGER64() || type->INTEGER8()) {
-                        if (type->INTEGER8())
-                            ret = ExprType::INT8;
-                        else if (type->INTEGER16())
-                            ret = ExprType::INT16;
-                        else if (type->INTEGER32())
-                            ret = ExprType::INT32;
-                        else
-                            ret = ExprType::INT64;
-                    } else if (type->REAL16() || type->REAL32() || type->REAL64()) {
-                        if (type->REAL16()) {
-                            ret = ExprType::REAL16;
-                        } else if (type->REAL32()) {
-                            ret = ExprType::REAL32;
-                        } else
-                            ret = ExprType::REAL64;
-                    } else if (type->CHAR()) {
-                        ret = ExprType::CHAR;
-                    } else if (type->BOOLEAN()) {
-                        ret = ExprType::BOOL;
-                    }
-                }
-            }
-        } else {
-            ret = visitExpression(ctx->expression()[0]).as<ExprType>();
-            if (ret == ExprType::VOID)
-                errors.errs.push_back(MissingTokenError().from(file_name, current_stmt_context, ctx->lparen, {"expression", ctx->lparen->getText()}));
-        }
-    }
-    
-    return ret;
-}
-
-antlrcpp::Any ANTLRVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
-    #ifndef NDEBUG
-        std::clog << termcolor::green << "   [i]   | Visiting a declaration..." << termcolor::reset << std::endl;
-    #endif
-
-    if (!ctx->IDENTIFIER()) return antlrcpp::Any();
-
-    if (ctx->type()->VOID()) {
-        errors.errs.push_back(InvalidDeclaringTypeError().from(file_name, current_stmt_context, ctx->type()->VOID()->getSymbol(), {"void"}));
-        return ctx->type();
-    }
-    
-    auto it = std::find_if(declared.begin(), declared.end(), [&ctx] (Var const& var) { return std::get<0>(var) == ctx->IDENTIFIER()->getText(); });
-    #ifndef NDEBUG
-        std::clog << termcolor::green << std::boolalpha << "   [i]   | >> " << ctx->IDENTIFIER()->getText() << " is already declared: " << (it != declared.end()) << std::noboolalpha << termcolor::reset << std::endl;
-    #endif
-    if (it != declared.end()) {
-        #ifndef NDEBUG
-            std::clog << termcolor::magenta << "   ...   | Variable " << ctx->IDENTIFIER()->getText() << " redeclared." << termcolor::reset << std::endl;
-        #endif
-        errors.errs.push_back(RedeclaredVariableError().from(file_name, current_stmt_context, ctx->IDENTIFIER()->getSymbol(), {ctx->IDENTIFIER()->getText(), std::to_string(std::get<3>(*it).first), std::to_string(std::get<3>(*it).second+1)}));
-        return nullptr;
-    }
-
-    if (ctx->type()->IDENTIFIER()) {
-        auto it1 = std::find_if(aliases.begin(), aliases.end(), [&ctx] (Alias const& alias) { return std::get<0>(alias) == ctx->type()->IDENTIFIER()->getText(); });
-        if (it1 == aliases.end()) {
-            errors.errs.push_back(InvalidDeclaringTypeError().from(file_name, current_stmt_context, ctx->type()->IDENTIFIER()->getSymbol(), {ctx->type()->getText()}));
-            return nullptr;
-        }
-
-        declared.push_back(std::make_tuple(ctx->IDENTIFIER()->getText(), it1->second, false, std::make_pair(ctx->IDENTIFIER()->getSymbol()->getLine(), ctx->IDENTIFIER()->getSymbol()->getCharPositionInLine())));
-        return it1->second;
-    } else
-        declared.push_back(std::make_tuple(ctx->IDENTIFIER()->getText(), ctx->type(), false, std::make_pair(ctx->IDENTIFIER()->getSymbol()->getLine(), ctx->IDENTIFIER()->getSymbol()->getCharPositionInLine())));
-
-    return ctx->type();
-}
-
-antlrcpp::Any ANTLRVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
-    #ifndef NDEBUG
-        std::clog << termcolor::green << "   [i]   | Visiting a definition..." << termcolor::reset << std::endl;
-    #endif
-
-    antlrcpp::Any t = visitDeclare(ctx->declare());
-
-    if (!t.is<Decl>()) return antlrcpp::Any();
-    Decl type = t.as<Decl>();
-    if (type->VOID()) return antlrcpp::Any();
-
-    auto getType = [] (ExprType const e) -> std::string {
-        switch (e) {
-            case ExprType::BOOL: return "bool";
-            case ExprType::CHAR: return "char";
-            case ExprType::INT8: return "int8";
-            case ExprType::INT16: return "int16";
-            case ExprType::INT32: return "int32";
-            case ExprType::INT64: return "int64";
-            case ExprType::REAL16: return "real16";
-            case ExprType::REAL32: return "real32";
-            case ExprType::REAL64: return "real64";
-            case ExprType::VOID: return "void";
-            default: return "";
-        }
-    };
-
-    ExprType res = visitExpression(ctx->expression()).as<ExprType>();
-    if (res == ExprType::VOID) return antlrcpp::Any();
-
-    if (type->BOOLEAN()) {
-        if (res != ExprType::BOOL) {
-            // type mismatch
-            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), {"bool", getType(res), "in variable declaration"}));
-        }
-    } else if (type->CHAR()) {
-        if (res != ExprType::CHAR) {
-            // type mismatch
-            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), {"char", getType(res), "in variable declaration"}));
-        }
-    } else if (type->INTEGER8() || type->INTEGER16() || type->INTEGER32() || type->INTEGER64()) {
-        if (res != ExprType::INT8 && res != ExprType::INT16 && res != ExprType::INT32 && res != ExprType::INT64 && res != ExprType::REAL16 && res != ExprType::REAL32 && res != ExprType::REAL64) {
-            // type mismatch
-            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), {[&type]() -> std::string { return type->INTEGER8()?"int8":type->INTEGER16()?"int16":type->INTEGER32()?"int32":"int64"; }(), getType(res), "in variable declaration"}));
-        } else if (res == ExprType::REAL16 || res == ExprType::REAL32 || res == ExprType::REAL64) {
-            // warning narrowing conversion
-            errors.warns.push_back(ImplicitCastWarning().from(file_name, current_stmt_context, ctx->expression(), {getType(res), [&type]() -> std::string { return type->INTEGER8()?"int8":type->INTEGER16()?"int16":type->INTEGER32()?"int32":"int64"; }()}));
-        }
-    } else if (type->REAL16() || type->REAL32() || type->REAL64()) {
-        if (res != ExprType::INT8 && res != ExprType::INT16 && res != ExprType::INT32 && res != ExprType::INT64 && res != ExprType::REAL16 && res != ExprType::REAL32 && res != ExprType::REAL64) {
-            errors.errs.push_back(WrongTypedValueError().from(file_name, current_stmt_context, ctx->expression(), {[&type]() -> std::string { return type->REAL32()?"real32":"real64"; }(), getType(res), "in variable declaration"}));
-        }
-    }
-
-    auto const& it = std::find_if(declared.begin(), declared.end(), [&ctx] (Var const& v) { return std::get<0>(v) == ctx->declare()->IDENTIFIER()->getText(); });
-    auto& b = std::get<2>(*it);
-    b = true;
-
     return antlrcpp::Any();
 }*/

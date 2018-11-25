@@ -54,10 +54,27 @@ public:
     LLVMVisitor(llvm::Module&);
 
     virtual antlrcpp::Any visitCompilationUnit(SnowStarParser::CompilationUnitContext*) override;
+        // returns antlrcpp::Any
     virtual antlrcpp::Any visitWithDeclaration(SnowStarParser::WithDeclarationContext*) override;
+        // returns antlrcpp::Any
     virtual antlrcpp::Any visitVariableDeclaration(SnowStarParser::VariableDeclarationContext*) override;
+        // returns antlrcpp::Any
     virtual antlrcpp::Any visitVariableInitializer(SnowStarParser::VariableInitializerContext*) override;
+        // returns antlrcpp::Any
     virtual antlrcpp::Any visitExpression(SnowStarParser::ExpressionContext*) override;
+        // returns ExprType
+    virtual antlrcpp::Any visitFunctionDeclaration(SnowStarParser::FunctionDeclarationContext*) override;
+        // returns antlrcpp::Any
+    virtual antlrcpp::Any visitFunctionHeader(SnowStarParser::FunctionHeaderContext*) override;
+        // returns llvm::Function*
+    virtual antlrcpp::Any visitFunctionParamsTypes(SnowStarParser::FunctionParamsTypesContext*) override;
+        // returns std::vector<llvm::Type*>
+    virtual antlrcpp::Any visitFunctionParams(SnowStarParser::FunctionParamsContext*) override;
+        // returns std::vector<std::pair<llvm::Type*, std::string>>
+    virtual antlrcpp::Any visitBasicBlockDeclaration(SnowStarParser::BasicBlockDeclarationContext*) override;
+        // returns llvm::Basicblock*
+    virtual antlrcpp::Any visitReturnDeclaration(SnowStarParser::ReturnDeclarationContext*) override;
+        // returns antlrcpp::Any
 };
 
 #endif

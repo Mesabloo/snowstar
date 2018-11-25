@@ -26,7 +26,7 @@
 
 #include <llvm/Support/raw_ostream.h>
 
- LLVMVisitor::LLVMVisitor(llvm::Module& mod) : module{mod} {
+LLVMVisitor::LLVMVisitor(llvm::Module& mod) : module{mod} {
     llvmTypes = {
         {"bool", llvm::Type::getInt1Ty(module.getContext())},
         {"chr", llvm::Type::getInt8Ty(module.getContext())},
@@ -40,7 +40,8 @@
         {"ui64", llvm::Type::getInt64Ty(module.getContext())},
         {"f32", llvm::Type::getFloatTy(module.getContext())},
         {"f64", llvm::Type::getDoubleTy(module.getContext())},
-        {"str", llvm::ArrayType::get(llvm::Type::getInt8Ty(module.getContext()), 0)}
+        {"str", llvm::ArrayType::get(llvm::Type::getInt8Ty(module.getContext()), 0)},
+        {"void", llvm::Type::getVoidTy(module.getContext())}
     };
 }
 
@@ -51,7 +52,7 @@ antlrcpp::Any LLVMVisitor::visitCompilationUnit(SnowStarParser::CompilationUnitC
 
     curBlock = llvm::BasicBlock::Create(module.getContext());
 
-    llvm::FunctionType* type = llvm::FunctionType::get(llvm::Type::getVoidTy(module.getContext()), false);
+    llvm::FunctionType* type = llvm::FunctionType::get(llvmTypes["void"], false);
     llvm::Function* global_init = llvm::Function::Create(type, llvm::Function::InternalLinkage, "__ss_GLOBAL_var_init", module);
     global_init->setSection(".text.startup");
     llvm::BasicBlock* global_block = llvm::BasicBlock::Create(module.getContext(), "entry", global_init);
@@ -104,7 +105,7 @@ antlrcpp::Any LLVMVisitor::visitVariableDeclaration(SnowStarParser::VariableDecl
         value = gb;
     } else {
         // local variable
-        llvm::AllocaInst* inst = new llvm::AllocaInst(type, 0, ctx->variableName()->IDENTIFIER()->getText(), curBlock);
+        llvm::AllocaInst* inst = new llvm::AllocaInst(std::get<1>(val), 0, ctx->variableName()->IDENTIFIER()->getText(), curBlock);
         if (ctx->variableInitializer()) 
             new llvm::StoreInst(value, inst, curBlock);
         value = inst;
@@ -360,158 +361,67 @@ antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ct
     return std::make_tuple(inst, type, isSigned);
 }
 
-/*
-antlrcpp::Any LLVMVisitor::visitDeclare(SnowStarParser::DeclareContext* ctx) {
-    llvm::AllocaInst* val = new llvm::AllocaInst(
-        llvm_types[ctx->type()->getText()], 
-        0,
-        ctx->IDENTIFIER()->getText(), 
-        cur_block
-    );
+antlrcpp::Any LLVMVisitor::visitFunctionDeclaration(SnowStarParser::FunctionDeclarationContext* ctx) {
+    auto function = visitFunctionHeader(ctx->functionHeader()).as<llvm::Function*>();
 
-    #ifndef NDEBUG
-        std::clog << termcolor::blue << "   :::   | Generated LLVM code for declaration." << termcolor::reset << std::endl;
-    #endif
+    llvm::BasicBlock* prevBlock = curBlock;
+    // visitBlock
+    functions.emplace_back(function, nullptr);
 
-    if (ctx->type()->IDENTIFIER()) {
-        return Decl(std::find_if(aliases.begin(), aliases.end(), [&ctx](Alias const& a) { return a.first == ctx->type()->IDENTIFIER()->getText(); })->second, val);
+    auto funBlock = visitBasicBlockDeclaration(ctx->basicBlockDeclaration()).as<llvm::BasicBlock*>();
 
-    } else
-        return Decl(ctx->type(), val);
+    if (!funBlock->getTerminator())
+        llvm::ReturnInst::Create(module.getContext(), nullptr, funBlock);
+
+    curBlock = prevBlock;
+
+    return antlrcpp::Any();
 }
 
-antlrcpp::Any LLVMVisitor::visitDefine(SnowStarParser::DefineContext* ctx) {
-    auto type = visitDeclare(ctx->declare()).as<Decl>();
-    declared.push_back(type);
-    llvm::Value* value = visitExpression(ctx->expression());
-    expr_number_tmp = 0;
+antlrcpp::Any LLVMVisitor::visitFunctionHeader(SnowStarParser::FunctionHeaderContext* ctx) {
+    auto params = visitFunctionParams(ctx->functionParams()).as<std::vector<std::pair<llvm::Type*, std::string>>>();
+    std::vector<llvm::Type*> parameters = visitFunctionParamsTypes(ctx->functionParamsTypes());
 
-    llvm::StoreInst* store = new llvm::StoreInst{value, type.second, cur_block};
+    llvm::FunctionType* returnType = llvm::FunctionType::get(llvmTypes[ctx->theType()->getText()], parameters, false);
+    llvm::Function* func = llvm::Function::Create(returnType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, ctx->functionName()->getText(), module);
 
-    #ifndef NDEBUG
-        std::clog << termcolor::blue << "   :::   | Generated LLVM code for definition." << termcolor::reset << std::endl;
-    #endif
-
-    return store;
-}
-
-antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ctx) {
-
-    llvm::IRBuilder<> builder(cur_block);
-    llvm::Value* val;
-    
-    if (ctx->bop) {
-        llvm::Value *lhs = visitExpression(ctx->expression()[0]).as<llvm::Value*>(),
-                    *rhs = visitExpression(ctx->expression()[1]).as<llvm::Value*>();
-
-        #ifndef NDEBUG
-            std::clog << termcolor::magenta << "   ...   | Operator='" << ctx->bop->getText() << "'" << termcolor::reset << std::endl;
-        #endif
-
-        if (ctx->bop->getText() == "+")
-            val = builder.CreateAdd(lhs, rhs, std::to_string(expr_number_tmp));
-        else if (ctx->bop->getText() == "-")
-            val = builder.CreateSub(lhs, rhs, std::to_string(expr_number_tmp));
-        else if (ctx->bop->getText() == "*")
-            val = builder.CreateMul(lhs, rhs, std::to_string(expr_number_tmp));
-        else if (ctx->bop->getText() == "/") {
-            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
-                val = builder.CreateFDiv(lhs, rhs, std::to_string(expr_number_tmp));
-            else
-                val = builder.CreateSDiv(lhs, rhs, std::to_string(expr_number_tmp), false);
-        } else if (ctx->bop->getText() == "^")
-            val = builder.CreateXor(lhs, rhs, std::to_string(expr_number_tmp));
-        else if (ctx->bop->getText() == "&&" || ctx->bop->getText() == "&")
-            val = builder.CreateAnd(lhs, rhs, std::to_string(expr_number_tmp));
-        else if (ctx->bop->getText() == "||" || ctx->bop->getText() == "|")
-            val = builder.CreateOr(lhs, rhs, std::to_string(expr_number_tmp));
-        else if (ctx->bop->getText() == "==") {
-            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
-                val = builder.CreateFCmpOEQ(lhs, rhs, std::to_string(expr_number_tmp));
-            else
-                val = builder.CreateICmpEQ(lhs, rhs, std::to_string(expr_number_tmp));
-        } else if (ctx->bop->getText() == "!=") {
-            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
-                val = builder.CreateFCmpONE(lhs, rhs, std::to_string(expr_number_tmp));
-            else
-                val = builder.CreateICmpNE(lhs, rhs, std::to_string(expr_number_tmp));
-        } else if (ctx->bop->getText() == ">=") {
-            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
-                val = builder.CreateFCmpOGE(lhs, rhs, std::to_string(expr_number_tmp));
-            else
-                val = builder.CreateICmpSGE(lhs, rhs, std::to_string(expr_number_tmp));
-        } else if (ctx->bop->getText() == "<=") {
-            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
-                val = builder.CreateFCmpOLE(lhs, rhs, std::to_string(expr_number_tmp));
-            else
-                val = builder.CreateICmpSLE(lhs, rhs, std::to_string(expr_number_tmp));
-        } else if (ctx->bop->getText() == ">") {
-            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
-                val = builder.CreateFCmpOGT(lhs, rhs, std::to_string(expr_number_tmp));
-            else
-                val = builder.CreateICmpSGT(lhs, rhs, std::to_string(expr_number_tmp));
-        } else if (ctx->bop->getText() == "<") {
-            if ((lhs->getType()->isDoubleTy() || lhs->getType()->isFloatTy() || lhs->getType()->isHalfTy()) || (rhs->getType()->isDoubleTy() || rhs->getType()->isFloatTy() || rhs->getType()->isHalfTy()))
-                val = builder.CreateFCmpOLT(lhs, rhs, std::to_string(expr_number_tmp));
-            else
-                val = builder.CreateICmpSLT(lhs, rhs, std::to_string(expr_number_tmp));
-        }
-    } else if (ctx->uop) {
-
-        #ifndef NDEBUG
-            std::clog << termcolor::magenta << "   ...   | Operator='" << ctx->uop->getText() << "'" << termcolor::reset << std::endl;
-        #endif
-
-        llvm::Value* expr = visitExpression(ctx->expression()[0]).as<llvm::Value*>();
-        if (ctx->uop->getText() == "-")
-            val = builder.CreateSub(llvm::Constant::getIntegerValue(expr->getType(), llvm::APInt(8, 0, true)), expr, std::to_string(expr_number_tmp));
-        else if (ctx->uop->getText() == "+")
-            val = expr;
-        else if (ctx->uop->getText() == "~")
-            val = builder.CreateNot(expr, std::to_string(expr_number_tmp));
-        else if (ctx->uop->getText() == "!")
-            val = builder.CreateNot(expr, std::to_string(expr_number_tmp));
-    } else {
-        if (ctx->IDENTIFIER()) {
-            auto it = std::find_if(declared.begin(), declared.end(), [&ctx] (Decl const& d) { return static_cast<std::string>(d.second->getName()) == ctx->IDENTIFIER()->getText(); });
-            val = builder.CreateLoad(it->second, std::to_string(expr_number_tmp));
-        } else if (ctx->literal()) {
-            auto findType = [] (SnowStarParser::LiteralContext* ct) -> std::string {
-                std::string val{ct->getText()};
-                if (ct->BOOL_LITERAL()) return "bool";
-                if (ct->CHAR_LITERAL()) return "char";
-                if (ct->FLOAT_LITERAL()) {
-                    double d = std::stod(val);
-                    if (d > std::numeric_limits<float>::max() || d < std::numeric_limits<float>::min()) return "real64";
-                    else if (d < std::numeric_limits<float>::max()/2) return "real16";
-                    else return "real32";
-                }
-                if (ct->DECIMAL_LITERAL()) {
-                    int64_t i = std::stoll(val);
-                    if (i < std::numeric_limits<int8_t>::max() && i > std::numeric_limits<int8_t>::min()) return "int8";
-                    else if (i < std::numeric_limits<int16_t>::max() && i > std::numeric_limits<int16_t>::min()) return "int16";
-                    else if (i < std::numeric_limits<int32_t>::max() && i > std::numeric_limits<int32_t>::min()) return "int64";
-                    else return "int32";
-                }
-                return "void";
-            };
-
-            if (ctx->literal()->BOOL_LITERAL()) {
-                val = llvm::Constant::getIntegerValue(llvm_types["bool"], llvm::APInt(1, ctx->literal()->BOOL_LITERAL()->getText()=="true"?1:0, false));
-            } else if (ctx->literal()->CHAR_LITERAL()) {
-                val = llvm::Constant::getIntegerValue(llvm_types["char"], llvm::APInt(8, ctx->literal()->CHAR_LITERAL()->getText()[1], true));
-            } else if (ctx->literal()->FLOAT_LITERAL()) {
-                val = llvm::ConstantFP::get(llvm_types[findType(ctx->literal())], std::stod(ctx->literal()->getText()));
-            } else {
-                std::string type = findType(ctx->literal());
-                val = llvm::Constant::getIntegerValue(llvm_types[type], llvm::APInt(type == "int8"?8:type == "int16"?16:type == "int32"?32:type == "int64"?64:0, std::stoll(ctx->literal()->getText()), true));
-            }
-        } else {
-            val = visitExpression(ctx->expression()[0]).as<llvm::Value*>();
-        }
+    llvm::Function::arg_iterator args = func->arg_begin();
+    for (auto p : params) {
+        llvm::Value* param = args++;
+        param->setName(p.second);
     }
 
-    expr_number_tmp++;
+    return func;
+}
 
-    return val;
-} */
+antlrcpp::Any LLVMVisitor::visitFunctionParamsTypes(SnowStarParser::FunctionParamsTypesContext* ctx) {
+    std::vector<llvm::Type*> types;
+    for (auto type : ctx->theType())
+        types.push_back(llvmTypes[type->getText()]);
+    return types;
+}
+
+antlrcpp::Any LLVMVisitor::visitFunctionParams(SnowStarParser::FunctionParamsContext* ctx) {
+    std::vector<std::pair<llvm::Type*, std::string>> params{};
+
+    for (auto var : ctx->parameterDeclaration()) 
+        params.emplace_back(llvmTypes[var->IDENTIFIER()->getText()], var->IDENTIFIER()->getText());
+
+    return params;
+}
+
+antlrcpp::Any LLVMVisitor::visitBasicBlockDeclaration(SnowStarParser::BasicBlockDeclarationContext* ctx) {
+    llvm::BasicBlock* bl = llvm::BasicBlock::Create(module.getContext(), "entry", std::get<0>(*functions.rbegin()));
+    std::get<1>(*functions.rbegin()) = bl;
+    curBlock = bl;
+
+    visitChildren(ctx);
+
+    return bl;
+}
+
+antlrcpp::Any LLVMVisitor::visitReturnDeclaration(SnowStarParser::ReturnDeclarationContext* ctx) {
+    llvm::ReturnInst::Create(module.getContext(), ctx->expression()?std::get<0>(visitExpression(ctx->expression()).as<ExprType>()):nullptr, curBlock);
+
+    return antlrcpp::Any();
+}

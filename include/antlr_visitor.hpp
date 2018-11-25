@@ -47,15 +47,34 @@ class ANTLRVisitor : public SnowStarParserBaseVisitor {
     };
 
     using Alias = std::pair<std::string, SnowStarParser::TheTypeContext*>;
+                /*          ^^^^^^^^^^^ alias name
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ alias base type
+                */
     using Declaration = std::tuple<std::string, SnowStarParser::TheTypeContext*, bool, std::pair<int, int>>;
+                      /*           ^^^^^^^^^^^ variable name
+                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ variable type
+                                                                                 ^^^^ is variable initliazed or not
+                                                                                       ^^^^^^^^^^^^^^^^^^^ line and char position
+                      */
     using VarInit = Alias;
     template<typename T>
     using Scope = std::vector<T>;
+    using Function = std::tuple<std::string, SnowStarParser::TheTypeContext*, std::vector<SnowStarParser::TheTypeContext*>>;
+                   /*           ^^^^^^^^^^^ function name
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function return type
+                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function argument types
+                   */
+    using FunctionContext = std::pair<Function, std::pair<int, int>>;
+                          /*          ^^^^^^^^ the function
+                                                ^^^^^^^^^^^^^^^^^^^ function line and char position
+                          */
 
     std::vector<Scope<Alias>> scopedAliases{{}};
     std::vector<Scope<Declaration>> scopedDeclarations{{}};
+    std::vector<Function> functions{};
 
     antlr4::ParserRuleContext* lineContext;
+    std::vector<FunctionContext> functionContext{};
 
     std::string fileName;
 
@@ -75,6 +94,17 @@ public:
     virtual antlrcpp::Any visitVariableInitializer(SnowStarParser::VariableInitializerContext*) override;
         // returns ExprType
     virtual antlrcpp::Any visitExpression(SnowStarParser::ExpressionContext*) override;
+        // returns ExprType
+    virtual antlrcpp::Any visitFunctionDeclaration(SnowStarParser::FunctionDeclarationContext*) override;
+        // returns antlrcpp::Any
+    virtual antlrcpp::Any visitFunctionHeader(SnowStarParser::FunctionHeaderContext*) override;
+        // returns Function
+    virtual antlrcpp::Any visitFunctionParams(SnowStarParser::FunctionParamsContext*) override;
+        // returns std::vector<Declaration>
+    virtual antlrcpp::Any visitBasicBlockDeclaration(SnowStarParser::BasicBlockDeclarationContext*) override;
+        // returns antlrcpp::Any
+    virtual antlrcpp::Any visitReturnDeclaration(SnowStarParser::ReturnDeclarationContext*) override;
+        // returns antlrcpp::Any
 
 protected:
     std::function<std::string(ExprType const)> getType = [] (ExprType const e) -> std::string {
@@ -93,7 +123,7 @@ protected:
             case ExprType::F64: return "f64";
             case ExprType::STR: return "str";
             case ExprType::VOID: return "void";
-            default: return "";
+            default: return "error-type";
         }
     };
 
