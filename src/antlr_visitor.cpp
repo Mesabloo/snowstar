@@ -18,15 +18,15 @@
 
 #include <antlr_visitor.hpp>
 
-#if defined(_WIN32) || defined(_WIN64)
-    #undef VOID
-#endif
-
 #include <filesystem>
 #include <unordered_set>
 
 #include <termcolor/termcolor.hpp>
 #include <errors.hpp>
+
+#if defined(_WIN32) || defined(_WIN64)
+#	undef VOID
+#endif
 
 namespace utils {
     inline bool str_startswith(std::string const& src, std::string const& prefix) {
@@ -37,7 +37,7 @@ namespace utils {
 
 ANTLRVisitor::ANTLRVisitor(std::string const& file) : fileName{file} {
     std::filesystem::path path = std::filesystem::path{fileName};
-    fileName = std::filesystem::canonical(path);
+    fileName = std::filesystem::canonical(path).string();
 
     #ifndef NDEBUG
         std::clog << termcolor::green << "   [i]   | Current file path: " << fileName << termcolor::reset << std::endl;
@@ -113,7 +113,7 @@ antlrcpp::Any ANTLRVisitor::visitVariableDeclaration(SnowStarParser::VariableDec
         return ctx->theType();
     }
 
-    std::vector<Declaration> declaredVariables{};
+    std::vector<Declaration> declaredVariables;
     for (auto const& scope : scopedDeclarations) {
         for (auto const& decl : scope) {
             declaredVariables.push_back(decl);

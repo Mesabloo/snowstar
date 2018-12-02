@@ -53,7 +53,7 @@
 int main(int argc, char** argv) {
 
     #if defined(_WIN32) || defined(_WIN64)
-    _set_mode(_fileno(stdout), _O_U16TEXT);
+    _setmode(_fileno(stdout), _O_U16TEXT);
     #endif
 
     std::string file_name_ll = "",
@@ -87,9 +87,9 @@ int main(int argc, char** argv) {
     if (parsed_cmd[{"-h", "--help"}] || (input_files.empty() && parsed_cmd.flags().empty())) {
 
         #ifndef UNICODE
-        std::cout << "─────< Snow* compiler, made by Mesabloo >──────" << "\n\n"
+        std::cout << "──────< Snow* compiler, made by Mesabloo >──────" << "\n\n"
         #else
-        std::wcout << L"─────< Snow* compiler, made by Mesabloo >──────" << "\n\n"
+        std::wcout << L"\u2500\u2500\u2500\u2500\u2500\u2500< Snow* compiler, made by Mesabloo >\u2500\u2500\u2500\u2500\u2500\u2500" << "\n\n"
         #endif
             << "Usage:\n"
             << argv[0] << " [-h | --help] [-v | --version] [-o | --output=<PATH>] <file1.ss file2.ss ...>\n\n"
@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
     tokens.fill();
 
     if (lexer.getNumberOfSyntaxErrors() > 0) {
-        std::cerr << "Unexpected errors occured:\n" << lexer_listener << std::endl;
+        std::cerr << lexer_listener << std::endl;
         return 1;
     }
 
@@ -146,12 +146,16 @@ int main(int argc, char** argv) {
 
     if (v.hasErrored())
         return 2;
+
+	#if defined(_WIN32) || defined(_WIN64)
+	_setmode(_fileno(stdout), _O_TEXT);
+	#endif
     
     file_name_ll = input_files[0]+".ll";
 
     static llvm::LLVMContext ctx{};
     llvm::Module mod = llvm::Module(file_name_ll, ctx);
-    mod.setSourceFileName(input_files[0]);
+    mod.setSourceFileName(std::filesystem::path(input_files[0]).string());
     std::string targetTriple = llvm::sys::getDefaultTargetTriple(),
                 err;
 
@@ -202,26 +206,34 @@ int main(int argc, char** argv) {
 
     pass.run(mod);
     destination.flush();
+	destination.close();
 
     TinyProcessLib::Process::string_type cmd;
     #ifdef UNICODE
-    cmd = L"clang " + std::wstring(file_name_o.begin(), file_name_o.end()) + L" -o " + std::wstring(file_name_out.begin(), file_name_out.end());
+    cmd = L"clang \"" + std::wstring(file_name_o.begin(), file_name_o.end()) + L"\" -o \"" + std::wstring(file_name_out.begin(), file_name_out.end()) + L"\"";
     #else
-    cmd = "clang " + file_name_o + " -o " + file_name_out;
+    cmd = "clang \"" + file_name_o + "\" -o \"" + file_name_out + "\"";
     #endif
-    TinyProcessLib::Process linker{cmd, TinyProcessLib::Process::string_type{}, [](char const* bytes, size_t n) {
+	#ifndef NDEBUG
+		#if defined(_WIN32) || defined(_WIN64)
+	std::wclog << L"Command line: `" << cmd << L"`" << std::endl;
+		#else
+	std::clog << "Command line: `" << cmd << "`" << std::endl;
+		#endif
+	#endif
+    TinyProcessLib::Process linker{cmd, TinyProcessLib::Process::string_type{}, [&file_name_o](char const* bytes, size_t n) {
         std::cout << std::string{bytes, n} << std::endl;
+
+		std::error_code deleted = llvm::sys::fs::remove(file_name_o);
+		#ifndef NDEBUG
+		if (deleted) {
+			std::clog << termcolor::yellow << "   /!\\   | File '" << file_name_o << "' not deleted: " << deleted.message() << "." << termcolor::reset << std::endl;
+		} else {
+			std::clog << termcolor::yellow << "   /!\\   | File '" << file_name_o << "' deleted successfully." << termcolor::reset << std::endl;
+		}
+		#endif
     }};
     linker.get_exit_status();
-
-    std::error_code deleted = llvm::sys::fs::remove(file_name_o);
-    #ifndef NDEBUG
-        if (deleted) {
-            std::clog << termcolor::yellow << "   /!\\   | File '" << file_name_o << "' not deleted: " << deleted.message() << "." << termcolor::reset << std::endl;
-        } else {
-            std::clog << termcolor::yellow << "   /!\\   | File '" << file_name_o << "' deleted successfully." << termcolor::reset << std::endl;
-        }
-    #endif
 
     return 0;
 }

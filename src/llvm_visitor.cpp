@@ -53,7 +53,7 @@ antlrcpp::Any LLVMVisitor::visitCompilationUnit(SnowStarParser::CompilationUnitC
     curBlock = llvm::BasicBlock::Create(module.getContext());
 
     llvm::FunctionType* type = llvm::FunctionType::get(llvmTypes["void"], false);
-    llvm::Function* global_init = llvm::Function::Create(type, llvm::Function::InternalLinkage, "__ss_GLOBAL_var_init", module);
+    llvm::Function* global_init = llvm::Function::Create(type, llvm::Function::InternalLinkage, "__ss_GLOBAL_var_init", &module);
     global_init->setSection(".text.startup");
     llvm::BasicBlock* global_block = llvm::BasicBlock::Create(module.getContext(), "entry", global_init);
     functions.emplace_back(global_init, global_block);
@@ -147,10 +147,10 @@ antlrcpp::Any LLVMVisitor::visitExpression(SnowStarParser::ExpressionContext* ct
             #endif
 
             if (lit->BOOL_LITERAL()) {
-                inst = llvm::Constant::getIntegerValue(llvmTypes["bool"], llvm::APInt{1, lit->getText()=="true"?1:0, false});
+                inst = llvm::Constant::getIntegerValue(llvmTypes["bool"], llvm::APInt{1, (uint64_t)(lit->getText()=="true"?1:0), false});
                 type = llvmTypes["bool"];
             } else if (lit->CHAR_LITERAL()) {
-                inst = llvm::Constant::getIntegerValue(llvmTypes["chr"], llvm::APInt{8, lit->getText()[1], false});
+                inst = llvm::Constant::getIntegerValue(llvmTypes["chr"], llvm::APInt{8, (uint64_t)lit->getText()[1], false});
                 type = llvmTypes["chr"];
             } else if (lit->DEC_LITERAL() || lit->BIN_LITERAL() || lit->HEX_LITERAL() || lit->OCT_LITERAL()) {
                 std::uint64_t val = std::strtoull(lit->getText().c_str(), nullptr, lit->DEC_LITERAL()?10:lit->BIN_LITERAL()?2:lit->OCT_LITERAL()?8:16);
@@ -383,7 +383,7 @@ antlrcpp::Any LLVMVisitor::visitFunctionHeader(SnowStarParser::FunctionHeaderCon
     std::vector<llvm::Type*> parameters = visitFunctionParamsTypes(ctx->functionParamsTypes());
 
     llvm::FunctionType* returnType = llvm::FunctionType::get(llvmTypes[ctx->theType()->getText()], parameters, false);
-    llvm::Function* func = llvm::Function::Create(returnType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, ctx->functionName()->getText(), module);
+    llvm::Function* func = llvm::Function::Create(returnType, llvm::GlobalValue::LinkageTypes::ExternalLinkage, ctx->functionName()->getText(), &module);
 
     llvm::Function::arg_iterator args = func->arg_begin();
     for (auto p : params) {

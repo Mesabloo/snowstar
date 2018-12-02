@@ -21,88 +21,81 @@
 void Throwable::printPrettify(std::string const& file, int line, int charac, int firstCharac, std::string const& msg, std::string const& code, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> tk, bool isWarning, std::initializer_list<std::string> alts, std::vector<FunctionContext> const& fContext) {
     #if !defined(_WIN32) && !defined(_WIN64)
     std::ostream& ss{std::cerr};
+	ss  << "\n"
+		<< termcolor::colorize
+		<< termcolor::bold;
+	if (!isWarning) {
+		ss  << termcolor::on_red << termcolor::white
+			<< "Error";
+	}
+	else {
+		ss  << termcolor::on_yellow << termcolor::white
+			<< "Warning";
+	}
+	ss  << termcolor::reset << termcolor::white
+		<< ": " << msg << "\n"
+		<< termcolor::grey
+		<< termcolor::bold
+		<< " ├┬╼ in: "
+		<< termcolor::reset << termcolor::green
+		<< file << " @ line " << std::to_string(line) << ":" << std::to_string(charac + 1) << std::flush
+		<< termcolor::reset;
+	this->contextualize(fContext);
+	if (alts.size() > 0)
+		this->suggest(alts);
+	ss  << termcolor::grey
+		<< termcolor::bold
+		<< " │"
+		<< spacer(" ", charac - firstCharac + 4)
+		<< termcolor::reset;
+	if (!isWarning)
+		ss  << termcolor::red;
+	else
+		ss  << termcolor::yellow;
+	if (std::holds_alternative<antlr4::Token*>(tk))
+		ss << spacer("⌄", std::get<0>(tk)->getText().size());
+	else {
+		std::string tokens = std::get<1>(tk)->getStart()->getInputStream()->getText(antlr4::misc::Interval{ std::get<1>(tk)->getStart()->getStartIndex(), std::get<1>(tk)->getStop()->getStopIndex() });
+		ss << spacer("⌄", tokens.size());
+	}
+	ss
+		<< termcolor::grey
+		<< termcolor::bold
+		<< "\n"
+		<< " ╰──╼" << " "
+		<< termcolor::reset
+		<< std::flush;
     #else
-    std::wostream& ss{std::wcerr};
-    #endif
-    
-    ss  << "\n"
-    #if !defined(_WIN32) && !defined(_WIN64)
-        << termcolor::colorize
-        << termcolor::bold
-    #endif
-    ;
+    std::wostream& ss{std::wcout};
+	ss  << L"\n";
     if (!isWarning) {
-        ss  << termcolor::on_red << termcolor::white
-            << "Error";
+        ss
+            << L"Error";
     } else {
-        ss  << termcolor::on_yellow << termcolor::white
-            << "Warning";
+        ss
+            << L"Warning";
     }
-    ss  << termcolor::reset << termcolor::white
-        << ": " << msg << "\n"
-        << termcolor::grey
-    #if !defined(_WIN32) && !defined(_WIN64)
-        << termcolor::bold
-    #else
-        << termcolor::reset << termcolor::white
-    #endif
-    #if !defined(_WIN32) && !defined(_WIN64)
-        << " ├┬╼ "
-    #else
-        << L" ├┬╼ "
-    #endif
-        << termcolor::reset << termcolor::green
-        << file << " @ line " << std::to_string(line) << ":" << std::to_string(charac+1) << std::flush
-        << termcolor::reset;
+    ss
+        << L": " << std::wstring(msg.begin(), msg.end()) << "\n"
+        << L" \u251C\u252C> in: "
+        << std::wstring(file.begin(), file.end()) << L" @ line " << std::to_wstring(line) << L":" << std::to_wstring(charac+1) << std::flush;
     this->contextualize(fContext);
     if (alts.size() > 0)
         this->suggest(alts);
-    ss  << termcolor::grey
-    #if !defined(_WIN32) && !defined(_WIN64)
-        << termcolor::bold
-    #else
-        << termcolor::reset << termcolor::white
-    #endif
-    #if !defined(_WIN32) && !defined(_WIN64)
-        << " │"
-    #else
-        << L" │"
-    #endif
-        << spacer(" ", charac-firstCharac+4)
-        << termcolor::reset;
-    if (!isWarning)
-        ss  << termcolor::red;
-    else
-        ss  << termcolor::yellow;
-    #if !defined(_WIN32) && !defined(_WIN64)
+    ss  
+        << L" \u2502"
+        << spacer(L" ", charac-firstCharac+4);
     if (std::holds_alternative<antlr4::Token*>(tk))
-        ss << spacer("⌄", std::get<0>(tk)->getText().size());
+        ss << spacer(L"v", std::get<0>(tk)->getText().size());
     else {
         std::string tokens = std::get<1>(tk)->getStart()->getInputStream()->getText(antlr4::misc::Interval{std::get<1>(tk)->getStart()->getStartIndex(), std::get<1>(tk)->getStop()->getStopIndex()});
-        ss << spacer("⌄", tokens.size());
+        ss << spacer(L"v", tokens.size());
     } 
-    #else
-    if (std::holds_alternative<antlr4::Token*>)
-        ss << spacer(L"⌄", std::get<0>(tk)->getText().size());
-    else {
-        std::string tokens = std::get<1>(tk)->getStart()->getInputStream()->getText(antlr4::misc::Interval{std::get<1>(tk)->getStart()->getStartIndex(), std::get<1>(tk)->getStop()->getStopIndex()});
-        ss << spacer(L"⌄", tokens.size());
-    } 
-    #endif
     ss
-        << termcolor::grey
-    #if !defined(_WIN32) && !defined(_WIN64)
-        << termcolor::bold
-    #else
-        << termcolor::reset << termcolor::white
-    #endif
-        << "\n"
-    #if !defined(_WIN32) && !defined(_WIN64)
-        << " ╰──╼" << " "
-    #else
-        << L" ╰──╼" << " "
-    #endif
-        << termcolor::reset;
+        << L"\n"
+        << L" \u2514\u2500\u2500>" << L" "
+		<< std::flush;
+	#endif
 }
 
 void Throwable::colorCode(std::string const& code, std::string const& tokens, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, bool isWarning) {
@@ -116,52 +109,69 @@ void Throwable::colorCode(std::string const& code, std::string const& tokens, an
 
     auto tokenBeg = code.find(tokens, character-firstCharacter);
     if (tokenBeg != code.npos) {
-        std::ostream& ss{std::cerr};
-        ss << code.substr(0, tokenBeg)
-        #if !defined(_WIN32) && !defined(_WIN64)
-            << termcolor::colorize
-        #endif
-        ;
-        if (!isWarning)
-            ss  << termcolor::red;
-        else
-            ss  << termcolor::yellow;
-        ss  << code.substr(tokenBeg, tokens.size()) << termcolor::reset << code.substr(tokenBeg + tokens.size());
-    }
+		std::string begCode = code.substr(0, tokenBeg);
+		std::string middleCode = code.substr(tokenBeg, tokens.size());
+		std::string endCode = code.substr(tokenBeg + tokens.size());
+		#if !defined(_WIN32) && !defined(_WIN64)
+		std::ostream& ss{std::cerr};
+		ss  << begCode
+			<< termcolor::colorize;
+		if (isWarning)
+			ss << termcolor::yellow;
+		else
+			ss << termcolor::red;
+		ss << middleCode << termcolor::reset << endCode << std::flush;
+		#else
+		std::wostream& ss{std::wcout};
+		ss << std::wstring(begCode.begin(), begCode.end()) << std::wstring(middleCode.begin(), middleCode.end()) << std::wstring(endCode.begin(), endCode.end()) << std::flush;
+		#endif
+	} else {
+		#if !defined(_WIN32) && !defined(_WIN64)
+		std::ostream& ss{std::cerr};
+		ss << code << std::flush;
+		#else
+		std::wostream& ss{std::wcout};
+		ss << std::wstring(code.begin(), code.end()) << std::flush;
+		#endif
+	}
 }
 
 void Throwable::suggest(std::initializer_list<std::string> alts) {
     if (alts.size() == 0) return;
 
-    #if !defined(_WIN32) && !defined(_WIN64)
-    std::ostream& ss{std::cerr};
-    #else
-    std::wostream& ss{std::wcerr};
-    #endif
-
+	#if !defined(_WIN32) && !defined(_WIN64)
+	std::ostream& ss{std::cerr};
+	ss  << termcolor::grey << termcolor::bold
+		<< " ├───╼╸ "
+		<< termcolor::reset << termcolor::blue
+		<< "Try: ";
+	if (alts.size() == 1) {
+		ss << *(alts.begin() + 0) << ".";
+	} else {
+		for (int i{ 0 }; i < alts.size() - 2; ++i) {
+			ss << *(alts.begin() + i) << ", ";
+		}
+		ss << *(alts.begin() + alts.size() - 2) << " or " << *(alts.begin() + alts.size() - 1) << ".";
+	}
+	ss << termcolor::reset << "\n" << std::flush;
+	#else
+	std::wostream& ss{std::wcout};
     ss
-        << termcolor::grey
-    #if !defined(_WIN32) && !defined(_WIN64)
-        << termcolor::bold
-    #else
-        << termcolor::reset << termcolor::white
-    #endif
-    #if !defined(_WIN32) && !defined(_WIN64)
-        << " ├───╼╸" << " "
-    #else
-        << L" ├───╼╸" << " "
-    #endif
-        << termcolor::reset << termcolor::blue
-        << "Try: ";
-    if (alts.size() == 1)
-        ss  << *(alts.begin() + 0) << ".";
-    else {
+        << L" \u251C\u2500\u2500\u2500> Try: ";
+	if (alts.size() == 1) {
+		std::string val = *(alts.begin() + 0);
+		ss << std::wstring(val.begin(), val.end()) << L".";
+	} else {
         for (int i{0};i < alts.size()-2;++i) {
-            ss  << *(alts.begin() + i) << ", ";
+			std::string val = *(alts.begin() + i);
+			ss << std::wstring(val.begin(), val.end()) << L", ";
         }
-        ss  << *(alts.begin() + alts.size()-2) << " or " << *(alts.begin() + alts.size()-1) << ".";
+		std::string val1 = *(alts.begin() + alts.size() - 2),
+					val2 = *(alts.begin() + alts.size() - 1);
+		ss << std::wstring(val1.begin(), val1.end()) << L" or " << std::wstring(val2.begin(), val2.end()) << L".";
     }
-    ss  << termcolor::reset << std::endl;
+    ss  << termcolor::reset << L"\n" << std::flush;
+	#endif
 }
 
 void Throwable::initWithTextError(std::string const& error, std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, bool isWarning, std::initializer_list<std::string> alternatives, std::vector<FunctionContext> const& fContext) {
@@ -185,78 +195,55 @@ void Throwable::initWithTextError(std::string const& error, std::string const& p
 
     #if !defined (_WIN32) && !defined(_WIN64)
     std::cerr << termcolor::reset << std::endl;
-    #else
-    std::wcerr << termcolor::reset << std::endl;
     #endif
 }
 
 void Throwable::contextualize(std::vector<FunctionContext> const& fContext) {
-    #if !defined(_WIN32) && !defined(_WIN64)
-    std::ostream& ss{std::cerr};
+	#if !defined(_WIN32) && !defined(_WIN64)
+	std::ostream& ss{ std::cerr };
+	if (fContext.size() == 0) {
+		ss << termcolor::grey << termcolor::bold
+			<< "\n"
+			<< " │╰╼"
+			<< termcolor::reset << termcolor::green
+			<< " in: global scope declared @ line 0:0"
+			<< termcolor::reset << "\n" << std::flush;
+	} else {
+		for (int i{0}; i < fContext.size()-1; ++i) {
+			ss
+				<< termcolor::grey << termcolor::bold
+				<< "\n" << " │├╼"
+				<< termcolor::reset << termcolor::green
+				<< " in: `" + (std::get<0>(fContext[i].first)) + "` declared @ line " + std::to_string(fContext[i].second.first) + ":" + std::to_string(fContext[i].second.second + 1) + ""
+				<< termcolor::reset;
+		}
+		ss
+			<< termcolor::grey << termcolor::bold
+			<< "\n" << " │╰╼"
+			<< termcolor::reset << termcolor::green
+			<< " in: `" + (std::get<0>(fContext[fContext.size() - 1].first)) + "` declared @ line " + std::to_string(fContext[fContext.size() - 1].second.first) + ":" + std::to_string(fContext[fContext.size() - 1].second.second + 1) + ""
+			<< termcolor::reset << "\n" << std::flush;
+	}
     #else
-    std::wostream& ss{std::wcerr};
+    std::wostream& ss{std::wcout};
+	if (fContext.size() == 0) {
+		ss
+			<< L"\n" << L" \u2502\u2514>"
+			<< L" in: global scope declared @ line 0:0"
+			<< L"\n" << std::flush;
+	} else {
+		for (int i{ 0 }; i < fContext.size() - 1; ++i) {
+			ss
+				<< L"\n" << L" \u2502\u251C>"
+				<< L" in: `" + std::wstring(std::get<0>(fContext[i].first).begin(), std::get<0>(fContext[i].first).end()) + L"` declared @ line " + std::to_wstring(fContext[i].second.first) + L":" + std::to_wstring(fContext[i].second.second + 1) + L""
+				<< L"\n" << std::flush;
+		}
+		ss
+			<< L"\n" << L" \u2502\u2514>"
+			<< L" in: `" + std::wstring(std::get<0>(fContext[fContext.size() - 1].first).begin(), std::get<0>(fContext[fContext.size() - 1].first).end()) + L"` declared @ line " + std::to_wstring(fContext[fContext.size() - 1].second.first) + L":" + std::to_wstring(fContext[fContext.size() - 1].second.second + 1) + L""
+			<< L"\n" << std::flush;
+	}
     #endif
-
-    if (fContext.size() == 0) {
-        ss
-            << termcolor::grey
-            << "\n"
-        #if !defined(_WIN32) && !defined(_WIN64)
-            << termcolor::bold
-        #else
-            << termcolor::reset << termcolor::white
-        #endif
-        #if !defined(_WIN32) && !defined(_WIN64)
-            << " │╰╼"
-            << termcolor::reset << termcolor::green 
-            << " in: global scope declared @ line 0:0"
-        #else
-            << L" │╰╼"
-            << termcolor::reset << termcolor::green 
-            << " in: global scope declared @ line 0:0"
-        #endif
-            << termcolor::reset;
-    } else {
-        for (int i{0};i < fContext.size()-1;++i) {
-            ss
-                << termcolor::grey
-                << "\n"
-            #if !defined(_WIN32) && !defined(_WIN64)
-                << termcolor::bold
-            #else
-                << termcolor::reset << termcolor::white
-            #endif
-            #if !defined(_WIN32) && !defined(_WIN64)
-                << " │├╼"
-                << termcolor::reset << termcolor::green 
-                << " in: `" + (std::get<0>(fContext[i].first)) + "` declared @ line " + std::to_string(fContext[i].second.first) + ":" + std::to_string(fContext[i].second.second+1) + ""
-            #else
-                << L" │├╼"
-                << termcolor::reset << termcolor::green 
-                << " in: `" + (std::get<0>(fContext[i].first)) + "` declared @ line " + std::to_string(fContext[i].second.first) + ":" + std::to_string(fContext[i].second.second+1) + ""
-            #endif
-                << termcolor::reset;
-        }
-        ss
-            << termcolor::grey
-            << "\n"
-        #if !defined(_WIN32) && !defined(_WIN64)
-            << termcolor::bold
-        #else
-            << termcolor::reset << termcolor::white
-        #endif
-        #if !defined(_WIN32) && !defined(_WIN64)
-            << " │╰╼"
-            << termcolor::reset << termcolor::green 
-            << " in: `" + (std::get<0>(fContext[fContext.size()-1].first)) + "` declared @ line " + std::to_string(fContext[fContext.size()-1].second.first) + ":" + std::to_string(fContext[fContext.size()-1].second.second+1) + ""
-        #else
-            << L" │╰╼"
-            << termcolor::reset << termcolor::green 
-            << " in: `" + (std::get<0>(fContext[fContext.size()-1].first)) + "` declared @ line " + std::to_string(fContext[fContext.size()-1].second.first) + ":" + std::to_string(fContext[fContext.size()-1].second.second+1) + ""
-        #endif
-            << termcolor::reset;
-    }
-    ss  << std::endl;
 }
 
 void RedeclaredVariableError::print(std::string const& path, antlr4::ParserRuleContext* ctx, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> inFault, std::initializer_list<std::string> const args, std::initializer_list<std::string> const alts, std::vector<FunctionContext> const& fContext) {
