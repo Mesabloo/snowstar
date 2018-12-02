@@ -42,33 +42,34 @@ add_executable(
     ${PROJECT_NAME} ${SOURCE_FILES}
 )
 
-# llvm_map_components_to_libnames(LLVM_LIBRARIES
-#     support core irreader option target mc
-#     x86asmparser          x86codegen          x86info          x86desc
-#     amdgpuasmparser       amdgpucodegen       amdgpuinfo       amdgpudesc
-#     armasmparser          armcodegen          arminfo          armdesc
-#                           msp430codegen       msp430info       msp430desc
-#                           xcorecodegen        xcoreinfo        xcoredesc
-#     aarch64asmparser      aarch64codegen      aarch64info      aarch64desc
-#     mipsasmparser         mipscodegen         mipsinfo         mipsdesc
-#     systemzasmparser      systemzcodegen      systemzinfo      systemzdesc
-#     hexagonasmparser      hexagoncodegen      hexagoninfo      hexagondesc
-#     powerpcasmparser      powerpccodegen      powerpcinfo      powerpcdesc
-#                           nvptxcodegen        nvptxinfo        nvptxdesc
-#     lanaiasmparser        lanaicodegen        lanaiinfo        lanaidesc
-#     sparcasmparser        sparccodegen        sparcinfo        sparcdesc
-#     bpfasmparser          bpfcodegen          bpfinfo          bpfdesc
-#     webassemblyasmparser  webassemblycodegen  webassemblyinfo  webassemblydesc0
-# )
-
 target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries(${PROJECT_NAME} stdc++fs)
-target_link_libraries(${PROJECT_NAME} antlr4_shared)
 if (NOT MSVC)
-    target_link_libraries(${PROJECT_NAME} LLVM-8svn)
-else()
-
+	target_link_libraries(${PROJECT_NAME} stdc++fs)
 endif()
+target_link_libraries(${PROJECT_NAME} antlr4_shared)
+if (MSVC)
+	llvm_map_components_to_libnames(LLVM_LIBRARIES
+	    support core irreader option target mc
+	    x86asmparser          x86codegen          x86info          x86desc
+	    amdgpuasmparser       amdgpucodegen       amdgpuinfo       amdgpudesc
+	    armasmparser          armcodegen          arminfo          armdesc
+	                          msp430codegen       msp430info       msp430desc
+	                          xcorecodegen        xcoreinfo        xcoredesc
+	    aarch64asmparser      aarch64codegen      aarch64info      aarch64desc
+	    mipsasmparser         mipscodegen         mipsinfo         mipsdesc
+	    systemzasmparser      systemzcodegen      systemzinfo      systemzdesc
+	    hexagonasmparser      hexagoncodegen      hexagoninfo      hexagondesc
+	    powerpcasmparser      powerpccodegen      powerpcinfo      powerpcdesc
+	                          nvptxcodegen        nvptxinfo        nvptxdesc
+	    lanaiasmparser        lanaicodegen        lanaiinfo        lanaidesc
+	    sparcasmparser        sparccodegen        sparcinfo        sparcdesc
+	    bpfasmparser          bpfcodegen          bpfinfo          bpfdesc
+	)
+	target_link_libraries(${PROJECT_NAME} ${LLVM_LIBRARIES})
+else()
+	target_link_libraries(${PROJECT_NAME} LLVM-7.0.0)
+endif()
+
 if(CMAKE_DL_LIBS)
     target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
 endif(CMAKE_DL_LIBS)
@@ -81,7 +82,7 @@ if (MSVC)
 	if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
     	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D NOMINMAX /D NDEBUG")
     else()
-    	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /WX- /D NOMINMAX")
+    	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /WX- /D NOMINMAX")
     endif()
 endif (MSVC)
 
