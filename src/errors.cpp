@@ -18,6 +18,11 @@
 
 #include <errors.hpp>
 
+#if defined(_WIN32) || defined(_WIN64)
+#   include <io.h>
+#   include <fcntl.h>
+#endif
+
 void Throwable::printPrettify(std::string const& file, int line, int charac, int firstCharac, std::string const& msg, std::string const& code, std::variant<antlr4::Token*, antlr4::ParserRuleContext*> tk, bool isWarning, std::initializer_list<std::string> alts, std::vector<FunctionContext> const& fContext) {
     #if !defined(_WIN32) && !defined(_WIN64)
     std::ostream& ss{std::cerr};
@@ -26,14 +31,14 @@ void Throwable::printPrettify(std::string const& file, int line, int charac, int
 		<< termcolor::bold;
 	if (!isWarning) {
 		ss  << termcolor::on_red << termcolor::white
-			<< "Error";
+			<< "Error:";
 	}
 	else {
 		ss  << termcolor::on_yellow << termcolor::white
-			<< "Warning";
+			<< "Warning:";
 	}
 	ss  << termcolor::reset << termcolor::white
-		<< ": " << msg << "\n"
+		<< " " << msg << "\n"
 		<< termcolor::grey
 		<< termcolor::bold
 		<< " ├┬╼ in: "
@@ -69,32 +74,39 @@ void Throwable::printPrettify(std::string const& file, int line, int charac, int
     std::wostream& ss{std::wcout};
 	ss  << L"\n";
     if (!isWarning) {
-        ss
-            << L"Error";
+		std::cout << termcolor::on_red << termcolor::white << std::flush;
+        ss    << L"Error";
     } else {
-        ss
-            << L"Warning";
+		std::cout << termcolor::on_yellow << termcolor::white << std::flush;
+        ss    << L"Warning";
     }
-    ss
-        << L": " << std::wstring(msg.begin(), msg.end()) << "\n"
-        << L" \u251C\u252C> in: "
-        << std::wstring(file.begin(), file.end()) << L" @ line " << std::to_wstring(line) << L":" << std::to_wstring(charac+1) << std::flush;
+	ss
+		<< L":";
+	std::cout << termcolor::reset << termcolor::white<< std::flush;
+	ss	<< L" " << std::wstring(msg.begin(), msg.end()) << "\n";
+	std::cout << termcolor::reset << termcolor::white << std::flush;
+	ss
+		<< L" \u251C\u252C\u2022 ";
+	std::cout << termcolor::reset << termcolor::green << std::flush;
+	ss	<< L"in: " << std::wstring(file.begin(), file.end()) << L" @ line " << std::to_wstring(line) << L":" << std::to_wstring(charac+1);
     this->contextualize(fContext);
     if (alts.size() > 0)
         this->suggest(alts);
+	std::cout << termcolor::reset << termcolor::white << std::flush;
     ss  
         << L" \u2502"
         << spacer(L" ", charac-firstCharac+4);
+	std::cout << termcolor::reset << termcolor::red << std::flush;
     if (std::holds_alternative<antlr4::Token*>(tk))
         ss << spacer(L"v", std::get<0>(tk)->getText().size());
     else {
         std::string tokens = std::get<1>(tk)->getStart()->getInputStream()->getText(antlr4::misc::Interval{std::get<1>(tk)->getStart()->getStartIndex(), std::get<1>(tk)->getStop()->getStopIndex()});
         ss << spacer(L"v", tokens.size());
-    } 
+    }
+	std::cout << termcolor::reset << termcolor::white << std::flush;
     ss
         << L"\n"
-        << L" \u2514\u2500\u2500>" << L" "
-		<< std::flush;
+        << L" \u2514\u2500\u2500\u2022 ";
 	#endif
 }
 
@@ -114,24 +126,39 @@ void Throwable::colorCode(std::string const& code, std::string const& tokens, an
 		std::string endCode = code.substr(tokenBeg + tokens.size());
 		#if !defined(_WIN32) && !defined(_WIN64)
 		std::ostream& ss{std::cerr};
-		ss  << begCode
-			<< termcolor::colorize;
+		ss  << termcolor::reset << termcolor::white
+			<< begCode
 		if (isWarning)
 			ss << termcolor::yellow;
 		else
 			ss << termcolor::red;
-		ss << middleCode << termcolor::reset << endCode << std::flush;
+		ss  << middleCode 
+			<< termcolor::reset << termcolor::white
+			<< endCode
+			<< termcolor::reset
+			<< std::flush;
 		#else
 		std::wostream& ss{std::wcout};
-		ss << std::wstring(begCode.begin(), begCode.end()) << std::wstring(middleCode.begin(), middleCode.end()) << std::wstring(endCode.begin(), endCode.end()) << std::flush;
+		std::cout << termcolor::reset << termcolor::white << std::flush;
+		ss << std::wstring(begCode.begin(), begCode.end());
+		std::cout << termcolor::reset << (isWarning ? termcolor::yellow : termcolor::red) << std::flush;
+		ss << std::wstring(middleCode.begin(), middleCode.end());
+		std::cout << termcolor::reset << termcolor::white << std::flush;
+		ss << std::wstring(endCode.begin(), endCode.end());
+		std::cout << termcolor::reset << std::flush;
 		#endif
 	} else {
 		#if !defined(_WIN32) && !defined(_WIN64)
 		std::ostream& ss{std::cerr};
-		ss << code << std::flush;
+		ss  << termcolor::reset << termcolor::white
+			<< code
+			<< termcolor::reset
+			<< std::flush;
 		#else
 		std::wostream& ss{std::wcout};
-		ss << std::wstring(code.begin(), code.end()) << std::flush;
+		std::cout << termcolor::reset << termcolor::white << std::flush;
+		ss << std::wstring(code.begin(), code.end());
+		std::cout << termcolor::reset << std::flush;
 		#endif
 	}
 }
@@ -156,8 +183,11 @@ void Throwable::suggest(std::initializer_list<std::string> alts) {
 	ss << termcolor::reset << "\n" << std::flush;
 	#else
 	std::wostream& ss{std::wcout};
-    ss
-        << L" \u251C\u2500\u2500\u2500> Try: ";
+	std::cout << termcolor::reset << termcolor::white << std::flush;
+	ss
+		<< L" \u251C\u2500\u2500\u2500\u2022 ";
+	std::cout << termcolor::reset << termcolor::blue << std::flush;
+	ss  << "Try: ";
 	if (alts.size() == 1) {
 		std::string val = *(alts.begin() + 0);
 		ss << std::wstring(val.begin(), val.end()) << L".";
@@ -170,7 +200,8 @@ void Throwable::suggest(std::initializer_list<std::string> alts) {
 					val2 = *(alts.begin() + alts.size() - 1);
 		ss << std::wstring(val1.begin(), val1.end()) << L" or " << std::wstring(val2.begin(), val2.end()) << L".";
     }
-    ss  << termcolor::reset << L"\n" << std::flush;
+	std::cout << termcolor::reset;
+    ss  << L"\n";
 	#endif
 }
 
@@ -227,21 +258,24 @@ void Throwable::contextualize(std::vector<FunctionContext> const& fContext) {
     #else
     std::wostream& ss{std::wcout};
 	if (fContext.size() == 0) {
-		ss
-			<< L"\n" << L" \u2502\u2514>"
-			<< L" in: global scope declared @ line 0:0"
-			<< L"\n" << std::flush;
+		std::cout << termcolor::reset << termcolor::white << std::flush;
+		ss  << L"\n" << L" \u2502\u2514\u2022";
+		std::cout << termcolor::reset << termcolor::green << std::flush;
+		ss  << L" in: global scope declared @ line 0:0"
+			<< L"\n";
 	} else {
 		for (int i{ 0 }; i < fContext.size() - 1; ++i) {
-			ss
-				<< L"\n" << L" \u2502\u251C>"
-				<< L" in: `" + std::wstring(std::get<0>(fContext[i].first).begin(), std::get<0>(fContext[i].first).end()) + L"` declared @ line " + std::to_wstring(fContext[i].second.first) + L":" + std::to_wstring(fContext[i].second.second + 1) + L""
-				<< L"\n" << std::flush;
+			std::cout << termcolor::reset << termcolor::white << std::flush;
+			ss	<< L"\n" << L" \u2502\u251C\u2022";
+			std::cout << termcolor::reset << termcolor::green << std::flush;
+			ss	<< L" in: `" + std::wstring(std::get<0>(fContext[i].first).begin(), std::get<0>(fContext[i].first).end()) + L"` declared @ line " + std::to_wstring(fContext[i].second.first) + L":" + std::to_wstring(fContext[i].second.second + 1) + L""
+				<< L"\n";
 		}
-		ss
-			<< L"\n" << L" \u2502\u2514>"
-			<< L" in: `" + std::wstring(std::get<0>(fContext[fContext.size() - 1].first).begin(), std::get<0>(fContext[fContext.size() - 1].first).end()) + L"` declared @ line " + std::to_wstring(fContext[fContext.size() - 1].second.first) + L":" + std::to_wstring(fContext[fContext.size() - 1].second.second + 1) + L""
-			<< L"\n" << std::flush;
+		std::cout << termcolor::reset << termcolor::white << std::flush;
+		ss	<< L"\n" << L" \u2502\u2514\u2022";
+		std::cout << termcolor::reset << termcolor::green << std::flush;
+		ss	<< L" in: `" + std::wstring(std::get<0>(fContext[fContext.size() - 1].first).begin(), std::get<0>(fContext[fContext.size() - 1].first).end()) + L"` declared @ line " + std::to_wstring(fContext[fContext.size() - 1].second.first) + L":" + std::to_wstring(fContext[fContext.size() - 1].second.second + 1) + L""
+			<< L"\n";
 	}
     #endif
 }
