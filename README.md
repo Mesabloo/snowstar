@@ -35,6 +35,9 @@ It was still an ASM-like, but more developped than the previous one. It containe
 * The fourth generation, [Snow*](https://mesabloo.github.io/snowstar-lang/about.html#snowstar2), a procedural programming language.<br>
 This generation is built with ANTLR and LLVM to offer power and native compilation.
 
+* The fifth generation, [Snow*](https://mesabloo.github.io/snowstar-lang/about.html#snowstar3), a pseudo-functional programming language.<br>
+This generation is also built with ANTLR and LLVM to offer some more power as well as native compilation.
+
 ## :desktop_computer: Behind Snow*, a developer, Mesabloo.
 
 I've been working on Snow* from the second generation until now since the beginning of June 2018. I wanted to create my own programming language since the beginning of October/November of 2017. ([RainDrop](https://mesabloo.github.io/snowstar-lang/about.html#raindrop) came to life around this time) Because I never really understood how they work, and because I wanted to compile RainDrop into ASM (the Assembly Language), it didn't go far enough to actually be considered a good "experience" (just a basic Lexer + a simple compiling process until the AST generation, where I got stuck).<br>
@@ -43,28 +46,22 @@ And now, I changed it again, and I'm ready to go for it.
 
 ## :page_facing_up: What about a free sample ?
 
-Samples can be found [here](https://mesabloo.github.io/snowstar-lang/about.html#sample-snowstar2) but I will post here a simple `Hello, World!` program made in Snow*:
+Samples can be found [here](https://mesabloo.github.io/snowstar-lang/about.html#sample-snowstar3) but I will post here a simple `Hello, World!` program made in Snow*:
 
-```
+```fs
 (*
- *  Declaration of the main method. The parameters of it are unrequired, you may write it without.
+ *  Declaration of the main method. The parameter of it is unrequired, you may write it without.
  *
- *  @param `argc` is of type i8 ;
- *  @param `argv` is of type array<str> ;
- *  @return i32
+ *  @param `args` is of type Array<String> ;
+ *  @return I32
  *)
 
-% So that we can use `print()`.
-import stdout;
-import array;
+// So that we can use `println`.
+obtain stdout
 
-i32(i32, Array<str>) main =
-    (i32 argc, Array<str> argv) => {
-        print("Hello, World!");
-        % We print "Hello, World!" in the console.
-        return (i32)(+0);
-        % We return from the function, with an i32 value.
-    };
+main: (_: String[]) -> I32 =
+    ("Hello, World") |> stdout@println
+    0
 
 (*
     This sample is not yet compilable.

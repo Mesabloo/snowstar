@@ -53,10 +53,5 @@ grammar/.antlr/*.*
 grammar/.antlr/*
 grammar/.antlr
 
-test/ir_test/*.*
-test/ir_test/*
-test/ir_test
-test/test.cold
-test/test10k.cold
-# test/*
-# test
+test/*.cold
+test
