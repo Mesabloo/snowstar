@@ -1,0 +1,12 @@
+[submodule "ext/antlr"]
+	path = ext/antlr
+	url = https://github.com/Kafe-lang/ANTLR4-CPP-runtime.git
+[submodule "ext/tiny_process_library"]
+	path = ext/tiny_process_library
+	url = http://gitlab.com/eidheim/tiny-process-library
+[submodule "ext/argh"]
+	path = ext/argh
+	url = https://github.com/adishavit/argh
+[submodule "ext/termcolor"]
+	path = ext/termcolor
+	url = https://github.com/ikalnytskyi/termcolor

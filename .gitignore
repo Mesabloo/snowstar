@@ -1,0 +1,62 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Special entry
+.vscode/*.*
+.vscode
+.vs/*.*
+.vs
+build/*.*
+build/*
+build
+CMakeSettings.json
+dist/*.*
+dist/*
+dist
+
+grammar/lib/antlr4/*.*
+grammar/lib/antlr4/*
+grammar/lib/antlr4
+grammar/lib
+
+grammar/.antlr/*.*
+grammar/.antlr/*
+grammar/.antlr
+
+test/ir_test/*.*
+test/ir_test/*
+test/ir_test
+test/test.cold
+test/test10k.cold
+# test/*
+# test
